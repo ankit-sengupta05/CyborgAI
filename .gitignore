@@ -1,0 +1,153 @@
+# =========================
+# 🔹 Existing (unchanged)
+# =========================
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+
+# =========================
+# 🔹 ADDED (Cyborg AI + Backend)
+# =========================
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.pyc.*
+
+# Virtual environments
+.env
+.env/
+.venv/
+venv/
+env/
+
+# Python build
+dist/
+*.egg-info/
+
+# =========================
+# 🔹 Cyborg AI (IMPORTANT)
+# =========================
+
+# Vector DB + indexes
+qdrant_data/
+bm25_indexes/
+cyborg_index/
+
+# Runtime files
+chat_log.txt
+cyborg_facts.json
+ingest_hashes.json
+
+# Staging (ADB / network files)
+~/.cyborg_staging/
+
+# AI models (VERY LARGE)
+models/
+*.bin
+*.pt
+*.pth
+*.safetensors
+
+# =========================
+# 🔹 Flutter extra (safe additions)
+# =========================
+.flutter-plugins
+
+# Platform build folders
+android/.gradle/
+android/app/build/
+ios/Pods/
+macos/Pods/
+linux/build/
+windows/build/
+
+# =========================
+# 🔹 Node (if used)
+# =========================
+node_modules/
+.next/
+.nuxt/
+*.tsbuildinfo
+
+# =========================
+# 🔹 OS / Temp
+# =========================
+Thumbs.db
+.metadata
+.cache/
+tmp/
+temp/
+
+# =========================
+# 🔐 Secrets (VERY IMPORTANT)
+# =========================
+
+# Env variants
+.env.local
+.env.production
+.env.development
+.env.staging
+
+# Google / Firebase Auth
+google-services.json
+GoogleService-Info.plist
+*google*.json
+*firebase*.json
+serviceAccountKey.json
+
+# Keys / certs
+*.pem
+*.key
+*.p12
+*.keystore
+*.jks
+*.secret
+
+# =========================
+# 🔹 Keep important files
+# =========================
+!.env.example
