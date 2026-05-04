@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  cyborg-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cyborg-backend
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    environment:
+      # App settings
+      - APP_NAME=Cyborg Backend
+      - DEBUG=false
+      - HOST=0.0.0.0
+      - PORT=8765
+      # LLM settings
+      - DEFAULT_MODEL=qwen2.5-coder-14b
+      - CONTEXT_LENGTH=4096
+      - N_GPU_LAYERS=-1
+      # Embeddings
+      - EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - EMBEDDING_DEVICE=cpu
+      # Features
+      - ENABLE_VOICE=true
+      - ENABLE_VISION=false
+      - ENABLE_WORLD_MONITOR=true
+      - OFFLINE_MODE=false
+      # Rate limiting
+      - RATE_LIMIT_PER_MINUTE=60
+      - RATE_LIMIT_PER_HOUR=1000
+    volumes:
+      # Persistent data storage
+      - cyborg-data:/app/data
+      - cyborg-models:/app/models
+      - cyborg-config:/app/config
+      # Optional: Mount local Firebase config
+      # - ./assets/backend/config/firebase-service-account.json:/app/config/firebase-service-account.json:ro
+    env_file:
+      - .env
+    networks:
+      - cyborg-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8765/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Resource limits (adjust based on your system)
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4G
+        reservations:
+          cpus: '2.0'
+          memory: 2G
+    # For GPU support (NVIDIA), uncomment the following:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+volumes:
+  cyborg-data:
+    driver: local
+  cyborg-models:
+    driver: local
+  cyborg-config:
+    driver: local
+
+networks:
+  cyborg-network:
+    driver: bridge

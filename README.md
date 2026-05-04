@@ -192,99 +192,101 @@ flutter run -d windows
 
 ## 🐳 Docker Containerization
 
-Cyborg can be containerized for consistent deployment across different environments. The Docker setup provides both GUI and headless modes.
+Cyborg can be containerized for consistent deployment across different environments. The Docker setup provides a production-ready backend service with persistent storage and health monitoring.
 
-### 📋 Prerequisites
+#### Prerequisites
 
 - Docker Desktop (Windows/Mac) or Docker Engine (Linux)
 - Docker Compose v2.0+
-- For GUI mode: X11 server (Linux) or VNC viewer
 
-### 🚀 Quick Start with Docker
+#### Quick Start with Docker
 
-#### Option 1: Build and Run with Docker Compose (Recommended)
+##### Option 1: Build and Run with Docker Compose (Recommended)
 
 ```bash
+# Copy the environment file and configure it
+cp .env.example .env
+# Edit .env with your Firebase credentials and settings
+
 # Build and start the container
 docker-compose up --build
 
-# Or run with GUI support (starts VNC viewer)
-docker-compose --profile gui up --build
+# Run in detached mode (background)
+docker-compose up -d --build
 ```
 
-#### Option 2: Manual Docker Commands
+##### Option 2: Manual Docker Commands
 
 ```bash
 # Build the image
-docker build -t cyborgai:latest .
+docker build -t cyborg-backend:latest .
 
-# Run with GUI support (Linux)
-export DISPLAY=:0
-docker run -it --rm \
-  -e DISPLAY=$DISPLAY \
-  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
-  -v cyborgai-data:/home/cyborg/.local/share \
-  -p 5900:5900 \
-  --name cyborgai \
-  cyborgai:latest
-
-# Run in headless mode (no GUI)
-docker run -it --rm \
-  -v cyborgai-data:/home/cyborg/.local/share \
-  -p 8080:80 \
-  --name cyborgai-headless \
-  cyborgai:latest
+# Run the container
+docker run -d \
+  --name cyborg-backend \
+  -p 8765:8765 \
+  -v cyborg-data:/app/data \
+  -v cyborg-models:/app/models \
+  -v cyborg-config:/app/config \
+  --env-file .env \
+  cyborg-backend:latest
 ```
 
-### 🔧 Configuration Options
+#### Configuration Options
 
-#### Environment Variables
+##### Environment Variables
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root by copying `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Then edit `.env` with your values:
 
 ```bash
 # Firebase Configuration
-FIREBASE_API_KEY=your_api_key
-FIREBASE_APP_ID=your_app_id
-FIREBASE_PROJECT_ID=your_project_id
-FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_SERVICE_ACCOUNT_PATH=config/firebase-service-account.json
 
-# Display Settings (for GUI mode)
-DISPLAY=:0
-QT_X11_NO_MITSHM=1
+# LLM Settings
+DEFAULT_MODEL=qwen2.5-coder-14b
+CONTEXT_LENGTH=4096
+N_GPU_LAYERS=-1
+
+# Embeddings
+EMBEDDING_MODEL=all-MiniLM-L6-v2
+EMBEDDING_DEVICE=cpu
+
+# Features
+ENABLE_VOICE=true
+ENABLE_WORLD_MONITOR=true
+OFFLINE_MODE=false
 ```
 
-Then load with Docker Compose:
-```bash
-docker-compose --env-file .env up --build
-```
-
-#### Volume Mounts
+##### Volume Mounts
 
 The Docker setup includes persistent volumes for:
-- **Application Data**: `cyborgai-data` volume stores user data and settings
-- **Logs**: `./docker-logs` directory on host maps to `/var/log` in container
-- **X11 Socket**: Required for GUI display on Linux
+- **Data Storage**: `cyborg-data` volume stores database and application data
+- **Models**: `cyborg-models` volume stores LLM models
+- **Configuration**: `cyborg-config` volume stores Firebase and other configs
 
-### 🖥️ Accessing the Application
+#### Accessing the Application
 
-#### GUI Mode
-1. **Direct Display** (Linux): The app window appears on your desktop
-2. **VNC Access**: Connect to `localhost:5900` with any VNC client
-3. **Web VNC**: Open `http://localhost:6080` in your browser (when using `--profile gui`)
+Once running, the backend API is available at:
+- **API Endpoint**: `http://localhost:8765`
+- **Health Check**: `http://localhost:8765/api/v1/health`
+- **API Documentation**: `http://localhost:8765/api/docs`
+- **ReDoc**: `http://localhost:8765/api/redoc`
 
-#### Headless Mode
-- **Web Version**: Access at `http://localhost:8080`
-- **API Only**: Use the backend endpoints directly
-
-### 🛠️ Advanced Docker Commands
+#### Advanced Docker Commands
 
 ```bash
 # View running containers
 docker-compose ps
 
 # View logs
-docker-compose logs -f cyborgai
+docker-compose logs -f cyborg-backend
 
 # Stop containers
 docker-compose down
@@ -295,59 +297,59 @@ docker-compose down -v
 # Rebuild without cache
 docker-compose build --no-cache
 
-# Scale for multiple instances (headless only)
-docker-compose up --scale cyborgai=3 -d
-
 # Execute commands inside container
-docker exec -it cyborgai-app bash
+docker exec -it cyborg-backend bash
 
 # Check container health
-docker inspect --format='{{.State.Health.Status}}' cyborgai-app
+docker inspect --format='{{.State.Health.Status}}' cyborg-backend
 ```
 
-### 📊 Resource Management
+#### GPU Support (NVIDIA)
+
+For GPU acceleration with CUDA support, uncomment the GPU section in `docker-compose.yml`:
+
+```yaml
+deploy:
+  resources:
+    reservations:
+      devices:
+        - driver: nvidia
+          count: all
+          capabilities: [gpu]
+```
+
+Then run with:
+```bash
+docker-compose up --build
+```
+
+Note: Requires NVIDIA Docker runtime and compatible GPU drivers.
+
+#### Resource Management
 
 The default configuration limits resources:
-- **CPU**: 2 cores max, 1 core reserved
-- **Memory**: 2GB max, 1GB reserved
+- **CPU**: 4 cores max, 2 cores reserved
+- **Memory**: 4GB max, 2GB reserved
 
 To customize, edit `docker-compose.yml`:
 ```yaml
 deploy:
   resources:
     limits:
-      cpus: '4.0'    # Increase CPU limit
-      memory: 4G     # Increase memory limit
+      cpus: '8.0'    # Increase CPU limit
+      memory: 8G     # Increase memory limit
 ```
 
-### 🔒 Security Considerations
+#### Security Considerations
 
 - Container runs as non-root user (`cyborg`, UID 1000)
-- X11 socket mounting requires trust (Linux only)
 - Sensitive data should be passed via environment variables, not baked into image
 - Enable Docker secrets for production deployments
+- Never commit `.env` file to version control
 
-### 🐛 Troubleshooting
+#### Troubleshooting
 
-#### GUI Not Showing
-```bash
-# Allow X11 connections (Linux)
-xhost +local:docker
-
-# Verify DISPLAY variable
-echo $DISPLAY
-
-# Check X11 socket is mounted
-ls -la /tmp/.X11-unix
-```
-
-#### Permission Issues
-```bash
-# Fix volume permissions
-docker run --rm -v cyborgai-data:/data alpine chown -R 1000:1000 /data
-```
-
-#### Build Failures
+##### Build Failures
 ```bash
 # Clear Docker cache
 docker builder prune -a
@@ -356,19 +358,22 @@ docker builder prune -a
 docker-compose build --no-cache --pull
 ```
 
-### 📦 Alternative: Web-Only Deployment
-
-For server deployments without GUI:
-
+##### Permission Issues
 ```bash
-# Build web version
-flutter build web --release
+# Fix volume permissions
+docker run --rm -v cyborg-data:/data alpine chown -R 1000:1000 /data
+```
 
-# Use nginx to serve
-docker run -d -p 80:80 \
-  -v $(pwd)/build/web:/usr/share/nginx/html \
-  --name cyborgai-web \
-  nginx:alpine
+##### Health Check Failing
+```bash
+# Check container logs
+docker-compose logs cyborg-backend
+
+# Verify the container is running
+docker-compose ps
+
+# Test health endpoint manually
+curl http://localhost:8765/api/v1/health
 ```
 
 ---
