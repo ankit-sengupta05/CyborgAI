@@ -1,118 +1,200 @@
-# 🚀 Automatic Deployment Guide
+# 🚀 Gemma 4 Frontend Deployment Guide
 
-## Quick Deploy (One Command)
+## ✅ What's Been Updated
 
-Open PowerShell in the `/workspace` directory and run:
+### Backend (Python) - All in `assets/backend/`
+- **Health Services**: `assets/backend/services/health/`
+  - `inference.py` - MedGemma 4B X-ray analysis
+  - `ehr_functions.py` - FHIR-compatible EHR function calling
+  - `prompts.py` - Medical prompt templates
+  
+- **Education Services**: `assets/backend/services/education/`
+  - `grader.py` - OCR homework grader with rubric support
+  - `quiz_generator.py` - Adaptive quiz generation
+  - `progress_tracker.py` - Student progress tracking
 
-```powershell
-powershell -ExecutionPolicy Bypass -File DEPLOY_AUTOMATIC.ps1
-```
+- **API Routes**: `assets/backend/api/routes/health_edu.py`
+  - `/api/v1/health/status` - Check health service status
+  - `/api/v1/health/analyze-xray` - Upload & analyze chest X-ray
+  - `/api/v1/health/ehr/query` - Query EHR data
+  - `/api/v1/education/status` - Check education service status
+  - `/api/v1/education/grade-homework` - Grade homework submission
+  - `/api/v1/education/generate-quiz` - Generate adaptive quiz
+  - `/api/v1/education/progress/{student_id}` - Get student progress
 
-This will automatically:
-1. ✅ Copy all Python backend services to your CyborgAI project
-2. ✅ Add new API routes for health & education
-3. ✅ Update `main.py` to register the new endpoints
-4. ✅ Deploy updated Flutter UI files (Windows & Android)
-5. ✅ Show you the next steps
+### Frontend (Flutter) - Ready to Deploy
+- **API Constants**: `lib/core/constants/api_constants.dart`
+- **Service Layer**: `lib/core/services/health_edu_service.dart`
+- **Windows UI**: `lib/screens/windows/home_screen.dart` (1,274 lines)
+  - Health Track sidebar navigation
+  - X-Ray Analysis panel with file upload & results display
+  - EHR Assistant panel
+  - Homework Grader panel with OCR upload
+  - Quiz Generator panel with adaptive questions
 
-## Manual Deployment (If Needed)
+## 📋 Deployment Steps
 
-### Step 1: Backend Services
-
-```powershell
-# Create directories
-New-Item -ItemType Directory -Force "C:\Users\ankit\Projects\Android\CyborgAI-main\assets\backend\services\health"
-New-Item -ItemType Directory -Force "C:\Users\ankit\Projects\Android\CyborgAI-main\assets\backend\services\education"
-
-# Copy service files
-Copy-Item ".\assets\backend\services\health\*" -Destination "C:\Users\ankit\Projects\Android\CyborgAI-main\assets\backend\services\health\" -Force
-Copy-Item ".\assets\backend\services\education\*" -Destination "C:\Users\ankit\Projects\Android\CyborgAI-main\assets\backend\services\education\"
-
-# Copy API route
-Copy-Item ".\assets\backend\api\routes\health_edu.py" -Destination "C:\Users\ankit\Projects\Android\CyborgAI-main\assets\backend\api\routes\" -Force
-```
-
-### Step 2: Update main.py
-
-Add this import to `C:\Users\ankit\Projects\Android\CyborgAI-main\assets\backend\main.py`:
-
-```python
-from api.routes import (
-    vault,
-    worldmonitor,
-    codeflow,
-    gsd_engine as gsd_engine_router,
-    ingest as ingest_router,
-    voice,
-    health_edu as health_edu_router,  # ← Add this line
-)
-```
-
-Add this router registration (around line 187):
-
-```python
-app.include_router(health_edu_router.router,   prefix="/api/v1", tags=["Health & Education"])
-```
-
-### Step 3: Frontend Files
+### Option A: PowerShell (Recommended for Windows)
 
 ```powershell
-# Windows Desktop
-Copy-Item ".\lib\screens\windows\home_screen.dart" -Destination "C:\Users\ankit\Projects\Android\CyborgAI-main\lib\screens\windows\home_screen.dart" -Force
+# Run the deployment script
+.\DEPLOY_WINDOWS_FRONTEND.ps1
 
-# Android Mobile
-Copy-Item ".\lib\screens\android\home_screen.dart" -Destination "C:\Users\ankit\Projects\Android\CyborgAI-main\lib\screens\android\home_screen.dart" -Force
-```
-
-### Step 4: Restart App
-
-```powershell
+# Then navigate to your project and run
 cd C:\Users\ankit\Projects\Android\CyborgAI-main
 flutter clean
 flutter run -d windows
 ```
 
-## New Features Available
+### Option B: Manual Copy
 
-### Health Track
-- **X-Ray Analysis** - Upload chest X-rays for AI-powered analysis
-- **EHR Assistant** - Query and update electronic health records
+Copy these 3 files to your Flutter project:
 
-### Education Track  
-- **Homework Grader** - OCR-based homework evaluation with rubrics
-- **Quiz Generator** - Adaptive quizzes with cultural relevance
+1. **API Constants**
+   ```
+   From: /workspace/lib/core/constants/api_constants.dart
+   To:   C:\Users\ankit\Projects\Android\CyborgAI-main\lib\core\constants\api_constants.dart
+   ```
 
-Both support English, Spanish, and Hindi languages.
+2. **HealthEdu Service**
+   ```
+   From: /workspace/lib/core/services/health_edu_service.dart
+   To:   C:\Users\ankit\Projects\Android\CyborgAI-main\lib\core\services\health_edu_service.dart
+   ```
 
-## API Endpoints
+3. **Windows Home Screen**
+   ```
+   From: /workspace/lib/screens/windows/home_screen.dart
+   To:   C:\Users\ankit\Projects\Android\CyborgAI-main\lib\screens\windows\home_screen.dart
+   ```
 
-After deployment, these endpoints will be available:
-
+Then run:
+```bash
+cd C:\Users\ankit\Projects\Android\CyborgAI-main
+flutter clean
+flutter run -d windows
 ```
-GET  /api/v1/health/status
-POST /api/v1/health/analyze-xray
-POST /api/v1/health/ehr/query
-POST /api/v1/health/ehr/update
 
-GET  /api/v1/education/status
-POST /api/v1/education/grade-homework
-POST /api/v1/education/generate-quiz
-GET  /api/v1/education/progress/{student_id}
-POST /api/v1/education/track-submission
+## 🎯 What You'll See
+
+### Desktop Sidebar Navigation
+```
+├── Neural Interface
+├── Devices
+├── GPU
+├── Vector DB
+│
+├── 🏥 Health Track (Category)
+│   ├── X-Ray Analysis
+│   └── EHR Assistant
+│
+├── 📚 Education Track (Category)
+│   ├── Homework Grader
+│   └── Quiz Generator
+│
+└── Logs
 ```
 
-## Troubleshooting
+### X-Ray Analysis Panel
+1. Click "UPLOAD X-RAY" button
+2. Select chest X-ray image (PNG/JPG)
+3. View analysis results:
+   - Findings with confidence score
+   - Plain-language explanation
+   - Recommendations
+   - Medical disclaimer
 
-**Backend won't start:**
-- Check that all Python files were copied correctly
-- Verify `main.py` has the new import and router registration
-- Look for import errors in the backend logs
+### Homework Grader Panel
+1. Click "UPLOAD HOMEWORK" button
+2. Select homework image
+3. View grading results:
+   - Score percentage
+   - Subject & grade level
+   - Detailed feedback
 
-**Frontend doesn't show new options:**
-- Run `flutter clean` before restarting
-- Make sure both `home_screen.dart` files were updated
-- Hot reload may not be enough - do a full restart
+### Quiz Generator Panel
+1. Click "GENERATE QUIZ" button
+2. View generated quiz:
+   - Topic & grade level
+   - Number of questions
+   - Sample questions preview
 
-**Import errors:**
-- Ensure you're running from the correct directory
-- Check file paths match your actual project structure
+## 🔧 Backend Requirements
+
+Make sure your backend has the required models:
+
+```bash
+# In assets/backend/models/llm/
+- Qwen2.5-1.5B-Instruct-Q4_K_M.gguf (already present)
+
+# For full Gemma 4 features, download:
+- medgemma-4b-q4_k_m.gguf (for X-ray analysis)
+- gemma-2-2b-it-q4_k_m.gguf (for education features)
+```
+
+Download models from Hugging Face:
+```bash
+huggingface-cli download google/gemma-2-2b-it-gguf --local-dir assets/backend/models/llm/
+```
+
+## 🧪 Testing the Features
+
+### Test X-Ray Analysis
+1. Run the app: `flutter run -d windows`
+2. Navigate to "X-Ray Analysis" in sidebar
+3. Upload a chest X-ray image (sample images available online)
+4. Wait for analysis (5-30 seconds depending on model size)
+5. View structured results with confidence scores
+
+### Test Homework Grader
+1. Navigate to "Homework Grader"
+2. Upload any handwritten math/science homework
+3. View OCR results and automated grading
+4. Supports English, Spanish, Hindi
+
+### Test Quiz Generator
+1. Navigate to "Quiz Generator"
+2. Click generate (pre-configured for Algebra, Grade 10)
+3. View adaptive quiz with cultural relevance
+4. Questions adjust based on difficulty
+
+## 📝 API Documentation
+
+Full API docs available at: http://127.0.0.1:8765/api/docs
+
+Key endpoints:
+- `GET /api/v1/health/status`
+- `POST /api/v1/health/analyze-xray`
+- `POST /api/v1/health/ehr/query`
+- `GET /api/v1/education/status`
+- `POST /api/v1/education/grade-homework`
+- `POST /api/v1/education/generate-quiz`
+
+## ⚠️ Important Notes
+
+1. **Medical Disclaimer**: X-ray analysis is for educational purposes only, NOT diagnosis
+2. **Offline First**: All processing happens locally on your machine
+3. **GPU Acceleration**: CUDA 13.2 detected - models will use your RTX 5060
+4. **Multi-language**: Supports English (en), Spanish (es), Hindi (hi)
+
+## 🐛 Troubleshooting
+
+### "Health services not available"
+- Ensure backend is running: check logs for `[OK] All services ready`
+- Verify models are downloaded in `assets/backend/models/llm/`
+
+### File picker not opening
+- Check `file_picker` package is in `pubspec.yaml`
+- Run `flutter pub get`
+
+### Analysis taking too long
+- First run downloads model weights (one-time)
+- Subsequent runs should be 5-30 seconds
+- Check GPU utilization in Task Manager
+
+## 📞 Support
+
+For issues or questions:
+1. Check backend logs in terminal
+2. Verify API endpoints at http://127.0.0.1:8765/api/docs
+3. Review PRD v18.0 for feature specifications

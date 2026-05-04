@@ -61,4 +61,18 @@ class ApiConstants {
   // Voice
   static const String voiceListen    = 'voice/listen';
   static const String voiceVoices    = 'voice/voices';
+  
+  // Health & Education (Gemma 4)
+  static const String healthStatus      = 'health/status';
+  static const String healthAnalyzeXray = 'health/analyze-xray';
+  static const String healthEHRQuery    = 'health/ehr/query';
+  static const String healthEHRUpdate   = 'health/ehr/update';
+  static const String healthDemoConfig  = 'health/demo-config';
+  
+  static const String educationStatus        = 'education/status';
+  static const String educationGradeHomework = 'education/grade-homework';
+  static const String educationGenerateQuiz  = 'education/generate-quiz';
+  static const String educationProgress      = 'education/progress';
+  static const String educationTrackSubmission = 'education/track-submission';
+  static const String educationDemoConfig    = 'education/demo-config';
 }
