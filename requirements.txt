@@ -484,3 +484,20 @@ yarl==1.22.0
 yt-dlp==2026.3.17
 zipp==3.23.0
 zstandard==0.25.0
+
+# Gemma 4 & Multimodal (PRD v18.0 additions)
+# unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git  # Uncomment for fine-tuning
+peft>=0.10.0  # LoRA adapters
+timm>=0.9.16  # Vision models
+
+# Medical Imaging
+pydicom>=2.4.0  # DICOM support
+medmnist>=3.0.2  # Benchmark datasets
+
+# Edge Deployment
+ollama>=0.1.0  # Python client for local LLM inference
+gguf>=0.1.0  # Model format utilities
+
+# Demo & Testing
+gradio>=4.26.0
+pytest-benchmark>=4.0.0

@@ -1,112 +1,45 @@
-<<<<<<< dockerize-and-update-readme-1109a
 ```
-# Python
+# Dependencies
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# Environment variables
+.Python
+venv/
+.venv/
 .env
 .env.local
-.env.*
+*.env.*
+
+# Build and distribution artifacts
+build/
+dist/
+*.egg-info/
 
 # Logs
 *.log
 
-# Temporary files
-*.tmp
-*.swp
-*~
-
-# Coverage reports
-coverage/
-htmlcov/
-.coverage
-
-# IDE specific
-.vscode/
-.idea/
-
-# Build artifacts
-dist/
-build/
-*.egg-info/
-```
-=======
-# ─── Secrets & Config (NEVER commit) ─────────────────────────────────────────
-.env
-*.env
-*.json
-!pubspec.json
-!package.json
-firebase-service-account.json
-google-services.json
-GoogleService-Info.plist
-firebase_options.dart
-*.pem
-*.key
-*.p12
-*.pfx
-node_modules/
-
-# ─── Python ───────────────────────────────────────────────────────────────────
-.venv/
-venv/
-env/
-__pycache__/
-**/__pycache__/
-*.pyc
-*.pyo
-*.egg-info/
-dist/
-.pytest_cache/
-.cache/
-.ruff_cache/
-
-# ─── Data & Models (large files) ─────────────────────────────────────────────
-assets/backend/brain/
-data/
-**/data/
-models/
-**/models/
-checkpoints/
-**/checkpoints/
-logs/
-**/logs/
-cache/
-**/cache/
-external/
-**/external/
-*.gguf
-*.bin
-*.litertlm
-*.tflite
-*.task
-*.onnx
-*.weights
-*.h5
-*.db
-*.sqlite
-
-# ─── Flutter ──────────────────────────────────────────────────────────────────
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-build/
-pubspec.lock
-.packages
-.pub-cache/
-
-# ─── IDE ──────────────────────────────────────────────────────────────────────
-.idea/
-.vscode/
-*.swp
-*.swo
+# OS generated files
 .DS_Store
 Thumbs.db
 
-# ─── OS ───────────────────────────────────────────────────────────────────────
-.DS_Store
-desktop.ini
->>>>>>> main
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# Coverage
+.coverage
+coverage/
+htmlcov/
+
+# Python specific
+*.py[cod]
+*$py.class
+*$py.o
+*$py.d
+*.so
+.Python
+```
