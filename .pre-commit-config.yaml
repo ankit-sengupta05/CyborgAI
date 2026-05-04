@@ -57,7 +57,7 @@ repos:
           .*\.json|.*\.yaml|.*\.yml|
           .*\.env.*|.*\.gitignore|
           .*\.css|.*\.scss|.*\.html|
-          ios/.*|macos/.*
+          ios/.*|macos/.*|windows/.*
         )$
 
     - id: check-requirements

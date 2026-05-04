@@ -69,55 +69,55 @@ docker_login() {
 
 docker_build() {
     log_info "Building Docker image: $FULL_IMAGE_NAME"
-    
+
     # Build the image
     docker build -t $FULL_IMAGE_NAME .
-    
+
     # Also tag as latest if not already
     if [ "$TAG" != "latest" ]; then
         log_info "Also tagging as latest: $DOCKER_USER/$IMAGE_NAME:latest"
         docker tag $FULL_IMAGE_NAME $DOCKER_USER/$IMAGE_NAME:latest
     fi
-    
+
     log_info "Build complete!"
     log_info "Image ID: $(docker images -q $FULL_IMAGE_NAME)"
 }
 
 docker_push() {
     log_info "Pushing image to Docker Hub: $FULL_IMAGE_NAME"
-    
+
     # Check if logged in
     if ! docker info 2>/dev/null | grep -q "Username"; then
         log_warn "Not logged in to Docker Hub. Attempting to login..."
         docker_login
     fi
-    
+
     # Push specific tag
     docker push $FULL_IMAGE_NAME
-    
+
     # Push latest tag if applicable
     if [ "$TAG" != "latest" ]; then
         log_info "Pushing latest tag..."
         docker push $DOCKER_USER/$IMAGE_NAME:latest
     fi
-    
+
     log_info "Push complete! Image available at: https://hub.docker.com/r/$DOCKER_USER/$IMAGE_NAME"
 }
 
 docker_deploy() {
     log_info "Deploying from Docker Hub..."
-    
+
     # Stop existing container if running
     if docker ps -q --filter "name=cyborg-backend" | grep -q .; then
         log_warn "Stopping existing container..."
         docker stop cyborg-backend || true
         docker rm cyborg-backend || true
     fi
-    
+
     # Pull latest image
     log_info "Pulling image: $FULL_IMAGE_NAME"
     docker pull $FULL_IMAGE_NAME
-    
+
     # Run container
     log_info "Starting container..."
     docker run -d \
@@ -128,7 +128,7 @@ docker_deploy() {
         -v cyborg-data:/app/data \
         -v cyborg-models:/app/models \
         $FULL_IMAGE_NAME
-    
+
     log_info "Deployment complete!"
     log_info "Container status: $(docker ps --filter "name=cyborg-backend" --format "{{.Status}}")"
     log_info "Access API at: http://localhost:8765"
