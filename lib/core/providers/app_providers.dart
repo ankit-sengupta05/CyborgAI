@@ -9,6 +9,7 @@ import 'package:dio/dio.dart';
 import '../constants/api_constants.dart';
 import '../services/api_service.dart';
 import '../../features/mirofish/providers/app_provider.dart' as mf;
+import 'package:hive_flutter/hive_flutter.dart';
 
 // ── MiroFish (Persistence) ───────────────────────────────────────────────────
 final miroFishProvider = Provider<mf.AppProvider>((ref) {

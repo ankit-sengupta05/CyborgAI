@@ -86,6 +86,7 @@ class GraphState {
   final List<int> hiddenCommunities;
   final String activeSource;
   final String? error;
+  final bool initialized;
   final bool showLabels;
   final double repelForce;
   final double centerForce;
@@ -716,6 +717,13 @@ class _NodeLayout {
         vy = 0;
 }
 
+class _GraphCanvas extends StatefulWidget {
+  final List<KGNode> nodes;
+  final List<KGEdge> edges;
+  final String search;
+  final List<int> hiddenCommunities;
+  final void Function(String?) onNodeTap;
+  final String? selectedId;
   final bool showLabels;
   final double repelForce;
   final double centerForce;
@@ -737,6 +745,7 @@ class _NodeLayout {
     required this.linkThickness,
     required this.showArrows,
   });
+
   @override
   State<_GraphCanvas> createState() => _GraphCanvasState();
 }
@@ -999,6 +1008,14 @@ class _GraphCanvasState extends State<_GraphCanvas>
       (math.sqrt(node.degree.toDouble()) * 2 + 4).clamp(5, 22);
 }
 
+class _ObsidianPainter extends CustomPainter {
+  final List<_NodeLayout> layouts;
+  final List<KGEdge> edges;
+  final List<int> hiddenCommunities;
+  final String searchLower;
+  final String? selectedId, hoveredId;
+  final double scale;
+  final Offset pan;
   final bool showLabels;
   final double nodeSize;
   final double linkThickness;
@@ -1165,7 +1182,7 @@ class _GraphCanvasState extends State<_GraphCanvas>
   }
 
   @override
-  bool shouldRepaint(covariant _ObsidianPainter oldDelegate) => true;
+  bool shouldRepaint(CustomPainter oldDelegate) => true;
 }
 
 // ── Floating Info Tab (Mirofish-style Reskinned) ──────────────────────────────
