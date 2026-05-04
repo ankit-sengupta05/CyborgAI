@@ -1,75 +1,64 @@
 ```
-# Build artifacts
-*.o
-*.obj
-*.a
-*.so
-*.dll
-*.exe
-*.class
-*.pyc
-__pycache__/
-*.pyo
-*.pyd
-*.jar
-*.war
-*.zip
-*.tar.gz
-*.tar.xz
-*.tar.bz2
+# Docker related
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Environment
+.env
+.env.local
+.env.*
+
+# Editors
+.vscode/
+.idea/
 
 # Dependencies
 node_modules/
 venv/
 .venv/
-.env
-.env.local
-.env.*
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+dist/
+build/
+target/
+.gradle/
 
-# Logs and temp files
-*.log
-*.tmp
-*.swp
-*.swo
-*.bak
-*.~*
+# System files
 .DS_Store
 Thumbs.db
 
-# Coverage reports
+# Coverage
 coverage/
 htmlcov/
 .coverage
 
-# IDE specific
-.vscode/
-.idea/
-*.iml
-*.ipr
-*.iws
-*.sw?
-.settings/
-
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
-MANIFEST
-
-# Testing
-.pytest_cache/
-.mypy_cache/
-.nyc_output/
-coverage.xml
-*.gcda
-*.gcno
-
-# OS generated
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# Compressed files
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
 ```

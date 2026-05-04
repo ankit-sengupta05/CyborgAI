@@ -190,6 +190,189 @@ flutter run -d windows
 
 ---
 
+## 🐳 Docker Containerization
+
+Cyborg can be containerized for consistent deployment across different environments. The Docker setup provides both GUI and headless modes.
+
+### 📋 Prerequisites
+
+- Docker Desktop (Windows/Mac) or Docker Engine (Linux)
+- Docker Compose v2.0+
+- For GUI mode: X11 server (Linux) or VNC viewer
+
+### 🚀 Quick Start with Docker
+
+#### Option 1: Build and Run with Docker Compose (Recommended)
+
+```bash
+# Build and start the container
+docker-compose up --build
+
+# Or run with GUI support (starts VNC viewer)
+docker-compose --profile gui up --build
+```
+
+#### Option 2: Manual Docker Commands
+
+```bash
+# Build the image
+docker build -t cyborgai:latest .
+
+# Run with GUI support (Linux)
+export DISPLAY=:0
+docker run -it --rm \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+  -v cyborgai-data:/home/cyborg/.local/share \
+  -p 5900:5900 \
+  --name cyborgai \
+  cyborgai:latest
+
+# Run in headless mode (no GUI)
+docker run -it --rm \
+  -v cyborgai-data:/home/cyborg/.local/share \
+  -p 8080:80 \
+  --name cyborgai-headless \
+  cyborgai:latest
+```
+
+### 🔧 Configuration Options
+
+#### Environment Variables
+
+Create a `.env` file in the project root:
+
+```bash
+# Firebase Configuration
+FIREBASE_API_KEY=your_api_key
+FIREBASE_APP_ID=your_app_id
+FIREBASE_PROJECT_ID=your_project_id
+FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+
+# Display Settings (for GUI mode)
+DISPLAY=:0
+QT_X11_NO_MITSHM=1
+```
+
+Then load with Docker Compose:
+```bash
+docker-compose --env-file .env up --build
+```
+
+#### Volume Mounts
+
+The Docker setup includes persistent volumes for:
+- **Application Data**: `cyborgai-data` volume stores user data and settings
+- **Logs**: `./docker-logs` directory on host maps to `/var/log` in container
+- **X11 Socket**: Required for GUI display on Linux
+
+### 🖥️ Accessing the Application
+
+#### GUI Mode
+1. **Direct Display** (Linux): The app window appears on your desktop
+2. **VNC Access**: Connect to `localhost:5900` with any VNC client
+3. **Web VNC**: Open `http://localhost:6080` in your browser (when using `--profile gui`)
+
+#### Headless Mode
+- **Web Version**: Access at `http://localhost:8080`
+- **API Only**: Use the backend endpoints directly
+
+### 🛠️ Advanced Docker Commands
+
+```bash
+# View running containers
+docker-compose ps
+
+# View logs
+docker-compose logs -f cyborgai
+
+# Stop containers
+docker-compose down
+
+# Stop and remove volumes (⚠️ deletes data)
+docker-compose down -v
+
+# Rebuild without cache
+docker-compose build --no-cache
+
+# Scale for multiple instances (headless only)
+docker-compose up --scale cyborgai=3 -d
+
+# Execute commands inside container
+docker exec -it cyborgai-app bash
+
+# Check container health
+docker inspect --format='{{.State.Health.Status}}' cyborgai-app
+```
+
+### 📊 Resource Management
+
+The default configuration limits resources:
+- **CPU**: 2 cores max, 1 core reserved
+- **Memory**: 2GB max, 1GB reserved
+
+To customize, edit `docker-compose.yml`:
+```yaml
+deploy:
+  resources:
+    limits:
+      cpus: '4.0'    # Increase CPU limit
+      memory: 4G     # Increase memory limit
+```
+
+### 🔒 Security Considerations
+
+- Container runs as non-root user (`cyborg`, UID 1000)
+- X11 socket mounting requires trust (Linux only)
+- Sensitive data should be passed via environment variables, not baked into image
+- Enable Docker secrets for production deployments
+
+### 🐛 Troubleshooting
+
+#### GUI Not Showing
+```bash
+# Allow X11 connections (Linux)
+xhost +local:docker
+
+# Verify DISPLAY variable
+echo $DISPLAY
+
+# Check X11 socket is mounted
+ls -la /tmp/.X11-unix
+```
+
+#### Permission Issues
+```bash
+# Fix volume permissions
+docker run --rm -v cyborgai-data:/data alpine chown -R 1000:1000 /data
+```
+
+#### Build Failures
+```bash
+# Clear Docker cache
+docker builder prune -a
+
+# Rebuild from scratch
+docker-compose build --no-cache --pull
+```
+
+### 📦 Alternative: Web-Only Deployment
+
+For server deployments without GUI:
+
+```bash
+# Build web version
+flutter build web --release
+
+# Use nginx to serve
+docker run -d -p 80:80 \
+  -v $(pwd)/build/web:/usr/share/nginx/html \
+  --name cyborgai-web \
+  nginx:alpine
+```
+
+---
+
 ## 🛠️ Installation & Windows Optimization
 
 ### 🐍 Backend (Python 3.10+)
