@@ -40,6 +40,7 @@ from api.routes import (
     gsd_engine as gsd_engine_router,
     ingest as ingest_router,
     voice,
+    health_edu as health_edu_router,
 )
 from api.middleware.auth import FirebaseAuthMiddleware
 from services.database import init_db
@@ -183,6 +184,7 @@ def create_app() -> FastAPI:
     app.include_router(codeflow.router,           prefix="/api/v1/codeflow",    tags=["CodeFlow"])
     app.include_router(ingest_router.router,       prefix="/api/v1/ingest",       tags=["Ingest"])
     app.include_router(voice.router,               prefix="/api/v1/voice",        tags=["Voice"])
+    app.include_router(health_edu_router.router,   prefix="/api/v1",              tags=["Health & Education"])
 
     @app.get("/api/v1/health")
     async def health():
