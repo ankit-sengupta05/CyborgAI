@@ -27,6 +27,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   double _progress = 0.0;
   double _displayProgress = 0.0; // smoothly animated
   String _statusText = 'Initializing Cyborg…';
+  int _statusUpdateCount = 0;
   String _currentDetails = '';
   bool _isError = false;
   final List<_LogLine> _logLines = [];
@@ -103,7 +104,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void _onProgress(BackendProgress evt) {
     if (!mounted) return;
     setState(() {
-      _statusText = evt.message;
+      if (_statusText != evt.message) {
+        _statusText = evt.message;
+        _statusUpdateCount++;
+      }
       _currentDetails = evt.details;
       _isError = evt.status == BackendStatus.error;
       _progress = evt.progress;
@@ -117,7 +121,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void _addStep(String msg, double prog) {
     if (!mounted) return;
     setState(() {
-      _statusText = msg;
+      if (_statusText != msg) {
+        _statusText = msg;
+        _statusUpdateCount++;
+      }
       _progress = prog;
       _logLines.add(_LogLine(msg, false));
       if (_logLines.length > 6) _logLines.removeAt(0);
@@ -129,7 +136,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void _setError(String msg) {
     if (!mounted) return;
     setState(() {
-      _statusText = msg;
+      if (_statusText != msg) {
+        _statusText = msg;
+        _statusUpdateCount++;
+      }
       _isError = true;
       _logLines.add(_LogLine(msg, true));
     });
@@ -220,7 +230,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           duration: const Duration(milliseconds: 250),
                           child: Text(
                             _statusText,
-                            key: ValueKey(_statusText),
+                            key: ValueKey('$_statusText-$_statusUpdateCount'),
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: _isError

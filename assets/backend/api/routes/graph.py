@@ -111,8 +111,15 @@ async def get_full_graph(request: Request):
     }
 
 
-@router.delete("/clear")
-async def clear_graph(request: Request):
+@router.post("/detect_communities")
+async def detect_communities(request: Request):
     svc: GraphService = request.app.state.graph_service
-    await svc.clear_graph()
+    # This is an internal method, but we can expose it via the service
+    await svc._detect_communities()
+    return {"status": "ok", "message": "Community detection complete"}
+
+@router.delete("/clear")
+async def clear_graph(request: Request, keep_initial: bool = False):
+    svc: GraphService = request.app.state.graph_service
+    await svc.clear_graph(keep_initial=keep_initial)
     return {"status": "ok", "message": "Knowledge graph cleared"}

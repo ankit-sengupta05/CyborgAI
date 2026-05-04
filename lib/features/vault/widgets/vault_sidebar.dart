@@ -107,7 +107,10 @@ class _SharedFolderList extends StatelessWidget {
             'daily': Icons.today_outlined,
             'knowledge': Icons.psychology_outlined,
             'code': Icons.code_outlined,
-            'agents': Icons.smart_toy_outlined
+            'agents': Icons.smart_toy_outlined,
+            'atlas': Icons.auto_awesome_mosaic_outlined,
+            'calendar': Icons.calendar_month_outlined,
+            'efforts': Icons.assignment_outlined,
           };
           final icon = icons[f['key']] ?? Icons.folder_outlined;
           return ListTile(

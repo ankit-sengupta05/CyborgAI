@@ -86,6 +86,7 @@ class GraphState {
   final String activeSource;
   final String? error;
   final bool initialized;
+  final bool showLabels;
   const GraphState(
       {this.nodes = const [],
       this.edges = const [],
@@ -97,7 +98,8 @@ class GraphState {
       this.hiddenCommunities = const [],
       this.activeSource = 'vault',
       this.error,
-      this.initialized = false});
+      this.initialized = false,
+      this.showLabels = true});
   GraphState copyWith(
           {List<KGNode>? nodes,
           List<KGEdge>? edges,
@@ -109,7 +111,8 @@ class GraphState {
           List<int>? hiddenCommunities,
           String? activeSource,
           String? error,
-          bool? initialized}) =>
+          bool? initialized,
+          bool? showLabels}) =>
       GraphState(
           nodes: nodes ?? this.nodes,
           edges: edges ?? this.edges,
@@ -121,7 +124,8 @@ class GraphState {
           hiddenCommunities: hiddenCommunities ?? this.hiddenCommunities,
           activeSource: activeSource ?? this.activeSource,
           error: error,
-          initialized: initialized ?? this.initialized);
+          initialized: initialized ?? this.initialized,
+          showLabels: showLabels ?? this.showLabels);
 }
 
 class GraphNotifier extends StateNotifier<GraphState> {
@@ -226,13 +230,14 @@ class GraphNotifier extends StateNotifier<GraphState> {
     state = state.copyWith(hiddenCommunities: h);
   }
 
-  Future<void> clearGraph() async {
+  Future<void> clearGraph({bool keepInitial = false}) async {
     try {
-      await _dio.delete('/api/v1/graph/clear');
-      state = state
-          .copyWith(nodes: [], edges: [], selectedId: null, initialized: true);
+      await _dio.delete('graph/clear', queryParameters: {'keep_initial': keepInitial.toString()});
+      await load(source: state.activeSource);
     } catch (_) {}
   }
+
+  void toggleLabels() => state = state.copyWith(showLabels: !state.showLabels);
 }
 
 final graphProvider = StateNotifierProvider<GraphNotifier, GraphState>(
@@ -387,6 +392,19 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
                   IconButton(
                       icon: const Icon(Icons.refresh, size: 18),
                       onPressed: () => n.load(source: s.activeSource)),
+                  const SizedBox(width: 8),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.label_outline, size: 16, color: AppColors.textMuted),
+                    const SizedBox(width: 4),
+                    Transform.scale(
+                      scale: 0.7,
+                      child: Switch(
+                        value: s.showLabels,
+                        onChanged: (_) => n.toggleLabels(),
+                        activeColor: AppColors.accent,
+                      ),
+                    ),
+                  ]),
                 ]),
         );
       }),
@@ -415,20 +433,21 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
                                 style:
                                     TextStyle(color: AppColors.textSecondary))
                           ]))
-                    : s.error != null
-                        ? _ErrorGraph(
-                            message: s.error!,
-                            onRetry: () => n.load(source: s.activeSource))
-                        : s.nodes.isEmpty
-                            ? _EmptyGraph(
-                                onIngest: () => _showIngest(context, n))
-                            : _GraphCanvas(
-                                nodes: s.nodes,
-                                edges: s.edges,
-                                search: s.search,
-                                hiddenCommunities: s.hiddenCommunities,
-                                onNodeTap: n.select,
-                                selectedId: s.selectedId)),
+                            : Stack(children: [
+                                _GraphCanvas(
+                                    nodes: s.nodes,
+                                    edges: s.edges,
+                                    search: s.search,
+                                    hiddenCommunities: s.hiddenCommunities,
+                                    onNodeTap: n.select,
+                                    selectedId: s.selectedId,
+                                    showLabels: s.showLabels),
+                                if (selected != null)
+                                  _FloatingNodeInfo(
+                                    node: selected,
+                                    onClose: () => n.select(null),
+                                  ),
+                              ])),
         Container(
             width: 220,
             decoration: const BoxDecoration(
@@ -539,11 +558,17 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
                 TextButton(
                     onPressed: () => Navigator.pop(dialogCtx),
                     child: const Text('Cancel')),
+                TextButton(
+                    onPressed: () {
+                      n.clearGraph(keepInitial: true);
+                      Navigator.pop(dialogCtx);
+                    },
+                    child: const Text('Keep Initial')),
                 ElevatedButton(
                     style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accentRed),
                     onPressed: () {
-                      n.clearGraph();
+                      n.clearGraph(keepInitial: false);
                       Navigator.pop(dialogCtx);
                     },
                     child: const Text('Clear All')),
@@ -654,13 +679,15 @@ class _GraphCanvas extends StatefulWidget {
   final List<int> hiddenCommunities;
   final void Function(String?) onNodeTap;
   final String? selectedId;
+  final bool showLabels;
   const _GraphCanvas(
       {required this.nodes,
       required this.edges,
       required this.search,
       required this.hiddenCommunities,
       required this.onNodeTap,
-      this.selectedId});
+      this.selectedId,
+      this.showLabels = true});
   @override
   State<_GraphCanvas> createState() => _GraphCanvasState();
 }
@@ -675,6 +702,7 @@ class _GraphCanvasState extends State<_GraphCanvas>
   Offset? _panStartPan;
   bool _settled = false;
   String? _hoveredId;
+  Offset? _mousePos; // For repel effect
   int _ticks = 0;
   double _startScale = 1.0;
 
@@ -732,7 +760,6 @@ class _GraphCanvasState extends State<_GraphCanvas>
 
   void _tick() {
     if (_settled && _draggedNode == null) return;
-    const k = 80.0;
     final alpha = math.max(0.001, 0.3 * math.exp(-_ticks * 0.03));
     _ticks++;
     if (alpha < 0.005 && _draggedNode == null) {
@@ -745,60 +772,90 @@ class _GraphCanvasState extends State<_GraphCanvas>
       for (var l in _layouts) l.node.id: l
     };
 
+    // Physics Parameters (Mirofish-inspired, spread out)
+    final repelStrength = -4500.0; // Increased for better spacing
+    final clusterRepelStrength = -2500.0; // Extra push between different communities
+    final linkStrength = 0.15;
+    final idealLinkDist = 140.0; // Spaced out
+    final centerStrength = 0.03;
+    final mouseRepelStrength = -3500.0;
+
     for (var i = 0; i < _layouts.length; i++) {
       final a = _layouts[i];
       if (a == _draggedNode) continue;
 
-      // Scale repulsion based on node count to prevent "node explosion"
-      final repulsionK =
-          (k * k) / math.sqrt(widget.nodes.length).clamp(1.0, 50.0);
+      // Mouse Repel
+      if (_mousePos != null) {
+        final canvasMouse = (_mousePos! - _pan) / _scale;
+        final mdx = canvasMouse.dx - a.x, mdy = canvasMouse.dy - a.y;
+        final mdistSq = mdx * mdx + mdy * mdy;
+        if (mdistSq < 180 * 180 && mdistSq > 1) {
+          final mforce = (mouseRepelStrength / mdistSq) * alpha * 2.5;
+          a.vx += (mdx / math.sqrt(mdistSq)) * mforce;
+          a.vy += (mdy / math.sqrt(mdistSq)) * mforce;
+          _settled = false;
+        }
+      }
 
-      final end = math.min(_layouts.length, i + 100);
-      for (var j = i + 1; j < end; j++) {
+      for (var j = i + 1; j < _layouts.length; j++) {
         final b = _layouts[j];
-        final dx = a.x - b.x, dy = a.y - b.y;
+        final dx = b.x - a.x, dy = b.y - a.y;
         final distSq = dx * dx + dy * dy;
-        final dist = math.sqrt(distSq).clamp(1.0, 1000.0);
-        final force = math.min(repulsionK / dist, 300.0) * alpha;
-        a.vx += dx / dist * force;
-        a.vy += dy / dist * force;
-        b.vx -= dx / dist * force;
-        b.vy -= dy / dist * force;
+        if (distSq < 1) continue;
+        if (distSq > 600 * 600) continue; 
+
+        double force = (repelStrength / distSq) * alpha;
+        
+        // Cluster Spacing Enhancement
+        if (a.node.community != b.node.community) {
+          force += (clusterRepelStrength / distSq) * alpha;
+        }
+
+        final fx = (dx / math.sqrt(distSq)) * force;
+        final fy = (dy / math.sqrt(distSq)) * force;
+        
+        a.vx += fx;
+        a.vy += fy;
+        b.vx -= fx;
+        b.vy -= fy;
       }
     }
+
     for (final edge in widget.edges) {
       final a = byId[edge.source], b = byId[edge.target];
       if (a == null || b == null) continue;
       final dx = b.x - a.x, dy = b.y - a.y;
-      final dist = math.sqrt(dx * dx + dy * dy).clamp(1.0, 1000.0);
-      final force = math.min((dist * dist) / k, 500.0) * alpha * 0.5;
+      final dist = math.sqrt(dx * dx + dy * dy);
+      if (dist < 1) continue;
+
+      final force = (dist - idealLinkDist) * linkStrength * alpha;
+      final fx = (dx / dist) * force;
+      final fy = (dy / dist) * force;
+
       if (a != _draggedNode) {
-        a.vx += dx / dist * force;
-        a.vy += dy / dist * force;
+        a.vx += fx;
+        a.vy += fy;
       }
       if (b != _draggedNode) {
-        b.vx -= dx / dist * force;
-        b.vy -= dy / dist * force;
+        b.vx -= fx;
+        b.vy -= fy;
       }
     }
+
     for (final l in _layouts) {
       if (l == _draggedNode) continue;
-      // Dynamic gravity based on node count
-      final g = 0.15 + (widget.nodes.length > 1000 ? 0.1 : 0);
-      l.vx += (400 - l.x) * alpha * g;
-      l.vy += (300 - l.y) * alpha * g;
+      
+      // Center gravity
+      l.vx += (400 - l.x) * centerStrength * alpha;
+      l.vy += (300 - l.y) * centerStrength * alpha;
 
-      l.x += l.vx * 0.7;
-      l.y += l.vy * 0.7;
-      l.vx *= 0.4;
-      l.vy *= 0.4;
+      l.x += l.vx;
+      l.y += l.vy;
+      l.vx *= 0.82; // Slightly less damping for more 'active' feel
+      l.vy *= 0.82;
 
-      // Much larger arena for semantic clusters
-      l.x = l.x.clamp(-1600.0, 2400.0);
-      l.y = l.y.clamp(-1600.0, 2200.0);
-
-      if (!l.x.isFinite) l.x = 400.0;
-      if (!l.y.isFinite) l.y = 300.0;
+      l.x = l.x.clamp(-2000.0, 3000.0);
+      l.y = l.y.clamp(-2000.0, 3000.0);
     }
     if (mounted) setState(() {});
   }
@@ -854,9 +911,18 @@ class _GraphCanvasState extends State<_GraphCanvas>
       child: MouseRegion(
         onHover: (e) {
           final h = _hitTest(e.localPosition);
-          if (h != _hoveredId) setState(() => _hoveredId = h);
+          setState(() {
+            if (h != _hoveredId) _hoveredId = h;
+            _mousePos = e.localPosition;
+            if (!_settled) _ticks = math.max(0, _ticks - 5); // Keep alive on mouse move
+          });
+          if (!_ticker.isAnimating) _ticker.repeat();
+          _settled = false;
         },
-        onExit: (_) => setState(() => _hoveredId = null),
+        onExit: (_) => setState(() {
+          _hoveredId = null;
+          _mousePos = null;
+        }),
         cursor: _hoveredId != null
             ? SystemMouseCursors.click
             : SystemMouseCursors.grab,
@@ -871,7 +937,8 @@ class _GraphCanvasState extends State<_GraphCanvas>
                 selectedId: widget.selectedId,
                 hoveredId: _hoveredId,
                 scale: _scale,
-                pan: _pan),
+                pan: _pan,
+                showLabels: widget.showLabels),
             size: Size.infinite,
           ),
         ),
@@ -902,6 +969,7 @@ class _ObsidianPainter extends CustomPainter {
   final String? selectedId, hoveredId;
   final double scale;
   final Offset pan;
+  final bool showLabels;
 
   const _ObsidianPainter(
       {required this.layouts,
@@ -911,7 +979,8 @@ class _ObsidianPainter extends CustomPainter {
       this.selectedId,
       this.hoveredId,
       required this.scale,
-      required this.pan});
+      required this.pan,
+      required this.showLabels});
 
   Offset _p(double x, double y) =>
       Offset(x * scale + pan.dx, y * scale + pan.dy);
@@ -947,37 +1016,26 @@ class _ObsidianPainter extends CustomPainter {
       final posA = _p(a.x, a.y);
       final posB = _p(b.x, b.y);
 
+      // Mirofish Style: Straight line with arrow
       final paint = Paint()
-        ..color = (edge.type == 'wikilink'
-                ? AppColors.accentPurple
-                : AppColors.accent)
+        ..color = (isHighlighted ? AppColors.accent : AppColors.border)
             .withOpacity(opacity)
-        ..strokeWidth = (edge.weight * 1.2 * scale).clamp(0.4, 3)
+        ..strokeWidth = isHighlighted ? (2.0 * scale).clamp(1.0, 4.0) : (0.8 * scale).clamp(0.4, 2.0)
         ..style = PaintingStyle.stroke;
 
       canvas.drawLine(posA, posB, paint);
 
-      // Draw relationship labels when zoomed in or selected
-      if ((scale > 1.2 || isHighlighted) &&
-          edge.type != 'direct' &&
-          edge.type != 'related') {
-        final mid = (posA + posB) / 2;
-        final tp = TextPainter(
-          text: TextSpan(
-              text: edge.type,
-              style: TextStyle(
-                  color: Colors.white.withOpacity(opacity * 0.6),
-                  fontSize: (9 * scale).clamp(6, 12),
-                  fontStyle: FontStyle.italic)),
-          textDirection: TextDirection.ltr,
-        )..layout();
-        canvas.save();
-        canvas.translate(mid.dx, mid.dy);
-        final angle = math.atan2(posB.dy - posA.dy, posB.dx - posA.dx);
-        canvas.rotate(angle);
-        tp.paint(canvas, Offset(-tp.width / 2, -tp.height - 2));
-        canvas.restore();
+      // Arrow Head
+      if (scale > 0.4 || isHighlighted) {
+        _drawArrow(canvas, posA, posB, (isHighlighted ? AppColors.accent : AppColors.border).withOpacity(opacity), scale);
       }
+
+      // Relationship label
+      if ((scale > 1.4 || isHighlighted) && edge.type != 'direct') {
+        final mid = (posA + posB) / 2;
+        _drawText(canvas, mid, edge.type, (9 * scale).clamp(6, 12), Colors.white.withOpacity(opacity * 0.7));
+      }
+    }
     }
 
     for (final l in layouts) {
@@ -1015,8 +1073,8 @@ class _ObsidianPainter extends CustomPainter {
             ..strokeWidth = isSelected ? 2.0 * scale : 1.0 * scale
             ..style = PaintingStyle.stroke);
 
-      final showLabel =
-          isSelected || isHovered || (scale > 0.7 && matchesSearch);
+      final showLabel = showLabels &&
+          (isSelected || isHovered || (scale > 0.7 && matchesSearch));
       if (showLabel && l.node.label.isNotEmpty) {
         final maxLen = 22;
         final label = l.node.label.length > maxLen
@@ -1038,8 +1096,148 @@ class _ObsidianPainter extends CustomPainter {
     }
   }
 
+  void _drawArrow(Canvas canvas, Offset p1, Offset p2, Color color, double scale) {
+    final dx = p2.dx - p1.dx, dy = p2.dy - p1.dy;
+    final d = math.sqrt(dx * dx + dy * dy);
+    if (d < 10) return;
+    
+    final ux = dx / d, uy = dy / d;
+    final r = 18 * scale; // Approx node radius on screen
+    final tip = Offset(p2.dx - ux * r, p2.dy - uy * r);
+    
+    final al = (8 * scale).clamp(4.0, 12.0);
+    final aa = 0.5; // Angle
+    
+    final ap = Path()
+      ..moveTo(tip.dx, tip.dy)
+      ..lineTo(tip.dx - al * (ux * math.cos(aa) - uy * math.sin(aa)),
+          tip.dy - al * (uy * math.cos(aa) + ux * math.sin(aa)))
+      ..lineTo(tip.dx - al * (ux * math.cos(-aa) - uy * math.sin(-aa)),
+          tip.dy - al * (uy * math.cos(-aa) + ux * math.sin(-aa)))
+      ..close();
+    
+    canvas.drawPath(ap, Paint()..color = color..style = PaintingStyle.fill);
+  }
+
+  void _drawText(Canvas canvas, Offset pos, String text, double size, Color color) {
+    final tp = TextPainter(
+      text: TextSpan(text: text, style: TextStyle(color: color, fontSize: size, fontWeight: FontWeight.w500)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, pos - Offset(tp.width / 2, tp.height / 2));
+  }
+
   @override
   bool shouldRepaint(_ObsidianPainter old) => true;
+}
+
+// ── Floating Info Tab (Mirofish-style) ────────────────────────────────────────
+class _FloatingNodeInfo extends StatelessWidget {
+  final KGNode node;
+  final VoidCallback onClose;
+  const _FloatingNodeInfo({required this.node, required this.onClose});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: 20,
+      right: 20,
+      child: Material(
+        elevation: 8,
+        color: Colors.transparent,
+        child: Container(
+          width: 320,
+          decoration: BoxDecoration(
+            color: AppColors.surface.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  color: AppColors.accent.withOpacity(0.1),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: AppColors.accent, size: 18),
+                      const SizedBox(width: 8),
+                      const Text('NODE INTELLIGENCE',
+                          style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 16, color: AppColors.textMuted),
+                        onPressed: onClose,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(node.label, style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      _InfoRow(label: 'Type', value: node.contentType),
+                      _InfoRow(label: 'Cluster', value: '#${node.community}'),
+                      _InfoRow(label: 'Degree', value: '${node.degree} connections'),
+                      const SizedBox(height: 16),
+                      if (node.source != null) ...[
+                        const Text('SOURCE PATH', style: TextStyle(color: AppColors.textMuted, fontSize: 9, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Text(node.source!, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontStyle: FontStyle.italic)),
+                      ],
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accent.withOpacity(0.15),
+                            foregroundColor: AppColors.accent,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () {},
+                          child: const Text('Open in Vault', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label, value;
+  const _InfoRow({required this.label, required this.value});
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+        Text(value, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
+      ],
+    ),
+  );
 }
 
 class _NodeInfo extends StatelessWidget {

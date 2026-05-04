@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -6,6 +8,8 @@ import 'package:dio/dio.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/services/api_service.dart';
+import '../../../features/knowledge_graph/screens/graph_screen.dart';
+import '../../vault/screens/vault_screen.dart';
 
 // ── Job model ─────────────────────────────────────────────────────────────────
 enum JobType { file, folder, youtube }
@@ -24,6 +28,8 @@ class IngestJob {
   String? error;
   DateTime startedAt;
   DateTime? finishedAt;
+  List<String>? filesToProcess;
+  List<String> logs;
 
   IngestJob({
     required this.id,
@@ -37,6 +43,8 @@ class IngestJob {
     this.error,
     DateTime? startedAt,
     this.finishedAt,
+    this.filesToProcess,
+    this.logs = const [],
   }) : startedAt = startedAt ?? DateTime.now();
 
   String get eta {
@@ -70,7 +78,8 @@ class IngestState {
 }
 
 class IngestNotifier extends StateNotifier<IngestState> {
-  IngestNotifier() : super(const IngestState());
+  final Ref ref;
+  IngestNotifier(this.ref) : super(const IngestState());
   final _dio = apiDio;
   Timer? _processingTimer;
   int _idCounter = 0;
@@ -83,9 +92,29 @@ class IngestNotifier extends StateNotifier<IngestState> {
   }
 
   void addFolder(String path) {
+    final dir = Directory(path);
+    if (!dir.existsSync()) return;
+    
+    final files = dir.listSync(recursive: true).whereType<File>().toList();
+    final supported = ['.txt', '.md', '.py', '.js', '.ts', '.json', '.html', '.css', '.pdf', '.docx', '.pptx', '.csv'];
+    final validFiles = files.where((f) {
+      final ext = p.extension(f.path).toLowerCase();
+      return supported.contains(ext);
+    }).map((f) => f.path).toList();
+
     final name = path.split(RegExp(r'[/\\]')).last;
-    _add(
-        IngestJob(id: _nextId(), name: name, path: path, type: JobType.folder));
+    if (validFiles.isEmpty) {
+      _add(IngestJob(id: _nextId(), name: name, path: path, type: JobType.folder, error: 'No supported files found', status: JobStatus.failed));
+      return;
+    }
+
+    _add(IngestJob(
+      id: _nextId(), 
+      name: name, 
+      path: path, 
+      type: JobType.folder, 
+      filesToProcess: validFiles
+    ));
   }
 
   void addYouTube(String url) {
@@ -135,7 +164,65 @@ class IngestNotifier extends StateNotifier<IngestState> {
   }
 
   Future<void> _ingestPath(IngestJob job) async {
+    if (job.type == JobType.folder && job.filesToProcess != null && job.filesToProcess!.isNotEmpty) {
+      int totalFiles = job.filesToProcess!.length;
+      int completed = 0;
+      int totalNodes = 0;
+      final logs = <String>[];
+      
+      _updateJob(job.id, statusText: 'Found $totalFiles files to process...', progress: 0.05);
+
+      for (final filePath in job.filesToProcess!) {
+        final fileName = p.basename(filePath);
+        logs.insert(0, '[${DateTime.now().toLocal().toString().split(' ')[1].split('.')[0]}] Ingesting $fileName...');
+        _updateJob(job.id, 
+          statusText: 'Processing $fileName (${completed + 1}/$totalFiles)...', 
+          progress: completed / totalFiles,
+          logs: List.from(logs)
+        );
+        
+        try {
+          final resp = await _dio.post(ApiConstants.graphIngest, data: {'path': filePath});
+          final nodes = resp.data['nodes_created'] as int? ?? 0;
+          totalNodes += nodes;
+          completed++;
+          
+          logs.insert(0, '[${DateTime.now().toLocal().toString().split(' ')[1].split('.')[0]}] Extracted $nodes nodes from $fileName');
+          _updateJob(job.id, logs: List.from(logs));
+
+          try {
+            ref.read(graphProvider.notifier).load();
+          } catch (_) {}
+        } catch (e) {
+          logs.insert(0, '[${DateTime.now().toLocal().toString().split(' ')[1].split('.')[0]}] Error on $fileName: $e');
+          completed++;
+        }
+      }
+
+      _updateJob(job.id, statusText: 'Running community detection...', logs: List.from(logs));
+      try {
+        await _dio.post('graph/detect_communities');
+        logs.insert(0, '[${DateTime.now().toLocal().toString().split(' ')[1].split('.')[0]}] Community detection complete.');
+        // Refresh vault to show new nodes
+        ref.read(vaultProvider.notifier).loadNotes();
+        ref.read(vaultProvider.notifier).loadFolders();
+      } catch (e) {
+        logs.insert(0, '[${DateTime.now().toLocal().toString().split(' ')[1].split('.')[0]}] Failed to run community detection: $e');
+      }
+      
+      _updateJob(job.id,
+          status: JobStatus.done,
+          statusText: 'Done — $totalNodes nodes created from $totalFiles files',
+          progress: 1.0,
+          nodesCreated: totalNodes,
+          finishedAt: DateTime.now());
+      state = state.copyWith(totalNodes: state.totalNodes + totalNodes);
+      return;
+    }
+
     _updateJob(job.id, statusText: 'Sending to backend…', progress: 0.1);
+    final logs = <String>['[${DateTime.now().toLocal().toString().split(' ')[1].split('.')[0]}] Starting ingestion for ${p.basename(job.path)}...'];
+    _updateJob(job.id, logs: List.from(logs));
 
     // Simulate real-time progress while waiting for backend
     final progressTimer =
@@ -153,15 +240,36 @@ class IngestNotifier extends StateNotifier<IngestState> {
           await _dio.post(ApiConstants.graphIngest, data: {'path': job.path});
       progressTimer.cancel();
       final nodes = resp.data['nodes_created'] as int? ?? 0;
+      logs.insert(0, '[${DateTime.now().toLocal().toString().split(' ')[1].split('.')[0]}] Done — extracted $nodes nodes.');
       _updateJob(job.id,
           status: JobStatus.done,
           statusText: 'Done — $nodes nodes created',
           progress: 1.0,
           nodesCreated: nodes,
+          logs: List.from(logs),
           finishedAt: DateTime.now());
       state = state.copyWith(totalNodes: state.totalNodes + nodes);
+      try {
+        ref.read(graphProvider.notifier).load();
+      } catch (_) {}
+      
+      _updateJob(job.id, statusText: 'Running community detection...', logs: List.from(logs));
+      try {
+        await _dio.post('graph/detect_communities');
+        logs.insert(0, '[${DateTime.now().toLocal().toString().split(' ')[1].split('.')[0]}] Community detection complete.');
+        // Refresh vault and graph to show new data
+        ref.read(vaultProvider.notifier).loadNotes();
+        ref.read(vaultProvider.notifier).loadFolders();
+        ref.read(graphProvider.notifier).load();
+        _updateJob(job.id, statusText: 'Done — $nodes nodes created', logs: List.from(logs));
+      } catch (e) {
+        logs.insert(0, '[${DateTime.now().toLocal().toString().split(' ')[1].split('.')[0]}] Failed to run community detection: $e');
+        _updateJob(job.id, statusText: 'Done — $nodes nodes created', logs: List.from(logs));
+      }
     } catch (e) {
       progressTimer.cancel();
+      logs.insert(0, '[${DateTime.now().toLocal().toString().split(' ')[1].split('.')[0]}] Error: $e');
+      _updateJob(job.id, logs: List.from(logs));
       rethrow;
     }
   }
@@ -208,6 +316,7 @@ class IngestNotifier extends StateNotifier<IngestState> {
     int? nodesCreated,
     String? error,
     DateTime? finishedAt,
+    List<String>? logs,
   }) {
     final jobs = state.jobs.map((j) {
       if (j.id != id) return j;
@@ -217,6 +326,7 @@ class IngestNotifier extends StateNotifier<IngestState> {
       j.nodesCreated = nodesCreated ?? j.nodesCreated;
       j.error = error ?? j.error;
       j.finishedAt = finishedAt ?? j.finishedAt;
+      j.logs = logs ?? j.logs;
       return j;
     }).toList();
     state = state.copyWith(jobs: jobs);
@@ -242,7 +352,7 @@ class IngestNotifier extends StateNotifier<IngestState> {
 }
 
 final ingestProvider =
-    StateNotifierProvider<IngestNotifier, IngestState>((_) => IngestNotifier());
+    StateNotifierProvider<IngestNotifier, IngestState>((ref) => IngestNotifier(ref));
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 class IngestScreen extends ConsumerStatefulWidget {
@@ -707,6 +817,39 @@ class _JobCard extends StatelessWidget {
                         color: AppColors.accentRed, fontSize: 11),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis),
+              ],
+              if (job.logs.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    title: const Text('Logs', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    tilePadding: EdgeInsets.zero,
+                    childrenPadding: EdgeInsets.zero,
+                    children: [
+                      Container(
+                        height: 100,
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: ListView.builder(
+                          itemCount: job.logs.length,
+                          itemBuilder: (ctx, i) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(job.logs[i],
+                                style: const TextStyle(
+                                    fontFamily: 'monospace',
+                                    fontSize: 10,
+                                    color: AppColors.textMuted)),
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
               ],
             ])));
   }

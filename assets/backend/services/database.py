@@ -196,8 +196,18 @@ class GraphNodeDB:
             degree=node.get("degree", 0),
             embedding=json.dumps(node.get("embedding", [])),
         )
-        db.add(orm)
-        await db.flush()
+        try:
+            db.add(orm)
+            await db.flush()
+        except Exception:
+            await db.rollback()
+            # Already exists or other error, ignore for now
+            pass
+
+    @staticmethod
+    async def delete_all(db: AsyncSession):
+        from sqlalchemy import delete
+        await db.execute(delete(GraphNodeORM))
 
 
 class GraphEdgeDB:
@@ -214,13 +224,16 @@ class GraphEdgeDB:
             edge_type=edge.get("type", "direct"),
             weight=edge.get("weight", 1.0),
         )
-        db.add(orm)
-        await db.flush()
+        try:
+            db.add(orm)
+            await db.flush()
+        except Exception:
+            await db.rollback()
+            pass
 
     @staticmethod
     async def delete_all(db: AsyncSession):
         from sqlalchemy import delete
-        await db.execute(delete(GraphNodeORM))
         await db.execute(delete(GraphEdgeORM))
 
 
