@@ -1,38 +1,75 @@
 ```
 # Build artifacts
-*.dart_tool/
-*.build/
-build/
+*.o
+*.obj
+*.a
+*.so
+*.dll
+*.exe
+*.class
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.jar
+*.war
+*.zip
+*.tar.gz
+*.tar.xz
+*.tar.bz2
 
 # Dependencies
-.pub/
-.dart_tool/
-pubspec.lock
+node_modules/
+venv/
+.venv/
+.env
+.env.local
+.env.*
 
-# IDE files
-.idea/
-.vscode/
-*.iml
-*.ipr
-*.iws
-
-# OS generated files
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+*.swo
+*.bak
+*.~*
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-
-# Environment
-.env
-.env.local
-*.env.*
-
-# Coverage
+# Coverage reports
 coverage/
-*.coverage
+htmlcov/
+.coverage
 
-# Temporary files
-*.tmp
-*.temp
+# IDE specific
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+*.sw?
+.settings/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+MANIFEST
+
+# Testing
+.pytest_cache/
+.mypy_cache/
+.nyc_output/
+coverage.xml
+*.gcda
+*.gcno
+
+# OS generated
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 ```
