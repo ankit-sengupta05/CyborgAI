@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
 
 class HomeDesktop extends StatefulWidget {
   const HomeDesktop({super.key});
@@ -34,29 +35,104 @@ class _HomeDesktopState extends State<HomeDesktop> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF050B14),
+      backgroundColor: AppColors.background,
       body: Row(
         children: [
           // 🔹 SIDEBAR
           Container(
-            width: 220,
-            color: const Color(0xFF081421),
+            width: 240,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              border: Border(
+                right: BorderSide(color: AppColors.border, width: 1),
+              ),
+            ),
             child: Column(
               children: [
-                const SizedBox(height: 20),
-                const Text(
-                  "CYBORG",
-                  style: TextStyle(
-                      color: Colors.cyanAccent,
-                      fontSize: 22,
-                      letterSpacing: 4),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          gradient: AppColors.accentGradient,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.smart_toy, color: Colors.white, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        "CYBORG",
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 20),
-                _sideButton("Neural Interface"),
-                _sideButton("Devices"),
-                _sideButton("GPU"),
-                _sideButton("Vector DB"),
-                _sideButton("Logs"),
+                const SizedBox(height: 24),
+                _sideButton("Neural Interface", Icons.psychology),
+                _sideButton("Devices", Icons.devices),
+                _sideButton("GPU", Icons.memory),
+                _sideButton("Vector DB", Icons.storage),
+                _sideButton("Logs", Icons.list),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.success,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  "System Online",
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              "RTX 5060 • 12GB",
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -67,17 +143,61 @@ class _HomeDesktopState extends State<HomeDesktop> {
               children: [
                 // 🔹 TOP BAR
                 Container(
-                  height: 60,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  color: const Color(0xFF081421),
+                  height: 64,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    border: Border(
+                      bottom: BorderSide(color: AppColors.border, width: 1),
+                    ),
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("CYBORG • $selectedTab",
-                          style: const TextStyle(
-                              color: Colors.cyanAccent, fontSize: 16)),
-                      const Text("RTX 5060 • Ready",
-                          style: TextStyle(color: Colors.white70)),
+                      Row(
+                        children: [
+                          Icon(
+                            _getIconForTab(selectedTab),
+                            color: AppColors.accent,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            selectedTab,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.cloud_done,
+                              color: AppColors.success,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              "All Systems Operational",
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -85,38 +205,69 @@ class _HomeDesktopState extends State<HomeDesktop> {
                 // 🔹 BODY
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(24),
                     child: _buildContent(),
                   ),
                 ),
 
                 // 🔹 INPUT BAR
                 Container(
-                  padding: const EdgeInsets.all(10),
-                  color: const Color(0xFF081421),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    border: Border(
+                      top: BorderSide(color: AppColors.border, width: 1),
+                    ),
+                  ),
                   child: Row(
                     children: [
                       Expanded(
-                        child: TextField(
-                          controller: _controller,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            hintText: "Enter command...",
-                            hintStyle:
-                                const TextStyle(color: Colors.white38),
-                            filled: true,
-                            fillColor: const Color(0xFF050B14),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.border),
                           ),
-                          onSubmitted: (_) => sendCommand(),
+                          child: TextField(
+                            controller: _controller,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 14,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: "Enter command...",
+                              hintStyle: TextStyle(
+                                color: AppColors.textMuted,
+                                fontSize: 14,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.terminal,
+                                color: AppColors.textMuted,
+                                size: 20,
+                              ),
+                              filled: true,
+                              fillColor: Colors.transparent,
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                            ),
+                            onSubmitted: (_) => sendCommand(),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      ElevatedButton(
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
                         onPressed: sendCommand,
-                        child: const Text("SEND"),
+                        icon: const Icon(Icons.send, size: 18),
+                        label: const Text("SEND"),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -129,6 +280,23 @@ class _HomeDesktopState extends State<HomeDesktop> {
     );
   }
 
+  IconData _getIconForTab(String tab) {
+    switch (tab) {
+      case "Neural Interface":
+        return Icons.psychology;
+      case "Devices":
+        return Icons.devices;
+      case "GPU":
+        return Icons.memory;
+      case "Vector DB":
+        return Icons.storage;
+      case "Logs":
+        return Icons.list;
+      default:
+        return Icons.dashboard;
+    }
+  }
+
   // 🔹 DYNAMIC CONTENT
   Widget _buildContent() {
     switch (selectedTab) {
@@ -136,8 +304,13 @@ class _HomeDesktopState extends State<HomeDesktop> {
         return _panel(
           "Neural Interface",
           Center(
-            child: Text(output,
-                style: const TextStyle(color: Colors.white)),
+            child: Text(
+              output,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 16,
+              ),
+            ),
           ),
         );
 
@@ -145,17 +318,34 @@ class _HomeDesktopState extends State<HomeDesktop> {
         return _panel(
           "Devices",
           Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ElevatedButton(
+              ElevatedButton.icon(
                 onPressed: () {
                   setState(() {
                     output = "Scanning devices...";
                   });
                 },
-                child: const Text("SCAN DEVICES"),
+                icon: const Icon(Icons.scan, size: 18),
+                label: const Text("SCAN DEVICES"),
               ),
-              const SizedBox(height: 10),
-              Text(output, style: const TextStyle(color: Colors.white)),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Text(
+                  output,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ],
           ),
         );
@@ -164,11 +354,11 @@ class _HomeDesktopState extends State<HomeDesktop> {
         return _panel(
           "GPU Telemetry",
           Column(
-            children: const [
-              Text("VRAM: 2.2 GB",
-                  style: TextStyle(color: Colors.white)),
-              Text("Usage: 30%",
-                  style: TextStyle(color: Colors.white)),
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _telemetryCard("VRAM Usage", "2.2 GB", "12 GB Total", 18),
+              const SizedBox(height: 12),
+              _telemetryCard("GPU Load", "30%", "RTX 5060", 30),
             ],
           ),
         );
@@ -177,30 +367,76 @@ class _HomeDesktopState extends State<HomeDesktop> {
         return _panel(
           "Vector Database",
           Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ElevatedButton(
+              ElevatedButton.icon(
                 onPressed: () {
                   setState(() {
                     output = "Vector DB refreshed";
                   });
                 },
-                child: const Text("REFRESH"),
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text("REFRESH"),
               ),
-              const SizedBox(height: 10),
-              Text(output, style: const TextStyle(color: Colors.white)),
+              const SizedBox(height: 16),
+              Text(
+                output,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                ),
+              ),
             ],
           ),
         );
 
       case "Logs":
         return _panel(
-          "Logs",
-          ListView(
-            children: logs
-                .map((e) => Text(e,
-                    style: const TextStyle(color: Colors.greenAccent)))
-                .toList(),
-          ),
+          "System Logs",
+          logs.isEmpty
+              ? Center(
+                  child: Text(
+                    "No logs yet",
+                    style: TextStyle(color: AppColors.textMuted),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: logs.length,
+                  itemBuilder: (_, i) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: AppColors.border,
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.terminal,
+                          color: AppColors.success,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            logs[i],
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 13,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
         );
 
       default:
@@ -208,22 +444,98 @@ class _HomeDesktopState extends State<HomeDesktop> {
     }
   }
 
-  // 🔹 PANEL
-  Widget _panel(String title, Widget child) {
+  Widget _telemetryCard(String label, String value, String subtitle, int percentage) {
     return Container(
-      padding: const EdgeInsets.all(10),
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF0B1A2B),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: const TextStyle(
-                  color: Colors.cyanAccent, fontSize: 16)),
-          const Divider(color: Colors.white24),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: percentage / 100,
+              backgroundColor: AppColors.border,
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
+              minHeight: 6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🔹 PANEL
+  Widget _panel(String title, Widget child) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _getIconForTab(title),
+                color: AppColors.accent,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(color: AppColors.border),
+          const SizedBox(height: 16),
           Expanded(child: child),
         ],
       ),
@@ -231,19 +543,37 @@ class _HomeDesktopState extends State<HomeDesktop> {
   }
 
   // 🔹 SIDEBAR BUTTON
-  Widget _sideButton(String text) {
+  Widget _sideButton(String text, IconData icon) {
+    final isSelected = selectedTab == text;
     return GestureDetector(
       onTap: () => switchTab(text),
       child: Container(
-        margin: const EdgeInsets.all(8),
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
-          borderRadius: BorderRadius.circular(6),
+          color: isSelected ? AppColors.surfaceVariant : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: isSelected
+              ? Border.all(color: AppColors.accent.withOpacity(0.3))
+              : null,
         ),
-        child: Center(
-          child: Text(text,
-              style: const TextStyle(color: Colors.white70)),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? AppColors.accent : AppColors.textSecondary,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              text,
+              style: TextStyle(
+                color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );
