@@ -1,6 +1,45 @@
 ```
-# Deployment scripts and artifacts
-DEPLOY.bat
-DEPLOY.ps1
-DEPLOY_TO_PROJECT.sh
+# Python compiled files
+*.pyc
+__pycache__/
+
+# Environment files
+.env
+.env.local
+*.env.*
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+
+# Editors
+.vscode/
+.idea/
+
+# Dependencies
+.venv/
+venv/
+node_modules/
+
+# Build artifacts
+dist/
+build/
+target/
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# MyPy cache
+.mypy_cache/
+
+# Pytest cache
+.pytest_cache/
+
+# OS specific
+.DS_Store
+Thumbs.db
 ```

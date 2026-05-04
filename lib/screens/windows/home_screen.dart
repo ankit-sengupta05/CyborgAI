@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/health_edu_service.dart';
 
 class HomeDesktop extends StatefulWidget {
   const HomeDesktop({super.key});
@@ -10,10 +12,33 @@ class HomeDesktop extends StatefulWidget {
 
 class _HomeDesktopState extends State<HomeDesktop> {
   final TextEditingController _controller = TextEditingController();
+  final HealthEduService _healthEduService = HealthEduService();
 
   String selectedTab = "Neural Interface";
   String output = "System Ready...";
   List<String> logs = [];
+  
+  // Health & Education state
+  bool _isAnalyzingXRay = false;
+  bool _isGradingHomework = false;
+  bool _isGeneratingQuiz = false;
+  Map<String, dynamic>? _xrayResult;
+  Map<String, dynamic>? _homeworkResult;
+  Map<String, dynamic>? _quizResult;
+  Map<String, dynamic>? _healthConfig;
+  Map<String, dynamic>? _educationConfig;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDemoConfigs();
+  }
+
+  Future<void> _loadDemoConfigs() async {
+    _healthConfig = await _healthEduService.getHealthDemoConfig();
+    _educationConfig = await _healthEduService.getEducationDemoConfig();
+    if (mounted) setState(() {});
+  }
 
   void sendCommand() {
     if (_controller.text.isEmpty) return;
@@ -629,10 +654,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
         return _panel(
           "X-Ray Analysis",
           Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.add_chart, size: 64, color: AppColors.accentBlue),
-              const SizedBox(height: 20),
               const Text(
                 "Upload chest X-ray for MedGemma 4B analysis",
                 style: TextStyle(
@@ -642,34 +665,91 @@ class _HomeDesktopState extends State<HomeDesktop> {
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    output = "Opening file picker for X-ray image...";
-                  });
-                },
-                icon: const Icon(Icons.upload_file, size: 18),
-                label: const Text("UPLOAD X-RAY"),
+                onPressed: _isAnalyzingXRay ? null : _uploadAndAnalyzeXRay,
+                icon: _isAnalyzingXRay 
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.upload_file, size: 18),
+                label: Text(_isAnalyzingXRay ? "ANALYZING..." : "UPLOAD X-RAY"),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 ),
               ),
-              const SizedBox(height: 16),
-              if (output.contains("X-Ray"))
+              const SizedBox(height: 20),
+              if (_xrayResult != null) ...[
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: AppColors.backgroundSurface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.borderDefault),
                   ),
-                  child: Text(
-                    output,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.analytics, color: AppColors.accentBlue, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Analysis Results",
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(),
+                      _resultRow("Findings", _xrayResult!['findings']?.toString() ?? "N/A"),
+                      _resultRow("Confidence", "${((_xrayResult!['confidence'] ?? 0) * 100).toStringAsFixed(1)}%"),
+                      _resultRow("Explanation", _xrayResult!['explanation']?.toString() ?? "N/A"),
+                      if (_xrayResult!['recommendations'] != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          "Recommendations:",
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _xrayResult!['recommendations']?.toString() ?? "",
+                          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.accentOrange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.accentOrange.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.warning_amber, color: AppColors.accentOrange, size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "⚠️ Not a diagnosis. Consult a healthcare professional.",
+                                style: TextStyle(
+                                  color: AppColors.accentOrange,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+              ],
             ],
           ),
         );
@@ -711,10 +791,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
         return _panel(
           "Homework Grader",
           Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.assignment_turned_in, size: 64, color: AppColors.success),
-              const SizedBox(height: 20),
               const Text(
                 "Upload homework for OCR + rubric-based evaluation",
                 style: TextStyle(
@@ -724,17 +802,66 @@ class _HomeDesktopState extends State<HomeDesktop> {
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    output = "Opening file picker for homework...";
-                  });
-                },
-                icon: const Icon(Icons.upload_file, size: 18),
-                label: const Text("UPLOAD HOMEWORK"),
+                onPressed: _isGradingHomework ? null : _uploadAndGradeHomework,
+                icon: _isGradingHomework
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.upload_file, size: 18),
+                label: Text(_isGradingHomework ? "GRADING..." : "UPLOAD HOMEWORK"),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 ),
               ),
+              const SizedBox(height: 20),
+              if (_homeworkResult != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundSurface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.borderDefault),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.assignment_turned_in, color: AppColors.success, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Grading Results",
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(),
+                      _resultRow("Score", "${((_homeworkResult!['score'] ?? 0) * 100).toStringAsFixed(1)}%"),
+                      _resultRow("Subject", _homeworkResult!['subject']?.toString() ?? "N/A"),
+                      _resultRow("Grade Level", "${_homeworkResult!['grade_level'] ?? "N/A"}"),
+                      if (_homeworkResult!['feedback'] != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          "Feedback:",
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _homeworkResult!['feedback']?.toString() ?? "",
+                          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         );
@@ -743,10 +870,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
         return _panel(
           "Quiz Generator",
           Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.quiz, size: 64, color: AppColors.accentOrange),
-              const SizedBox(height: 20),
               const Text(
                 "Generate adaptive quizzes with cultural relevance",
                 style: TextStyle(
@@ -756,17 +881,72 @@ class _HomeDesktopState extends State<HomeDesktop> {
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    output = "Generating adaptive quiz...";
-                  });
-                },
-                icon: const Icon(Icons.auto_awesome, size: 18),
-                label: const Text("GENERATE QUIZ"),
+                onPressed: _isGeneratingQuiz ? null : _generateQuiz,
+                icon: _isGeneratingQuiz
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.auto_awesome, size: 18),
+                label: Text(_isGeneratingQuiz ? "GENERATING..." : "GENERATE QUIZ"),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 ),
               ),
+              const SizedBox(height: 20),
+              if (_quizResult != null && _quizResult!['quiz'] != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundSurface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.borderDefault),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.quiz, color: AppColors.accentOrange, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Quiz Generated",
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(),
+                      _resultRow("Topic", _quizResult!['quiz']?['topic']?.toString() ?? "N/A"),
+                      _resultRow("Questions", "${_quizResult!['quiz']?['questions']?.length ?? 0}"),
+                      _resultRow("Grade Level", "${_quizResult!['quiz']?['grade_level'] ?? "N/A"}"),
+                      if (_quizResult!['quiz']?['questions'] != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          "Questions:",
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ...(List.generate(
+                          (_quizResult!['quiz']?['questions']?.length ?? 0).clamp(0, 3),
+                          (i) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              "${i + 1}. ${_quizResult!['quiz']?['questions'][i]['question'] ?? ""}",
+                              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                            ),
+                          ),
+                        )),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         );
@@ -954,5 +1134,141 @@ class _HomeDesktopState extends State<HomeDesktop> {
         ),
       ),
     );
+  }
+
+  Widget _resultRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              "$label:",
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _uploadAndAnalyzeXRay() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+    );
+
+    if (result == null || result.files.isEmpty) return;
+
+    final filePath = result.files.first.path;
+    if (filePath == null) return;
+
+    setState(() {
+      _isAnalyzingXRay = true;
+      _xrayResult = null;
+    });
+
+    try {
+      final response = await _healthEduService.analyzeXRay(
+        imagePath: filePath,
+        language: 'en',
+      );
+
+      setState(() {
+        _xrayResult = response;
+        output = "X-Ray analysis complete";
+      });
+    } catch (e) {
+      setState(() {
+        output = "Error: ${e.toString()}";
+      });
+    } finally {
+      setState(() {
+        _isAnalyzingXRay = false;
+      });
+    }
+  }
+
+  Future<void> _uploadAndGradeHomework() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+    );
+
+    if (result == null || result.files.isEmpty) return;
+
+    final filePath = result.files.first.path;
+    if (filePath == null) return;
+
+    setState(() {
+      _isGradingHomework = true;
+      _homeworkResult = null;
+    });
+
+    try {
+      final response = await _healthEduService.gradeHomework(
+        imagePath: filePath,
+        subject: 'math',
+        gradeLevel: 10,
+        language: 'en',
+      );
+
+      setState(() {
+        _homeworkResult = response;
+        output = "Homework grading complete";
+      });
+    } catch (e) {
+      setState(() {
+        output = "Error: ${e.toString()}";
+      });
+    } finally {
+      setState(() {
+        _isGradingHomework = false;
+      });
+    }
+  }
+
+  Future<void> _generateQuiz() async {
+    setState(() {
+      _isGeneratingQuiz = true;
+      _quizResult = null;
+    });
+
+    try {
+      final response = await _healthEduService.generateQuiz(
+        topic: 'Algebra',
+        gradeLevel: 10,
+        numQuestions: 5,
+        language: 'en',
+      );
+
+      setState(() {
+        _quizResult = response;
+        output = "Quiz generated successfully";
+      });
+    } catch (e) {
+      setState(() {
+        output = "Error: ${e.toString()}";
+      });
+    } finally {
+      setState(() {
+        _isGeneratingQuiz = false;
+      });
+    }
   }
 }
