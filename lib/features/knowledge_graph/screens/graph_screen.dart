@@ -1036,7 +1036,6 @@ class _ObsidianPainter extends CustomPainter {
         _drawText(canvas, mid, edge.type, (9 * scale).clamp(6, 12), Colors.white.withOpacity(opacity * 0.7));
       }
     }
-    }
 
     for (final l in layouts) {
       if (hiddenCommunities.contains(l.node.community)) continue;
@@ -1128,7 +1127,7 @@ class _ObsidianPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_ObsidianPainter old) => true;
+  bool shouldRepaint(covariant _ObsidianPainter oldDelegate) => true;
 }
 
 // ── Floating Info Tab (Mirofish-style) ────────────────────────────────────────
