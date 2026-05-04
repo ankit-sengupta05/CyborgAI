@@ -106,14 +106,14 @@ Run backend: `py assets/backend/main.py`
 
 ## ✨ Features Working
 
-✅ File picker for images/documents  
-✅ Backend API integration  
-✅ Loading states and error handling  
-✅ Results display with confidence scores  
-✅ Medical disclaimers  
-✅ Multi-language support indicators  
-✅ Theme consistency (purple accent for health/education)  
-✅ No compilation errors  
+✅ File picker for images/documents
+✅ Backend API integration
+✅ Loading states and error handling
+✅ Results display with confidence scores
+✅ Medical disclaimers
+✅ Multi-language support indicators
+✅ Theme consistency (purple accent for health/education)
+✅ No compilation errors
 
 ## 📝 Notes
 

@@ -8,8 +8,8 @@ import 'package:markdown/markdown.dart' as md;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:uuid/uuid.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../core/theme/app_theme.dart';          // FIX: was ../../core
-import '../../../core/constants/api_constants.dart';  // FIX: was ../../core
+import '../../../core/theme/app_theme.dart'; // FIX: was ../../core
+import '../../../core/constants/api_constants.dart'; // FIX: was ../../core
 import '../../../core/services/backend_service.dart';
 import 'dart:io';
 import '../../../core/providers/app_providers.dart';
@@ -51,8 +51,10 @@ class ChatMessage {
     int? totalTokens,
     double? duration,
     String? stopReason,
-  }) => ChatMessage(
-        id: id, role: role,
+  }) =>
+      ChatMessage(
+        id: id,
+        role: role,
         content: content ?? this.content,
         timestamp: timestamp,
         isStreaming: isStreaming ?? this.isStreaming,
@@ -63,22 +65,26 @@ class ChatMessage {
       );
 
   Map<String, dynamic> toJson() => {
-    'id': id, 'role': role, 'content': content,
-    'timestamp': timestamp.toIso8601String(),
-    'tokenSpeed': tokenSpeed,
-    'totalTokens': totalTokens,
-    'duration': duration,
-    'stopReason': stopReason,
-  };
+        'id': id,
+        'role': role,
+        'content': content,
+        'timestamp': timestamp.toIso8601String(),
+        'tokenSpeed': tokenSpeed,
+        'totalTokens': totalTokens,
+        'duration': duration,
+        'stopReason': stopReason,
+      };
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
-    id: json['id'], role: json['role'], content: json['content'],
-    timestamp: DateTime.parse(json['timestamp']),
-    tokenSpeed: json['tokenSpeed'],
-    totalTokens: json['totalTokens'],
-    duration: json['duration'],
-    stopReason: json['stopReason'],
-  );
+        id: json['id'],
+        role: json['role'],
+        content: json['content'],
+        timestamp: DateTime.parse(json['timestamp']),
+        tokenSpeed: json['tokenSpeed'],
+        totalTokens: json['totalTokens'],
+        duration: json['duration'],
+        stopReason: json['stopReason'],
+      );
 }
 
 class ChatSession {
@@ -87,20 +93,27 @@ class ChatSession {
   final DateTime createdAt;
   final List<ChatMessage> messages;
   const ChatSession({
-    required this.id, required this.title,
-    required this.createdAt, required this.messages,
+    required this.id,
+    required this.title,
+    required this.createdAt,
+    required this.messages,
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id, 'title': title, 'createdAt': createdAt.toIso8601String(),
-    'messages': messages.map((m) => m.toJson()).toList(),
-  };
+        'id': id,
+        'title': title,
+        'createdAt': createdAt.toIso8601String(),
+        'messages': messages.map((m) => m.toJson()).toList(),
+      };
 
   factory ChatSession.fromJson(Map<String, dynamic> json) => ChatSession(
-    id: json['id'], title: json['title'],
-    createdAt: DateTime.parse(json['createdAt']),
-    messages: (json['messages'] as List).map((m) => ChatMessage.fromJson(Map<String,dynamic>.from(m))).toList(),
-  );
+        id: json['id'],
+        title: json['title'],
+        createdAt: DateTime.parse(json['createdAt']),
+        messages: (json['messages'] as List)
+            .map((m) => ChatMessage.fromJson(Map<String, dynamic>.from(m)))
+            .toList(),
+      );
 }
 
 class ChatState {
@@ -110,8 +123,11 @@ class ChatState {
   final bool isListening;
   final String? selectedModel;
   const ChatState({
-    this.sessions = const [], this.activeSessionId,
-    this.isGenerating = false, this.isListening = false, this.selectedModel,
+    this.sessions = const [],
+    this.activeSessionId,
+    this.isGenerating = false,
+    this.isListening = false,
+    this.selectedModel,
   });
 
   ChatSession? get activeSession => sessions.isEmpty
@@ -120,9 +136,13 @@ class ChatState {
           orElse: () => sessions.first);
 
   ChatState copyWith({
-    List<ChatSession>? sessions, String? activeSessionId,
-    bool? isGenerating, bool? isListening, String? selectedModel,
-  }) => ChatState(
+    List<ChatSession>? sessions,
+    String? activeSessionId,
+    bool? isGenerating,
+    bool? isListening,
+    String? selectedModel,
+  }) =>
+      ChatState(
         sessions: sessions ?? this.sessions,
         activeSessionId: activeSessionId ?? this.activeSessionId,
         isGenerating: isGenerating ?? this.isGenerating,
@@ -229,10 +249,13 @@ class ChatNotifier extends StateNotifier<ChatState> {
       final data = _box.get('chat_sessions');
       if (data != null) {
         final List sessionsData = jsonDecode(data);
-        final sessions = sessionsData.map((s) => ChatSession.fromJson(Map<String,dynamic>.from(s))).toList();
+        final sessions = sessionsData
+            .map((s) => ChatSession.fromJson(Map<String, dynamic>.from(s)))
+            .toList();
         if (sessions.isNotEmpty) {
-           state = state.copyWith(sessions: sessions, activeSessionId: sessions.last.id);
-           return;
+          state = state.copyWith(
+              sessions: sessions, activeSessionId: sessions.last.id);
+          return;
         }
       }
     } catch (_) {}
@@ -240,13 +263,16 @@ class ChatNotifier extends StateNotifier<ChatState> {
   }
 
   void _saveState(List<ChatSession> sessions) {
-    _box.put('chat_sessions', jsonEncode(sessions.map((s) => s.toJson()).toList()));
+    _box.put(
+        'chat_sessions', jsonEncode(sessions.map((s) => s.toJson()).toList()));
   }
 
   void _createNewSession() {
     final session = ChatSession(
-      id: _uuid.v4(), title: 'New Chat',
-      createdAt: DateTime.now(), messages: [],
+      id: _uuid.v4(),
+      title: 'New Chat',
+      createdAt: DateTime.now(),
+      messages: [],
     );
     final newSessions = [...state.sessions, session];
     state = state.copyWith(
@@ -260,11 +286,16 @@ class ChatNotifier extends StateNotifier<ChatState> {
     if (content.trim().isEmpty || state.isGenerating) return;
 
     final userMsg = ChatMessage(
-        id: _uuid.v4(), role: 'user',
-        content: content.trim(), timestamp: DateTime.now());
+        id: _uuid.v4(),
+        role: 'user',
+        content: content.trim(),
+        timestamp: DateTime.now());
     final assistantMsg = ChatMessage(
-        id: _uuid.v4(), role: 'assistant',
-        content: '', timestamp: DateTime.now(), isStreaming: true);
+        id: _uuid.v4(),
+        role: 'assistant',
+        content: '',
+        timestamp: DateTime.now(),
+        isStreaming: true);
 
     _addMessage(userMsg);
     _addMessage(assistantMsg);
@@ -307,13 +338,17 @@ class ChatNotifier extends StateNotifier<ChatState> {
     state = state.copyWith(isListening: false);
   }
 
-  Future<void> _streamResponse(String assistantMsgId, String content, {bool useVoice = false}) async {
-    final isPureLocalAndroid = !kIsWeb && Platform.isAndroid && ApiConstants.wsBaseUrl.contains('127.0.0.1');
+  Future<void> _streamResponse(String assistantMsgId, String content,
+      {bool useVoice = false}) async {
+    final isPureLocalAndroid = !kIsWeb &&
+        Platform.isAndroid &&
+        ApiConstants.wsBaseUrl.contains('127.0.0.1');
 
     final history = state.activeSession?.messages
             .where((m) => m.id != assistantMsgId && !m.isStreaming)
             .map((m) => {'role': m.role, 'content': m.content})
-            .toList() ?? [];
+            .toList() ??
+        [];
 
     int tokenCount = 0;
     final stopwatch = Stopwatch()..start();
@@ -321,7 +356,9 @@ class ChatNotifier extends StateNotifier<ChatState> {
     if (isPureLocalAndroid) {
       final backend = ref.read(inferenceBackendProvider);
       if (!backend.isReady) {
-        _updateMessage(assistantMsgId, 'Error: Local LightRT inference engine is not ready.', isStreaming: false);
+        _updateMessage(assistantMsgId,
+            'Error: Local LightRT inference engine is not ready.',
+            isStreaming: false);
         return;
       }
 
@@ -333,36 +370,36 @@ class ChatNotifier extends StateNotifier<ChatState> {
       promptBuf.writeln("assistant:");
 
       final stream = backend.complete(
-        prompt: promptBuf.toString(),
-        modelPath: state.selectedModel
-      );
+          prompt: promptBuf.toString(), modelPath: state.selectedModel);
       String accumulated = '';
       final uiStopwatch = Stopwatch()..start();
       await for (final token in stream) {
-         tokenCount++;
-         accumulated += token;
+        tokenCount++;
+        accumulated += token;
 
-         if (uiStopwatch.elapsedMilliseconds > 40) {
-           _updateMessage(assistantMsgId, accumulated, isStreaming: true);
-           uiStopwatch.reset();
-         }
+        if (uiStopwatch.elapsedMilliseconds > 40) {
+          _updateMessage(assistantMsgId, accumulated, isStreaming: true);
+          uiStopwatch.reset();
+        }
       }
       stopwatch.stop();
       final duration = stopwatch.elapsedMilliseconds / 1000.0;
       final speed = duration > 0 ? tokenCount / duration : 0.0;
 
-      _updateMessage(
-        assistantMsgId, accumulated, isStreaming: false,
-        tokenSpeed: speed, totalTokens: tokenCount,
-        duration: duration, stopReason: 'EOS Token Found'
-      );
+      _updateMessage(assistantMsgId, accumulated,
+          isStreaming: false,
+          tokenSpeed: speed,
+          totalTokens: tokenCount,
+          duration: duration,
+          stopReason: 'EOS Token Found');
       _updateSessionTitle(content);
       return;
     }
 
     final user = FirebaseAuth.instance.currentUser;
     final token = await user?.getIdToken() ?? '';
-    final wsUrl = '${ApiConstants.wsBaseUrl}${ApiConstants.chatStream}?token=$token';
+    final wsUrl =
+        '${ApiConstants.wsBaseUrl}${ApiConstants.chatStream}?token=$token';
     _ws = WebSocketChannel.connect(Uri.parse(wsUrl));
 
     _ws!.sink.add(jsonEncode({
@@ -394,16 +431,17 @@ class ChatNotifier extends StateNotifier<ChatState> {
         final duration = stopwatch.elapsedMilliseconds / 1000.0;
         final speed = duration > 0 ? tokenCount / duration : 0.0;
 
-        _updateMessage(
-          assistantMsgId, accumulated, isStreaming: false,
-          tokenSpeed: speed, totalTokens: tokenCount,
-          duration: duration, stopReason: 'EOS Token Found'
-        );
+        _updateMessage(assistantMsgId, accumulated,
+            isStreaming: false,
+            tokenSpeed: speed,
+            totalTokens: tokenCount,
+            duration: duration,
+            stopReason: 'EOS Token Found');
         _updateSessionTitle(content);
         break;
       } else if (parsed['type'] == 'error') {
-        _updateMessage(assistantMsgId,
-            'Error: ${parsed['message']}', isStreaming: false);
+        _updateMessage(assistantMsgId, 'Error: ${parsed['message']}',
+            isStreaming: false);
         break;
       }
     }
@@ -413,25 +451,36 @@ class ChatNotifier extends StateNotifier<ChatState> {
     final sessions = state.sessions.map((s) {
       if (s.id != state.activeSessionId) return s;
       return ChatSession(
-          id: s.id, title: s.title, createdAt: s.createdAt,
+          id: s.id,
+          title: s.title,
+          createdAt: s.createdAt,
           messages: [...s.messages, msg]);
     }).toList();
     state = state.copyWith(sessions: sessions);
     _saveState(sessions);
   }
 
-  void _updateMessage(String msgId, String content, {bool? isStreaming, double? tokenSpeed, int? totalTokens, double? duration, String? stopReason}) {
+  void _updateMessage(String msgId, String content,
+      {bool? isStreaming,
+      double? tokenSpeed,
+      int? totalTokens,
+      double? duration,
+      String? stopReason}) {
     final sessions = state.sessions.map((s) {
       if (s.id != state.activeSessionId) return s;
       return ChatSession(
-          id: s.id, title: s.title, createdAt: s.createdAt,
+          id: s.id,
+          title: s.title,
+          createdAt: s.createdAt,
           messages: s.messages.map((m) {
             if (m.id != msgId) return m;
             return m.copyWith(
-              content: content, isStreaming: isStreaming,
-              tokenSpeed: tokenSpeed, totalTokens: totalTokens,
-              duration: duration, stopReason: stopReason
-            );
+                content: content,
+                isStreaming: isStreaming,
+                tokenSpeed: tokenSpeed,
+                totalTokens: totalTokens,
+                duration: duration,
+                stopReason: stopReason);
           }).toList());
     }).toList();
     state = state.copyWith(sessions: sessions);
@@ -457,10 +506,9 @@ class ChatNotifier extends StateNotifier<ChatState> {
     _saveState(sessions);
   }
 
-  void newSession()          => _createNewSession();
+  void newSession() => _createNewSession();
   void setSession(String id) => state = state.copyWith(activeSessionId: id);
-  void setModel(String? m)   => state = state.copyWith(selectedModel: m);
-
+  void setModel(String? m) => state = state.copyWith(selectedModel: m);
 }
 
 final chatProvider =
@@ -477,7 +525,7 @@ class ChatScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
-  final _inputController  = TextEditingController();
+  final _inputController = TextEditingController();
   final _scrollController = ScrollController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _showSessions = true;
@@ -505,7 +553,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final chatState = ref.watch(chatProvider);
-    final notifier  = ref.read(chatProvider.notifier);
+    final notifier = ref.read(chatProvider.notifier);
     ref.listen(chatProvider, (_, __) => _scrollToBottom());
 
     final isNarrow = MediaQuery.of(context).size.width < 800;
@@ -524,8 +572,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('New Chat',
-                    style: TextStyle(fontSize: 12)),
+                label: const Text('New Chat', style: TextStyle(fontSize: 12)),
                 onPressed: () {
                   notifier.newSession();
                   if (isNarrow) Navigator.of(context).pop();
@@ -623,8 +670,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
 
     final settingsSidebar = isNarrow
-      ? SizedBox(width: MediaQuery.of(context).size.width * 0.75, child: const _ChatSettingsPanel())
-      : const _ChatSettingsPanel();
+        ? SizedBox(
+            width: MediaQuery.of(context).size.width * 0.75,
+            child: const _ChatSettingsPanel())
+        : const _ChatSettingsPanel();
 
     return ExcludeSemantics(
       excluding: true,
@@ -688,8 +737,7 @@ class _ChatHeader extends StatelessWidget {
               )),
           const Spacer(),
           _ModelSelector(
-              selectedModel: selectedModel,
-              onModelChanged: onModelChanged),
+              selectedModel: selectedModel, onModelChanged: onModelChanged),
           const SizedBox(width: 8),
           IconButton(
             icon: Icon(
@@ -731,8 +779,7 @@ class _ModelSelector extends StatelessWidget {
       child: DropdownButton<String?>(
         value: selectedModel,
         hint: const Text('Auto',
-            style: TextStyle(
-                color: AppColors.textSecondary, fontSize: 12)),
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
         dropdownColor: AppColors.surfaceVariant,
         underline: const SizedBox(),
         icon: const Icon(Icons.expand_more,
@@ -741,8 +788,7 @@ class _ModelSelector extends StatelessWidget {
           const DropdownMenuItem<String?>(
             value: null,
             child: Text('Auto',
-                style: TextStyle(
-                    color: AppColors.textPrimary, fontSize: 12)),
+                style: TextStyle(color: AppColors.textPrimary, fontSize: 12)),
           ),
           ..._models.map((m) => DropdownMenuItem<String?>(
                 value: m,
@@ -765,8 +811,8 @@ class _EmptyChatState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.all(24),
@@ -774,8 +820,7 @@ class _EmptyChatState extends StatelessWidget {
               color: AppColors.accent.withOpacity(0.08),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(Icons.android,
-                size: 48, color: AppColors.accent),
+            child: const Icon(Icons.android, size: 48, color: AppColors.accent),
           ),
           const SizedBox(height: 20),
           const Text('Cyborg AI',
@@ -788,8 +833,7 @@ class _EmptyChatState extends StatelessWidget {
           const Text(
             'Your local-first AGI assistant.\nHow can I help you today?',
             textAlign: TextAlign.center,
-            style: TextStyle(
-                color: AppColors.textSecondary, fontSize: 13),
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
           ),
           const SizedBox(height: 32),
           Wrap(
@@ -827,7 +871,6 @@ class _SuggestionChip extends StatelessWidget {
   }
 }
 
-
 class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
   const _MessageBubble({required this.message});
@@ -845,12 +888,23 @@ class _MessageBubble extends StatelessWidget {
     return MarkdownBody(
       data: renderText,
       styleSheet: MarkdownStyleSheet(
-        p: const TextStyle(color: AppColors.textPrimary, fontSize: 13, height: 1.6),
-        code: const TextStyle(fontFamily: 'monospace', fontSize: 13, color: AppColors.accent, backgroundColor: Colors.transparent),
+        p: const TextStyle(
+            color: AppColors.textPrimary, fontSize: 13, height: 1.6),
+        code: const TextStyle(
+            fontFamily: 'monospace',
+            fontSize: 13,
+            color: AppColors.accent,
+            backgroundColor: Colors.transparent),
         codeblockPadding: EdgeInsets.zero,
         codeblockDecoration: const BoxDecoration(),
-        h1: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700),
-        h2: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+        h1: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w700),
+        h2: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 16,
+            fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -887,7 +941,8 @@ class _MessageBubble extends StatelessWidget {
                     children: const [
                       Icon(Icons.copy, size: 12, color: Colors.grey),
                       SizedBox(width: 4),
-                      Text('Copy', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      Text('Copy',
+                          style: TextStyle(color: Colors.grey, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -954,9 +1009,8 @@ class _MessageBubble extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 20),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: isUser
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
           if (!isUser) ...[
             Container(
@@ -966,8 +1020,8 @@ class _MessageBubble extends StatelessWidget {
                 color: AppColors.accent.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.android,
-                  size: 18, color: AppColors.accent),
+              child:
+                  const Icon(Icons.android, size: 18, color: AppColors.accent),
             ),
             const SizedBox(width: 10),
           ],
@@ -994,17 +1048,28 @@ class _MessageBubble extends StatelessWidget {
                       const _TypingIndicator()
                     else
                       ..._buildMessageContent(message.content),
-                    if (!message.isStreaming && !isUser && message.tokenSpeed != null) ...[
+                    if (!message.isStreaming &&
+                        !isUser &&
+                        message.tokenSpeed != null) ...[
                       const SizedBox(height: 12),
                       Wrap(
                         spacing: 12,
                         runSpacing: 8,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          _StatBadge(icon: Icons.bolt, text: '${message.tokenSpeed!.toStringAsFixed(2)} tok/sec'),
-                          _StatBadge(icon: Icons.layers_outlined, text: '${message.totalTokens} tokens'),
-                          _StatBadge(icon: Icons.timer_outlined, text: '${message.duration!.toStringAsFixed(2)}s'),
-                          _StatBadge(icon: Icons.stop_circle_outlined, text: 'Stop reason: ${message.stopReason}'),
+                          _StatBadge(
+                              icon: Icons.bolt,
+                              text:
+                                  '${message.tokenSpeed!.toStringAsFixed(2)} tok/sec'),
+                          _StatBadge(
+                              icon: Icons.layers_outlined,
+                              text: '${message.totalTokens} tokens'),
+                          _StatBadge(
+                              icon: Icons.timer_outlined,
+                              text: '${message.duration!.toStringAsFixed(2)}s'),
+                          _StatBadge(
+                              icon: Icons.stop_circle_outlined,
+                              text: 'Stop reason: ${message.stopReason}'),
                         ],
                       ),
                     ],
@@ -1026,8 +1091,8 @@ class _MessageBubble extends StatelessWidget {
             const CircleAvatar(
               radius: 14,
               backgroundColor: AppColors.surfaceVariant,
-              child: Icon(Icons.person,
-                  size: 16, color: AppColors.textSecondary),
+              child:
+                  Icon(Icons.person, size: 16, color: AppColors.textSecondary),
             ),
           ],
         ],
@@ -1048,7 +1113,9 @@ class _StatBadge extends StatelessWidget {
       children: [
         Icon(icon, size: 12, color: AppColors.textSecondary),
         const SizedBox(width: 4),
-        Text(text, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+        Text(text,
+            style:
+                const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
       ],
     );
   }
@@ -1096,7 +1163,8 @@ class _TypingIndicatorState extends State<_TypingIndicator>
         return AnimatedBuilder(
           animation: _anims[i],
           builder: (context, _) => Container(
-            width: 6, height: 6,
+            width: 6,
+            height: 6,
             margin: const EdgeInsets.symmetric(horizontal: 2),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
@@ -1143,34 +1211,72 @@ class _ChatInputState extends ConsumerState<_ChatInput> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.add_circle_outline, color: AppColors.textSecondary),
+            icon: const Icon(Icons.add_circle_outline,
+                color: AppColors.textSecondary),
             offset: const Offset(0, -200),
             color: AppColors.surfaceVariant,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             onSelected: (val) {
               // Mock action for attachment options
             },
             itemBuilder: (context) => [
-              PopupMenuItem(value: 'pic', child: Row(children: [const Icon(Icons.image, size: 18, color: AppColors.textPrimary), const SizedBox(width: 8), const Text('Upload Pic', style: TextStyle(color: AppColors.textPrimary, fontSize: 13))])),
-              PopupMenuItem(value: 'doc', child: Row(children: [const Icon(Icons.description, size: 18, color: AppColors.textPrimary), const SizedBox(width: 8), const Text('Upload Doc', style: TextStyle(color: AppColors.textPrimary, fontSize: 13))])),
-              PopupMenuItem(value: 'aud', child: Row(children: [const Icon(Icons.audiotrack, size: 18, color: AppColors.textPrimary), const SizedBox(width: 8), const Text('Upload Audio', style: TextStyle(color: AppColors.textPrimary, fontSize: 13))])),
-              PopupMenuItem(value: 'file', child: Row(children: [const Icon(Icons.insert_drive_file, size: 18, color: AppColors.textPrimary), const SizedBox(width: 8), const Text('Upload File', style: TextStyle(color: AppColors.textPrimary, fontSize: 13))])),
+              PopupMenuItem(
+                  value: 'pic',
+                  child: Row(children: [
+                    const Icon(Icons.image,
+                        size: 18, color: AppColors.textPrimary),
+                    const SizedBox(width: 8),
+                    const Text('Upload Pic',
+                        style: TextStyle(
+                            color: AppColors.textPrimary, fontSize: 13))
+                  ])),
+              PopupMenuItem(
+                  value: 'doc',
+                  child: Row(children: [
+                    const Icon(Icons.description,
+                        size: 18, color: AppColors.textPrimary),
+                    const SizedBox(width: 8),
+                    const Text('Upload Doc',
+                        style: TextStyle(
+                            color: AppColors.textPrimary, fontSize: 13))
+                  ])),
+              PopupMenuItem(
+                  value: 'aud',
+                  child: Row(children: [
+                    const Icon(Icons.audiotrack,
+                        size: 18, color: AppColors.textPrimary),
+                    const SizedBox(width: 8),
+                    const Text('Upload Audio',
+                        style: TextStyle(
+                            color: AppColors.textPrimary, fontSize: 13))
+                  ])),
+              PopupMenuItem(
+                  value: 'file',
+                  child: Row(children: [
+                    const Icon(Icons.insert_drive_file,
+                        size: 18, color: AppColors.textPrimary),
+                    const SizedBox(width: 8),
+                    const Text('Upload File',
+                        style: TextStyle(
+                            color: AppColors.textPrimary, fontSize: 13))
+                  ])),
             ],
           ),
           IconButton(
-            icon: Icon(
-              state.isListening ? Icons.stop : Icons.mic_none,
-              color: state.isListening ? AppColors.accentRed : AppColors.textSecondary
-            ),
+            icon: Icon(state.isListening ? Icons.stop : Icons.mic_none,
+                color: state.isListening
+                    ? AppColors.accentRed
+                    : AppColors.textSecondary),
             onPressed: state.isGenerating
-              ? null
-              : () {
-                if (state.isListening) {
-                  notifier.stopVoiceChat();
-                } else {
-                  notifier.startVoiceChat();
-                }
-              },
+                ? null
+                : () {
+                    if (state.isListening) {
+                      notifier.stopVoiceChat();
+                    } else {
+                      notifier.startVoiceChat();
+                    }
+                  },
           ),
           const SizedBox(width: 4),
           Expanded(
@@ -1195,38 +1301,72 @@ class _ChatInputState extends ConsumerState<_ChatInput> {
                   children: [
                     const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: () => setState(() => _thinkEnabled = !_thinkEnabled),
+                      onTap: () =>
+                          setState(() => _thinkEnabled = !_thinkEnabled),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _thinkEnabled ? AppColors.accent.withOpacity(0.15) : Colors.transparent,
+                          color: _thinkEnabled
+                              ? AppColors.accent.withOpacity(0.15)
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: _thinkEnabled ? AppColors.accent.withOpacity(0.5) : AppColors.border),
+                          border: Border.all(
+                              color: _thinkEnabled
+                                  ? AppColors.accent.withOpacity(0.5)
+                                  : AppColors.border),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.psychology_alt, size: 14, color: _thinkEnabled ? AppColors.accent : AppColors.textSecondary),
+                            Icon(Icons.psychology_alt,
+                                size: 14,
+                                color: _thinkEnabled
+                                    ? AppColors.accent
+                                    : AppColors.textSecondary),
                             const SizedBox(width: 4),
-                            Text('Think', style: TextStyle(fontSize: 12, color: _thinkEnabled ? AppColors.accent : AppColors.textSecondary, fontWeight: FontWeight.w500)),
+                            Text('Think',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: _thinkEnabled
+                                        ? AppColors.accent
+                                        : AppColors.textSecondary,
+                                    fontWeight: FontWeight.w500)),
                           ],
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: () => setState(() => _visionEnabled = !_visionEnabled),
+                      onTap: () =>
+                          setState(() => _visionEnabled = !_visionEnabled),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _visionEnabled ? AppColors.accentYellow.withOpacity(0.15) : Colors.transparent,
+                          color: _visionEnabled
+                              ? AppColors.accentYellow.withOpacity(0.15)
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: _visionEnabled ? AppColors.accentYellow.withOpacity(0.5) : AppColors.border),
+                          border: Border.all(
+                              color: _visionEnabled
+                                  ? AppColors.accentYellow.withOpacity(0.5)
+                                  : AppColors.border),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.remove_red_eye_outlined, size: 14, color: _visionEnabled ? AppColors.accentYellow : AppColors.textSecondary),
+                            Icon(Icons.remove_red_eye_outlined,
+                                size: 14,
+                                color: _visionEnabled
+                                    ? AppColors.accentYellow
+                                    : AppColors.textSecondary),
                             const SizedBox(width: 4),
-                            Text('Vision', style: TextStyle(fontSize: 12, color: _visionEnabled ? AppColors.accentYellow : AppColors.textSecondary, fontWeight: FontWeight.w500)),
+                            Text('Vision',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: _visionEnabled
+                                        ? AppColors.accentYellow
+                                        : AppColors.textSecondary,
+                                    fontWeight: FontWeight.w500)),
                           ],
                         ),
                       ),
@@ -1248,7 +1388,8 @@ class _ChatInputState extends ConsumerState<_ChatInput> {
             ),
             child: widget.isGenerating
                 ? const SizedBox(
-                    width: 18, height: 18,
+                    width: 18,
+                    height: 18,
                     child: CircularProgressIndicator(
                         strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.arrow_upward, size: 18),
@@ -1306,14 +1447,20 @@ class _ChatSettingsPanelState extends State<_ChatSettingsPanel> {
                 // Preset
                 const Row(
                   children: [
-                    Icon(Icons.check_circle_outline, size: 14, color: AppColors.textSecondary),
+                    Icon(Icons.check_circle_outline,
+                        size: 14, color: AppColors.textSecondary),
                     SizedBox(width: 8),
-                    Text('Preset', style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                    Text('Preset',
+                        style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceVariant,
                     borderRadius: BorderRadius.circular(6),
@@ -1322,8 +1469,11 @@ class _ChatSettingsPanelState extends State<_ChatSettingsPanel> {
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Select a Preset...', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                      Icon(Icons.unfold_more, size: 14, color: AppColors.textSecondary),
+                      Text('Select a Preset...',
+                          style: TextStyle(
+                              color: AppColors.textSecondary, fontSize: 12)),
+                      Icon(Icons.unfold_more,
+                          size: 14, color: AppColors.textSecondary),
                     ],
                   ),
                 ),
@@ -1331,7 +1481,8 @@ class _ChatSettingsPanelState extends State<_ChatSettingsPanel> {
                 OutlinedButton.icon(
                   onPressed: () {},
                   icon: const Icon(Icons.add, size: 14),
-                  label: const Text('Save Preset As...', style: TextStyle(fontSize: 12)),
+                  label: const Text('Save Preset As...',
+                      style: TextStyle(fontSize: 12)),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
@@ -1341,15 +1492,21 @@ class _ChatSettingsPanelState extends State<_ChatSettingsPanel> {
                 // System Prompt
                 const Row(
                   children: [
-                    Icon(Icons.terminal, size: 14, color: AppColors.textSecondary),
+                    Icon(Icons.terminal,
+                        size: 14, color: AppColors.textSecondary),
                     SizedBox(width: 8),
-                    Text('System Prompt', style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                    Text('System Prompt',
+                        style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
                   ],
                 ),
                 const SizedBox(height: 8),
                 TextField(
                   maxLines: 4,
-                  style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Example, "Only answer in rhymes"',
                     filled: true,
@@ -1366,11 +1523,17 @@ class _ChatSettingsPanelState extends State<_ChatSettingsPanel> {
                 // Settings Accordion
                 const Row(
                   children: [
-                    Icon(Icons.settings, size: 14, color: AppColors.textSecondary),
+                    Icon(Icons.settings,
+                        size: 14, color: AppColors.textSecondary),
                     SizedBox(width: 8),
-                    Text('Settings', style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                    Text('Settings',
+                        style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
                     Spacer(),
-                    Icon(Icons.keyboard_arrow_down, size: 16, color: AppColors.textSecondary),
+                    Icon(Icons.keyboard_arrow_down,
+                        size: 16, color: AppColors.textSecondary),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -1379,15 +1542,21 @@ class _ChatSettingsPanelState extends State<_ChatSettingsPanel> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(child: Text('Temperature', style: TextStyle(color: AppColors.textPrimary, fontSize: 12))),
+                    const Expanded(
+                        child: Text('Temperature',
+                            style: TextStyle(
+                                color: AppColors.textPrimary, fontSize: 12))),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: AppColors.surfaceVariant,
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: AppColors.border),
                       ),
-                      child: Text(_temperature.toStringAsFixed(2), style: const TextStyle(fontSize: 11, color: AppColors.textPrimary)),
+                      child: Text(_temperature.toStringAsFixed(2),
+                          style: const TextStyle(
+                              fontSize: 11, color: AppColors.textPrimary)),
                     ),
                   ],
                 ),
@@ -1398,7 +1567,8 @@ class _ChatSettingsPanelState extends State<_ChatSettingsPanel> {
                     inactiveTrackColor: AppColors.border,
                     thumbColor: AppColors.textPrimary,
                     overlayColor: AppColors.accent.withOpacity(0.2),
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                    thumbShape:
+                        const RoundSliderThumbShape(enabledThumbRadius: 6),
                   ),
                   child: Slider(
                     value: _temperature,
@@ -1410,57 +1580,65 @@ class _ChatSettingsPanelState extends State<_ChatSettingsPanel> {
                 const SizedBox(height: 12),
 
                 // Assistant Voice Response
-                Consumer(
-                  builder: (context, ref, _) {
-                    final voiceEnabled = ref.watch(voiceEnabledProvider);
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Expanded(child: Text('Voice Response', style: TextStyle(color: AppColors.textPrimary, fontSize: 12))),
-                        SizedBox(
-                          width: 32, height: 20,
-                          child: Switch(
-                            value: voiceEnabled,
-                            onChanged: (val) {
-                              ref.read(voiceEnabledProvider.notifier).state = val;
-                              ref.read(chatProvider.notifier).toggleVoice(val);
-                            },
-                            activeColor: AppColors.accent,
-                          ),
+                Consumer(builder: (context, ref, _) {
+                  final voiceEnabled = ref.watch(voiceEnabledProvider);
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Expanded(
+                          child: Text('Voice Response',
+                              style: TextStyle(
+                                  color: AppColors.textPrimary, fontSize: 12))),
+                      SizedBox(
+                        width: 32,
+                        height: 20,
+                        child: Switch(
+                          value: voiceEnabled,
+                          onChanged: (val) {
+                            ref.read(voiceEnabledProvider.notifier).state = val;
+                            ref.read(chatProvider.notifier).toggleVoice(val);
+                          },
+                          activeColor: AppColors.accent,
                         ),
-                      ],
-                    );
-                  }
-                ),
+                      ),
+                    ],
+                  );
+                }),
                 const SizedBox(height: 16),
 
                 // Hands-free Mode (Wake Word)
-                Consumer(
-                  builder: (context, ref, _) {
-                    final handsFree = ref.watch(handsFreeEnabledProvider);
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Expanded(child: Text('Voice Assistant Toggle', style: TextStyle(color: AppColors.textPrimary, fontSize: 12))),
-                        SizedBox(
-                          width: 32, height: 20,
-                          child: Switch(
-                            value: handsFree,
-                            onChanged: (val) {
-                              ref.read(handsFreeEnabledProvider.notifier).state = val;
-                              if (val) {
-                                ref.read(voiceEnabledProvider.notifier).state = true;
-                                ref.read(chatProvider.notifier).toggleVoice(true);
-                              }
-                              ref.read(chatProvider.notifier).toggleHandsFree(val);
-                            },
-                            activeColor: AppColors.accent,
-                          ),
+                Consumer(builder: (context, ref, _) {
+                  final handsFree = ref.watch(handsFreeEnabledProvider);
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Expanded(
+                          child: Text('Voice Assistant Toggle',
+                              style: TextStyle(
+                                  color: AppColors.textPrimary, fontSize: 12))),
+                      SizedBox(
+                        width: 32,
+                        height: 20,
+                        child: Switch(
+                          value: handsFree,
+                          onChanged: (val) {
+                            ref.read(handsFreeEnabledProvider.notifier).state =
+                                val;
+                            if (val) {
+                              ref.read(voiceEnabledProvider.notifier).state =
+                                  true;
+                              ref.read(chatProvider.notifier).toggleVoice(true);
+                            }
+                            ref
+                                .read(chatProvider.notifier)
+                                .toggleHandsFree(val);
+                          },
+                          activeColor: AppColors.accent,
                         ),
-                      ],
-                    );
-                  }
-                ),
+                      ),
+                    ],
+                  );
+                }),
                 const SizedBox(height: 16),
                 const SizedBox(height: 16),
 
@@ -1468,9 +1646,13 @@ class _ChatSettingsPanelState extends State<_ChatSettingsPanel> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(child: Text('Limit Response Length', style: TextStyle(color: AppColors.textPrimary, fontSize: 12))),
+                    const Expanded(
+                        child: Text('Limit Response Length',
+                            style: TextStyle(
+                                color: AppColors.textPrimary, fontSize: 12))),
                     SizedBox(
-                      width: 32, height: 20,
+                      width: 32,
+                      height: 20,
                       child: Switch(
                         value: false,
                         onChanged: (val) {},
@@ -1485,9 +1667,13 @@ class _ChatSettingsPanelState extends State<_ChatSettingsPanel> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(child: Text('Context Overflow', style: TextStyle(color: AppColors.textPrimary, fontSize: 12))),
+                    const Expanded(
+                        child: Text('Context Overflow',
+                            style: TextStyle(
+                                color: AppColors.textPrimary, fontSize: 12))),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: AppColors.surfaceVariant,
                         borderRadius: BorderRadius.circular(4),
@@ -1495,9 +1681,12 @@ class _ChatSettingsPanelState extends State<_ChatSettingsPanel> {
                       ),
                       child: const Row(
                         children: [
-                          Text('Truncate Middle', style: TextStyle(fontSize: 11, color: AppColors.textPrimary)),
+                          Text('Truncate Middle',
+                              style: TextStyle(
+                                  fontSize: 11, color: AppColors.textPrimary)),
                           SizedBox(width: 4),
-                          Icon(Icons.unfold_more, size: 12, color: AppColors.textSecondary),
+                          Icon(Icons.unfold_more,
+                              size: 12, color: AppColors.textSecondary),
                         ],
                       ),
                     ),
@@ -1506,16 +1695,20 @@ class _ChatSettingsPanelState extends State<_ChatSettingsPanel> {
                 const SizedBox(height: 16),
 
                 // Stop Strings
-                const Text('Stop Strings', style: TextStyle(color: AppColors.textPrimary, fontSize: 12)),
+                const Text('Stop Strings',
+                    style:
+                        TextStyle(color: AppColors.textPrimary, fontSize: 12)),
                 const SizedBox(height: 6),
                 TextField(
-                  style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Enter a string and press ↵',
                     filled: true,
                     fillColor: AppColors.surfaceVariant,
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
                       borderSide: const BorderSide(color: AppColors.border),
@@ -1529,18 +1722,27 @@ class _ChatSettingsPanelState extends State<_ChatSettingsPanel> {
                   children: [
                     Icon(Icons.menu, size: 14, color: AppColors.textSecondary),
                     SizedBox(width: 8),
-                    Text('Conversation Notes', style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
-                    Icon(Icons.help_outline, size: 12, color: AppColors.textSecondary),
+                    Text('Conversation Notes',
+                        style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
+                    Icon(Icons.help_outline,
+                        size: 12, color: AppColors.textSecondary),
                     Spacer(),
-                    Icon(Icons.keyboard_arrow_down, size: 16, color: AppColors.textSecondary),
+                    Icon(Icons.keyboard_arrow_down,
+                        size: 16, color: AppColors.textSecondary),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Center(
                   child: TextButton.icon(
                     onPressed: () {},
-                    icon: const Icon(Icons.add, size: 14, color: AppColors.textSecondary),
-                    label: const Text('Add a note', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                    icon: const Icon(Icons.add,
+                        size: 14, color: AppColors.textSecondary),
+                    label: const Text('Add a note',
+                        style: TextStyle(
+                            color: AppColors.textSecondary, fontSize: 12)),
                   ),
                 ),
               ],

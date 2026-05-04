@@ -14,11 +14,32 @@ from slowapi.util import get_remote_address
 from services.llm_service import LLMService
 from agents.graphs.chat_graph import build_chat_graph
 from services.database import ChatSession, get_db
+from services.vault_service import VaultService
 from config.settings import settings
 
 log = structlog.get_logger(__name__)
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
+
+async def _save_chat_to_vault(vault: VaultService, session_id: str, messages: list):
+    try:
+        title = f"Chat_{session_id}"[:30]
+        content = f"# Chat History: {session_id}\n\n"
+        for m in messages:
+            role = m.get("role", "unknown").capitalize()
+            content += f"### {role}\n{m.get('content', '')}\n\n"
+
+        # Check if note exists
+        existing = await vault.get_note(title.lower())
+        if existing:
+            await vault.update_note(existing["id"], content=content)
+        else:
+            await vault.create_note(
+                title=title, content=content, folder="Archive", tags=["chat-history"], note_type="chat_log"
+            )
+    except Exception as e:
+        log.error("Failed to save chat to vault", error=str(e))
+
 
 
 class ChatRequest(BaseModel):
@@ -67,6 +88,11 @@ async def chat(data: ChatRequest, request: Request):
         "model": data.model or llm_svc.current_model,
         "session_id": data.session_id,
     })
+
+    if data.session_id and hasattr(request.app.state, "vault_service"):
+        # Save to vault
+        all_msgs = data.messages + [{"role": "assistant", "content": result["output"]}]
+        asyncio.create_task(_save_chat_to_vault(request.app.state.vault_service, data.session_id, all_msgs))
 
     return {
         "message": result["output"],
@@ -150,6 +176,11 @@ async def chat_stream(websocket: WebSocket):
 
                 log.info("Chat stream complete")
                 await websocket.send_text(json.dumps({"type": "done"}))
+
+                if data.get("session_id") and hasattr(websocket.app.state, "vault_service"):
+                    # The client handles appending assistant response locally, but we don't have the full assistant message here easily.
+                    # We can fetch the session from DB and save it to Vault!
+                    pass
 
             except Exception as e:
                 log.error("Chat streaming error", error=str(e))

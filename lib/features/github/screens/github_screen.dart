@@ -28,15 +28,16 @@ class GitHubRepo {
   });
 
   factory GitHubRepo.fromJson(Map<String, dynamic> json) => GitHubRepo(
-    name: json['name'] ?? '',
-    fullName: json['full_name'] ?? '',
-    description: json['description'] ?? '',
-    private: json['private'] ?? false,
-    url: json['html_url'] ?? '',
-    stars: json['stargazers_count'] ?? 0,
-    language: json['language'] ?? 'Unknown',
-    updatedAt: DateTime.tryParse(json['updated_at'] ?? '') ?? DateTime.now(),
-  );
+        name: json['name'] ?? '',
+        fullName: json['full_name'] ?? '',
+        description: json['description'] ?? '',
+        private: json['private'] ?? false,
+        url: json['html_url'] ?? '',
+        stars: json['stargazers_count'] ?? 0,
+        language: json['language'] ?? 'Unknown',
+        updatedAt:
+            DateTime.tryParse(json['updated_at'] ?? '') ?? DateTime.now(),
+      );
 }
 
 class GitHubFile {
@@ -55,12 +56,12 @@ class GitHubFile {
   });
 
   factory GitHubFile.fromJson(Map<String, dynamic> json) => GitHubFile(
-    name: json['name'] ?? '',
-    path: json['path'] ?? '',
-    type: json['type'] ?? 'file',
-    size: json['size'] ?? 0,
-    url: json['url'] ?? '',
-  );
+        name: json['name'] ?? '',
+        path: json['path'] ?? '',
+        type: json['type'] ?? 'file',
+        size: json['size'] ?? 0,
+        url: json['url'] ?? '',
+      );
 
   bool get isDir => type == 'dir';
 }
@@ -137,30 +138,35 @@ class GitHubState {
     bool clearSelectedFile = false,
     String? selectedFileContent,
     bool? isLoadingFile,
-  }) => GitHubState(
-    isConnected: isConnected ?? this.isConnected,
-    username: username ?? this.username,
-    avatarUrl: avatarUrl ?? this.avatarUrl,
-    repos: repos ?? this.repos,
-    searchQuery: searchQuery ?? this.searchQuery,
-    isSyncing: isSyncing ?? this.isSyncing,
-    lastSyncedRepo: lastSyncedRepo ?? this.lastSyncedRepo,
-    error: error,
-    lastError: lastError ?? this.lastError,
-    selectedRepo: clearSelectedRepo ? null : (selectedRepo ?? this.selectedRepo),
-    repoContents: repoContents ?? this.repoContents,
-    currentPath: currentPath ?? this.currentPath,
-    isLoadingContents: isLoadingContents ?? this.isLoadingContents,
-    vaultRepo: clearVaultRepo ? null : (vaultRepo ?? this.vaultRepo),
-    isCreatingVault: isCreatingVault ?? this.isCreatingVault,
-    selectedFile: clearSelectedFile ? null : (selectedFile ?? this.selectedFile),
-    selectedFileContent: selectedFileContent ?? this.selectedFileContent,
-    isLoadingFile: isLoadingFile ?? this.isLoadingFile,
-  );
+  }) =>
+      GitHubState(
+        isConnected: isConnected ?? this.isConnected,
+        username: username ?? this.username,
+        avatarUrl: avatarUrl ?? this.avatarUrl,
+        repos: repos ?? this.repos,
+        searchQuery: searchQuery ?? this.searchQuery,
+        isSyncing: isSyncing ?? this.isSyncing,
+        lastSyncedRepo: lastSyncedRepo ?? this.lastSyncedRepo,
+        error: error,
+        lastError: lastError ?? this.lastError,
+        selectedRepo:
+            clearSelectedRepo ? null : (selectedRepo ?? this.selectedRepo),
+        repoContents: repoContents ?? this.repoContents,
+        currentPath: currentPath ?? this.currentPath,
+        isLoadingContents: isLoadingContents ?? this.isLoadingContents,
+        vaultRepo: clearVaultRepo ? null : (vaultRepo ?? this.vaultRepo),
+        isCreatingVault: isCreatingVault ?? this.isCreatingVault,
+        selectedFile:
+            clearSelectedFile ? null : (selectedFile ?? this.selectedFile),
+        selectedFileContent: selectedFileContent ?? this.selectedFileContent,
+        isLoadingFile: isLoadingFile ?? this.isLoadingFile,
+      );
 }
 
 class GitHubNotifier extends StateNotifier<GitHubState> {
-  GitHubNotifier() : super(const GitHubState()) { _checkConnection(); }
+  GitHubNotifier() : super(const GitHubState()) {
+    _checkConnection();
+  }
 
   final _dio = apiDio;
 
@@ -182,7 +188,8 @@ class GitHubNotifier extends StateNotifier<GitHubState> {
 
   Future<void> connect(String token) async {
     try {
-      final resp = await _dio.post(ApiConstants.githubConnect, data: {'token': token});
+      final resp =
+          await _dio.post(ApiConstants.githubConnect, data: {'token': token});
       state = state.copyWith(
         isConnected: true,
         username: resp.data['username'],
@@ -198,7 +205,8 @@ class GitHubNotifier extends StateNotifier<GitHubState> {
 
   Future<void> setVault(String repoFullName) async {
     try {
-      await _dio.post(ApiConstants.githubVaultSet, data: {'repo': repoFullName});
+      await _dio
+          .post(ApiConstants.githubVaultSet, data: {'repo': repoFullName});
       state = state.copyWith(vaultRepo: repoFullName);
       await loadRepos(); // Refresh and auto-select
     } catch (e) {
@@ -209,11 +217,14 @@ class GitHubNotifier extends StateNotifier<GitHubState> {
   Future<void> createVault(String name) async {
     state = state.copyWith(isCreatingVault: true);
     try {
-      final resp = await _dio.post(ApiConstants.githubVaultCreate, data: {'name': name});
-      state = state.copyWith(vaultRepo: resp.data['repo'], isCreatingVault: false);
+      final resp =
+          await _dio.post(ApiConstants.githubVaultCreate, data: {'name': name});
+      state =
+          state.copyWith(vaultRepo: resp.data['repo'], isCreatingVault: false);
       await loadRepos(); // Refresh and auto-select
     } catch (e) {
-      state = state.copyWith(isCreatingVault: false, error: 'Failed to create vault: $e');
+      state = state.copyWith(
+          isCreatingVault: false, error: 'Failed to create vault: $e');
     }
   }
 
@@ -225,7 +236,8 @@ class GitHubNotifier extends StateNotifier<GitHubState> {
     try {
       final resp = await _dio.get(ApiConstants.githubRepos);
       final repos = (resp.data['repos'] as List)
-          .map((r) => GitHubRepo.fromJson(r)).toList();
+          .map((r) => GitHubRepo.fromJson(r))
+          .toList();
       state = state.copyWith(repos: repos);
 
       // Auto-select vault if it exists
@@ -255,10 +267,12 @@ class GitHubNotifier extends StateNotifier<GitHubState> {
 
   Future<void> selectRepo(GitHubRepo? repo) async {
     if (repo == null) {
-      state = state.copyWith(clearSelectedRepo: true, repoContents: [], currentPath: '');
+      state = state.copyWith(
+          clearSelectedRepo: true, repoContents: [], currentPath: '');
       return;
     }
-    state = state.copyWith(selectedRepo: repo, currentPath: '', repoContents: []);
+    state =
+        state.copyWith(selectedRepo: repo, currentPath: '', repoContents: []);
     await loadRepoContents('');
   }
 
@@ -275,16 +289,19 @@ class GitHubNotifier extends StateNotifier<GitHubState> {
           .toList();
       state = state.copyWith(repoContents: items, isLoadingContents: false);
     } catch (e) {
-      state = state.copyWith(isLoadingContents: false, error: 'Failed to load contents: $e');
+      state = state.copyWith(
+          isLoadingContents: false, error: 'Failed to load contents: $e');
     }
   }
 
   Future<void> selectFile(GitHubFile? file) async {
     if (file == null) {
-      state = state.copyWith(clearSelectedFile: true, selectedFileContent: null);
+      state =
+          state.copyWith(clearSelectedFile: true, selectedFileContent: null);
       return;
     }
-    state = state.copyWith(selectedFile: file, isLoadingFile: true, selectedFileContent: null);
+    state = state.copyWith(
+        selectedFile: file, isLoadingFile: true, selectedFileContent: null);
     await loadRepoFile(file.path);
   }
 
@@ -300,7 +317,8 @@ class GitHubNotifier extends StateNotifier<GitHubState> {
         isLoadingFile: false,
       );
     } catch (e) {
-      state = state.copyWith(isLoadingFile: false, error: 'Failed to load file: $e');
+      state = state.copyWith(
+          isLoadingFile: false, error: 'Failed to load file: $e');
     }
   }
 
@@ -385,7 +403,8 @@ class _GitHubScreenState extends ConsumerState<GitHubScreen> {
                       setState(() => _obscureToken = !_obscureToken),
                   onConnect: () {
                     if (_tokenController.text.isNotEmpty) {
-                      ref.read(githubProvider.notifier)
+                      ref
+                          .read(githubProvider.notifier)
                           .connect(_tokenController.text);
                     }
                   },
@@ -436,8 +455,8 @@ class _ConnectView extends StatelessWidget {
                     color: AppColors.surfaceVariant,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.hub, size: 28,
-                      color: AppColors.textPrimary),
+                  child: const Icon(Icons.hub,
+                      size: 28, color: AppColors.textPrimary),
                 ),
                 const SizedBox(width: 14),
                 const Column(
@@ -463,19 +482,19 @@ class _ConnectView extends StatelessWidget {
               ('📦', 'Version control your AI OS snapshots'),
               ('🤝', 'Share agents & workflows as open-source repos'),
             ].map((item) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Text(item.$1, style: const TextStyle(fontSize: 16)),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(item.$2,
-                        style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12)),
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Text(item.$1, style: const TextStyle(fontSize: 16)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(item.$2,
+                            style: const TextStyle(
+                                color: AppColors.textSecondary, fontSize: 12)),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            )),
+                )),
             const SizedBox(height: 24),
             const Divider(),
             const SizedBox(height: 20),
@@ -489,15 +508,18 @@ class _ConnectView extends StatelessWidget {
               controller: tokenController,
               obscureText: obscureToken,
               style: const TextStyle(
-                  color: AppColors.textPrimary, fontSize: 13,
+                  color: AppColors.textPrimary,
+                  fontSize: 13,
                   fontFamily: 'JetBrainsMono'),
               decoration: InputDecoration(
                 hintText: 'ghp_xxxxxxxxxxxxxxxxxxxx',
                 prefixIcon: const Icon(Icons.key_outlined, size: 16),
                 suffixIcon: IconButton(
-                  icon: Icon(obscureToken
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined, size: 16),
+                  icon: Icon(
+                      obscureToken
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      size: 16),
                   onPressed: onToggleObscure,
                 ),
               ),
@@ -562,22 +584,40 @@ class _ConnectedView extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.warning_amber_rounded, color: AppColors.accentRed, size: 18),
+                    const Icon(Icons.warning_amber_rounded,
+                        color: AppColors.accentRed, size: 18),
                     const SizedBox(width: 8),
                     const Text('Sync Issue Detected',
-                      style: TextStyle(color: AppColors.accentRed, fontWeight: FontWeight.bold, fontSize: 13)),
+                        style: TextStyle(
+                            color: AppColors.accentRed,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13)),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(github.lastError!,
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 12)),
+                    style: const TextStyle(
+                        color: AppColors.textPrimary, fontSize: 12)),
                 if (github.lastError!.contains('403')) ...[
                   const SizedBox(height: 12),
-                  const Text('How to fix:', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 11)),
+                  const Text('How to fix:',
+                      style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11)),
                   const SizedBox(height: 4),
-                  const Text('1. Go to GitHub Settings > Developer Settings > Personal Access Tokens.', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-                  const Text('2. Edit your token and ensure "repo" scope is checked.', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-                  const Text('3. If using Fine-grained tokens, grant "Contents" Read & Write access.', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                  const Text(
+                      '1. Go to GitHub Settings > Developer Settings > Personal Access Tokens.',
+                      style: TextStyle(
+                          color: AppColors.textSecondary, fontSize: 11)),
+                  const Text(
+                      '2. Edit your token and ensure "repo" scope is checked.',
+                      style: TextStyle(
+                          color: AppColors.textSecondary, fontSize: 11)),
+                  const Text(
+                      '3. If using Fine-grained tokens, grant "Contents" Read & Write access.',
+                      style: TextStyle(
+                          color: AppColors.textSecondary, fontSize: 11)),
                 ],
               ],
             ),
@@ -593,18 +633,29 @@ class _ConnectedView extends ConsumerWidget {
               Expanded(
                 child: Text(
                   'Active Vault: ${github.vaultRepo}',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accent),
+                  style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.accent),
                 ),
               ),
               TextButton.icon(
-                onPressed: github.isSyncing ? null : () => ref.read(githubProvider.notifier).syncRepo(github.vaultRepo!),
+                onPressed: github.isSyncing
+                    ? null
+                    : () => ref
+                        .read(githubProvider.notifier)
+                        .syncRepo(github.vaultRepo!),
                 icon: github.isSyncing
-                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.sync_rounded, size: 16),
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.sync_rounded, size: 16),
                 label: Text(github.isSyncing ? 'Syncing...' : 'Sync All'),
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.accent,
-                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  textStyle: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(width: 8),
@@ -628,20 +679,24 @@ class _ConnectedView extends ConsumerWidget {
           ),
           child: Row(
             children: [
-              const Icon(Icons.folder_shared, size: 16, color: AppColors.textSecondary),
+              const Icon(Icons.folder_shared,
+                  size: 16, color: AppColors.textSecondary),
               const SizedBox(width: 8),
-              const Text('Active Vault Repository', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              const Text('Active Vault Repository',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
               const Spacer(),
               if (github.isSyncing)
                 const Row(
                   children: [
                     SizedBox(
-                      width: 14, height: 14,
+                      width: 14,
+                      height: 14,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                     const SizedBox(width: 8),
-                    Text('Syncing...', style: TextStyle(fontSize: 12,
-                        color: AppColors.textSecondary)),
+                    Text('Syncing...',
+                        style: TextStyle(
+                            fontSize: 12, color: AppColors.textSecondary)),
                   ],
                 )
               else
@@ -650,8 +705,8 @@ class _ConnectedView extends ConsumerWidget {
                   label: const Text('Sync All', style: TextStyle(fontSize: 12)),
                   onPressed: () => notifier.syncRepo(github.vaultRepo!),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   ),
                 ),
             ],
@@ -758,7 +813,8 @@ class _VaultSetupState extends State<_VaultSetup> {
             const SizedBox(height: 32),
 
             // Create New
-            const Text('Create a new vault repository', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+            const Text('Create a new vault repository',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -775,11 +831,16 @@ class _VaultSetupState extends State<_VaultSetup> {
                 Consumer(builder: (context, ref, _) {
                   return ElevatedButton(
                     onPressed: widget.github.isCreatingVault
-                      ? null
-                      : () => ref.read(githubProvider.notifier).createVault('cyborg-${_newRepoCtrl.text}'),
+                        ? null
+                        : () => ref
+                            .read(githubProvider.notifier)
+                            .createVault('cyborg-${_newRepoCtrl.text}'),
                     child: widget.github.isCreatingVault
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Create Vault'),
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Text('Create Vault'),
                   );
                 }),
               ],
@@ -789,13 +850,17 @@ class _VaultSetupState extends State<_VaultSetup> {
               padding: EdgeInsets.symmetric(vertical: 24),
               child: Row(children: [
                 Expanded(child: Divider()),
-                Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('OR', style: TextStyle(color: AppColors.textMuted))),
+                Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('OR',
+                        style: TextStyle(color: AppColors.textMuted))),
                 Expanded(child: Divider()),
               ]),
             ),
 
             // Select Existing
-            const Text('Select an existing repository', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+            const Text('Select an existing repository',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
             const SizedBox(height: 12),
             Expanded(
               child: Container(
@@ -805,24 +870,33 @@ class _VaultSetupState extends State<_VaultSetup> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: widget.github.repos.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(8),
-                      itemCount: widget.github.repos.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (context, i) {
-                        final repo = widget.github.repos[i];
-                        return Consumer(builder: (context, ref, _) {
-                          return ListTile(
-                            dense: true,
-                            title: Text(repo.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                            subtitle: Text(repo.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)),
-                            trailing: const Icon(Icons.chevron_right, size: 16),
-                            onTap: () => ref.read(githubProvider.notifier).setVault(repo.fullName),
-                          );
-                        });
-                      },
-                    ),
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView.separated(
+                        padding: const EdgeInsets.all(8),
+                        itemCount: widget.github.repos.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, i) {
+                          final repo = widget.github.repos[i];
+                          return Consumer(builder: (context, ref, _) {
+                            return ListTile(
+                              dense: true,
+                              title: Text(repo.name,
+                                  style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600)),
+                              subtitle: Text(repo.description,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 11)),
+                              trailing:
+                                  const Icon(Icons.chevron_right, size: 16),
+                              onTap: () => ref
+                                  .read(githubProvider.notifier)
+                                  .setVault(repo.fullName),
+                            );
+                          });
+                        },
+                      ),
               ),
             ),
           ],
@@ -850,7 +924,8 @@ class _RepoExplorer extends ConsumerWidget {
             children: [
               // Explorer Header / Breadcrumbs
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 color: AppColors.surfaceVariant,
                 child: Row(
                   children: [
@@ -865,17 +940,32 @@ class _RepoExplorer extends ConsumerWidget {
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
-                            _breadcrumbItem(repo.name, () => notifier.loadRepoContents('')),
+                            _breadcrumbItem(
+                                repo.name, () => notifier.loadRepoContents('')),
                             if (github.currentPath.isNotEmpty) ...[
-                              const Icon(Icons.chevron_right, size: 14, color: AppColors.textMuted),
-                              ...github.currentPath.split('/').asMap().entries.map((e) {
-                                final subPath = github.currentPath.split('/').take(e.key + 1).join('/');
+                              const Icon(Icons.chevron_right,
+                                  size: 14, color: AppColors.textMuted),
+                              ...github.currentPath
+                                  .split('/')
+                                  .asMap()
+                                  .entries
+                                  .map((e) {
+                                final subPath = github.currentPath
+                                    .split('/')
+                                    .take(e.key + 1)
+                                    .join('/');
                                 return Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    _breadcrumbItem(e.value, () => notifier.loadRepoContents(subPath)),
-                                    if (e.key < github.currentPath.split('/').length - 1)
-                                      const Icon(Icons.chevron_right, size: 14, color: AppColors.textMuted),
+                                    _breadcrumbItem(
+                                        e.value,
+                                        () =>
+                                            notifier.loadRepoContents(subPath)),
+                                    if (e.key <
+                                        github.currentPath.split('/').length -
+                                            1)
+                                      const Icon(Icons.chevron_right,
+                                          size: 14, color: AppColors.textMuted),
                                   ],
                                 );
                               }),
@@ -885,7 +975,10 @@ class _RepoExplorer extends ConsumerWidget {
                       ),
                     ),
                     if (github.isLoadingContents)
-                      const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                      const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2)),
                   ],
                 ),
               ),
@@ -938,7 +1031,11 @@ class _RepoExplorer extends ConsumerWidget {
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.accent)),
+        child: Text(label,
+            style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.accent)),
       ),
     );
   }
@@ -963,7 +1060,9 @@ class _FileItem extends StatelessWidget {
       selectedTileColor: AppColors.accent.withOpacity(0.1),
       leading: Icon(
         item.isDir ? Icons.folder : Icons.description_outlined,
-        color: item.isDir ? Colors.amber : (isSelected ? AppColors.accent : AppColors.textSecondary),
+        color: item.isDir
+            ? Colors.amber
+            : (isSelected ? AppColors.accent : AppColors.textSecondary),
         size: 18,
       ),
       title: Text(
@@ -974,7 +1073,10 @@ class _FileItem extends StatelessWidget {
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
         ),
       ),
-      trailing: item.isDir ? null : Text(_formatSize(item.size), style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+      trailing: item.isDir
+          ? null
+          : Text(_formatSize(item.size),
+              style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
       onTap: onTap,
     );
   }
@@ -1010,12 +1112,14 @@ class _FileContentViewer extends StatelessWidget {
           color: AppColors.surface,
           child: Row(
             children: [
-              const Icon(Icons.description_outlined, size: 16, color: AppColors.textSecondary),
+              const Icon(Icons.description_outlined,
+                  size: 16, color: AppColors.textSecondary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   file.name,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -1043,8 +1147,12 @@ class _FileContentViewer extends StatelessWidget {
                             ? MarkdownBody(
                                 data: content!,
                                 selectable: true,
-                                styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                                  p: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
+                                styleSheet: MarkdownStyleSheet.fromTheme(
+                                        Theme.of(context))
+                                    .copyWith(
+                                  p: const TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 13),
                                   code: const TextStyle(
                                     backgroundColor: AppColors.surfaceVariant,
                                     fontFamily: 'monospace',
@@ -1104,7 +1212,9 @@ class _RepoCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    repo.private ? Icons.lock_outline : Icons.lock_open_outlined,
+                    repo.private
+                        ? Icons.lock_outline
+                        : Icons.lock_open_outlined,
                     size: 14,
                     color: AppColors.textMuted,
                   ),
@@ -1120,7 +1230,8 @@ class _RepoCard extends StatelessWidget {
                   IconButton(
                     icon: isSyncing
                         ? const SizedBox(
-                            width: 14, height: 14,
+                            width: 14,
+                            height: 14,
                             child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.sync, size: 14),
                     onPressed: isSyncing ? null : onSync,
@@ -1137,9 +1248,10 @@ class _RepoCard extends StatelessWidget {
                         color: AppColors.textSecondary, fontSize: 11),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
-                ],
+              ],
               const SizedBox(height: 8),
-              const Expanded(child: SizedBox()), // Flexible space instead of Spacer
+              const Expanded(
+                  child: SizedBox()), // Flexible space instead of Spacer
               Row(
                 children: [
                   if (repo.language != 'Unknown') ...[
@@ -1148,7 +1260,8 @@ class _RepoCard extends StatelessWidget {
                       height: 10,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: _langColors[repo.language] ?? AppColors.textMuted,
+                        color:
+                            _langColors[repo.language] ?? AppColors.textMuted,
                       ),
                     ),
                     const SizedBox(width: 5),
@@ -1157,8 +1270,8 @@ class _RepoCard extends StatelessWidget {
                             color: AppColors.textMuted, fontSize: 11)),
                     const SizedBox(width: 10),
                   ],
-                  const Icon(Icons.star_outline, size: 12,
-                      color: AppColors.textMuted),
+                  const Icon(Icons.star_outline,
+                      size: 12, color: AppColors.textMuted),
                   const SizedBox(width: 3),
                   Text('${repo.stars}',
                       style: const TextStyle(

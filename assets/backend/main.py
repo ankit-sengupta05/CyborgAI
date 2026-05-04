@@ -82,17 +82,17 @@ async def lifespan(app: FastAPI):
     app.state.embedding_service = embedding_svc
     log.info("[WAIT] Embeddings initializing in background...")
 
-    # Graph service (requires LLM for AI ingestion)
-    graph_svc = GraphService(embedding_svc, llm_svc)
-    asyncio.create_task(graph_svc.initialize())
-    app.state.graph_service = graph_svc
-    log.info("[WAIT] Knowledge graph initializing in background...")
-
     # Vault service (AI-OS markdown file system)
     vault_svc = VaultService()
     await vault_svc.initialize()
     app.state.vault_service = vault_svc
     log.info("[OK] Vault ready")
+
+    # Graph service (requires LLM for AI ingestion and Vault for storage)
+    graph_svc = GraphService(embedding_svc, llm_svc, vault_svc)
+    asyncio.create_task(graph_svc.initialize())
+    app.state.graph_service = graph_svc
+    log.info("[WAIT] Knowledge graph initializing in background...")
 
     # GitHub service (Sync & Integration)
     github_svc = GitHubService()

@@ -9,8 +9,7 @@ class GoogleAuthService {
   Future<User?> signInWithGoogle() async {
     try {
       // Trigger Google Sign-In
-      final GoogleSignInAccount? googleUser =
-          await _googleSignIn.signIn();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) return null;
 
@@ -22,8 +21,7 @@ class GoogleAuthService {
         idToken: googleAuth.idToken,
       );
 
-      final userCred =
-          await _auth.signInWithCredential(credential);
+      final userCred = await _auth.signInWithCredential(credential);
 
       return userCred.user;
     } catch (e) {
@@ -53,8 +51,7 @@ class GoogleAuthService {
         idToken: googleAuth.idToken,
       );
 
-      final userCred =
-          await _auth.signInWithCredential(credential);
+      final userCred = await _auth.signInWithCredential(credential);
 
       return userCred.user;
     } catch (e) {

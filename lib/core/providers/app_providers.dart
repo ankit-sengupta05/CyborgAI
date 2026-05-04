@@ -66,12 +66,12 @@ final backendStatusProvider = StreamProvider<BackendProgress>((ref) {
 });
 
 BackendStatus _mapInferenceStatus(InferenceStatus s) => switch (s) {
-      InferenceStatus.stopped       => BackendStatus.stopped,
-      InferenceStatus.initializing  => BackendStatus.checkingEnv,
-      InferenceStatus.loadingModel  => BackendStatus.starting,
-      InferenceStatus.ready         => BackendStatus.running,
-      InferenceStatus.inferring     => BackendStatus.running,
-      InferenceStatus.error         => BackendStatus.error,
+      InferenceStatus.stopped => BackendStatus.stopped,
+      InferenceStatus.initializing => BackendStatus.checkingEnv,
+      InferenceStatus.loadingModel => BackendStatus.starting,
+      InferenceStatus.ready => BackendStatus.running,
+      InferenceStatus.inferring => BackendStatus.running,
+      InferenceStatus.error => BackendStatus.error,
     };
 
 // ── Firebase auth ─────────────────────────────────────────────────────────────
@@ -85,8 +85,8 @@ final currentUserProvider = Provider<User?>((ref) {
 
 // ── UI state ─────────────────────────────────────────────────────────────────
 final activeNavIndexProvider = StateProvider<int>((ref) => 0);
-final globalLoadingProvider  = StateProvider<bool>((ref) => false);
-final globalErrorProvider    = StateProvider<String?>((ref) => null);
+final globalLoadingProvider = StateProvider<bool>((ref) => false);
+final globalErrorProvider = StateProvider<String?>((ref) => null);
 
 // ── Windows backend adapter ───────────────────────────────────────────────────
 /// Wraps BackendService so it satisfies the InferenceBackend interface.
@@ -97,7 +97,8 @@ class _WindowsBackendAdapter implements InferenceBackend {
 
   @override
   Stream<InferenceProgress> get progressStream => _svc.progressStream.map(
-        (p) => InferenceProgress(_mapInferenceStatus2(p.status), p.message, p.progress),
+        (p) => InferenceProgress(
+            _mapInferenceStatus2(p.status), p.message, p.progress),
       );
 
   @override
@@ -136,14 +137,14 @@ class _WindowsBackendAdapter implements InferenceBackend {
   void dispose() => _svc.dispose();
 
   InferenceStatus _mapInferenceStatus2(BackendStatus s) => switch (s) {
-        BackendStatus.stopped        => InferenceStatus.stopped,
-        BackendStatus.checkingEnv    => InferenceStatus.initializing,
-        BackendStatus.detectingCuda  => InferenceStatus.initializing,
-        BackendStatus.creatingVenv   => InferenceStatus.initializing,
+        BackendStatus.stopped => InferenceStatus.stopped,
+        BackendStatus.checkingEnv => InferenceStatus.initializing,
+        BackendStatus.detectingCuda => InferenceStatus.initializing,
+        BackendStatus.creatingVenv => InferenceStatus.initializing,
         BackendStatus.installingTorch => InferenceStatus.initializing,
         BackendStatus.installingDeps => InferenceStatus.initializing,
-        BackendStatus.starting       => InferenceStatus.loadingModel,
-        BackendStatus.running        => InferenceStatus.ready,
-        BackendStatus.error          => InferenceStatus.error,
+        BackendStatus.starting => InferenceStatus.loadingModel,
+        BackendStatus.running => InferenceStatus.ready,
+        BackendStatus.error => InferenceStatus.error,
       };
 }

@@ -103,10 +103,28 @@ class IngestionService:
             log.error(f"Ingestion failed for {path.name}: {e}")
 
     async def _process_image(self, path: Path) -> str:
-        # TroCR or EasyOCR implementation placeholder
-        # For now, let's use a placeholder message
-        log.info(f"OCR processing (placeholder) for {path.name}")
-        return f"[Image OCR Content Placeholder for {path.name}]"
+        log.info(f"Running TrOCR on image: {path.name}")
+        try:
+            from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+            from PIL import Image
+            import torch
+
+            # Load model lazily to avoid startup overhead
+            if not hasattr(self, "trocr_processor"):
+                log.info("Loading TrOCR model...")
+                self.trocr_processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten")
+                self.trocr_model = VisionEncoderDecoderModel.from_pretrained("microsoft/trocr-base-handwritten")
+
+            image = Image.open(str(path)).convert("RGB")
+            pixel_values = self.trocr_processor(images=image, return_tensors="pt").pixel_values
+
+            generated_ids = self.trocr_model.generate(pixel_values)
+            generated_text = self.trocr_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+
+            return f"Extracted Text (TrOCR):\n{generated_text}"
+        except Exception as e:
+            log.error(f"TrOCR extraction failed: {e}")
+            return f"[Image OCR Failed: {str(e)}]"
 
     async def _process_audio(self, path: Path) -> str:
         # Use existing VoiceService (Whisper)
@@ -120,9 +138,34 @@ class IngestionService:
         return transcript
 
     async def _process_video(self, path: Path) -> str:
-        # Extract audio and transcribe
         log.info(f"Video processing (audio extraction) for {path.name}")
-        return f"[Video Transcription Placeholder for {path.name}]"
+        if not self.voice_service.is_ready:
+            return "Voice service not ready for transcription."
+
+        import tempfile
+        import subprocess
+        import librosa
+
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_audio:
+                tmp_path = tmp_audio.name
+
+            # Extract audio using ffmpeg
+            subprocess.run([
+                "ffmpeg", "-y", "-i", str(path), "-vn", "-acodec", "pcm_s16le",
+                "-ar", "16000", "-ac", "1", tmp_path
+            ], capture_output=True, check=True)
+
+            audio, sr = librosa.load(tmp_path, sr=16000)
+            transcript = self.voice_service.transcribe(audio)
+
+            import os
+            os.unlink(tmp_path)
+
+            return f"Video Transcript:\n{transcript}"
+        except Exception as e:
+            log.error(f"Video transcription failed: {e}")
+            return f"[Video Transcription Failed: {str(e)}]"
 
     async def _process_document(self, path: Path) -> str:
         ext = path.suffix.lower()

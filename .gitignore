@@ -1,47 +1,75 @@
-```
-# Build artifacts
-build/
-*.apk
-*.aab
-*.app
-*.exe
-*.dll
-*.so
-*.dylib
+# ─── Secrets & Config (NEVER commit) ─────────────────────────────────────────
+.env
+*.env
+*.json
+!pubspec.json
+!package.json
+firebase-service-account.json
+google-services.json
+GoogleService-Info.plist
+firebase_options.dart
+*.pem
+*.key
+*.p12
+*.pfx
+node_modules/
 
-# Dependencies
-**/node_modules/
-**/.venv/
-**/venv/
+# ─── Python ───────────────────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+__pycache__/
 **/__pycache__/
-**/.mypy_cache/
-**/.pytest_cache/
-**/.gradle/
-**/target/
-**/vendor/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+.pytest_cache/
+.cache/
+.ruff_cache/
 
-# Flutter/Dart specific
+# ─── Data & Models (large files) ─────────────────────────────────────────────
+assets/backend/brain/
+data/
+**/data/
+models/
+**/models/
+checkpoints/
+**/checkpoints/
+logs/
+**/logs/
+cache/
+**/cache/
+external/
+**/external/
+*.gguf
+*.bin
+*.litertlm
+*.tflite
+*.task
+*.onnx
+*.weights
+*.h5
+*.db
+*.sqlite
+
+# ─── Flutter ──────────────────────────────────────────────────────────────────
 .dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+pubspec.lock
 .packages
 .pub-cache/
-pubspec.lock
 
-# IDE files
-.vscode/
+# ─── IDE ──────────────────────────────────────────────────────────────────────
 .idea/
+.vscode/
 *.swp
 *.swo
-*.tmp
-
-# Environment variables
-.env
-.env.local
-*.env.*
-
-# Logs
-*.log
-
-# OS generated files
 .DS_Store
 Thumbs.db
-```
+
+# ─── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+desktop.ini

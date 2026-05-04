@@ -19,7 +19,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
   String selectedTab = "Neural Interface";
   String output = "System Ready...";
   List<String> logs = [];
-  
+
   // Health & Education state
   bool _isAnalyzingXRay = false;
   bool _isGradingHomework = false;
@@ -89,7 +89,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
                           gradient: AppColors.accentGradient,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.smart_toy, color: Colors.white, size: 20),
+                        child: const Icon(Icons.smart_toy,
+                            color: Colors.white, size: 20),
                       ),
                       const SizedBox(width: 12),
                       const Text(
@@ -116,12 +117,15 @@ class _HomeDesktopState extends State<HomeDesktop> {
                       _sideButton("Vector DB", Icons.storage),
                       const SizedBox(height: 12),
                       // Gemma 4 Extensions
-                      _sideButton("Health Track", Icons.medical_services, isCategory: true),
+                      _sideButton("Health Track", Icons.medical_services,
+                          isCategory: true),
                       _sideButton("X-Ray Analysis", Icons.add_chart),
                       _sideButton("EHR Assistant", Icons.folder_shared),
                       const SizedBox(height: 12),
-                      _sideButton("Education Track", Icons.school, isCategory: true),
-                      _sideButton("Homework Grader", Icons.assignment_turned_in),
+                      _sideButton("Education Track", Icons.school,
+                          isCategory: true),
+                      _sideButton(
+                          "Homework Grader", Icons.assignment_turned_in),
                       _sideButton("Quiz Generator", Icons.quiz),
                       const SizedBox(height: 12),
                       _sideButton("Logs", Icons.list),
@@ -136,7 +140,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
                   decoration: BoxDecoration(
                     color: AppColors.backgroundSurface,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.borderDefault, width: 1),
+                    border:
+                        Border.all(color: AppColors.borderDefault, width: 1),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,7 +194,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
                   decoration: BoxDecoration(
                     color: AppColors.backgroundMain,
                     border: Border(
-                      bottom: BorderSide(color: AppColors.borderDefault, width: 1),
+                      bottom:
+                          BorderSide(color: AppColors.borderDefault, width: 1),
                     ),
                   ),
                   child: Row(
@@ -214,11 +220,13 @@ class _HomeDesktopState extends State<HomeDesktop> {
                         ],
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: AppColors.backgroundSurface,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.borderDefault, width: 1),
+                          border: Border.all(
+                              color: AppColors.borderDefault, width: 1),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -268,7 +276,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
                           decoration: BoxDecoration(
                             color: AppColors.backgroundInput,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.borderDefault, width: 1),
+                            border: Border.all(
+                                color: AppColors.borderDefault, width: 1),
                           ),
                           child: TextField(
                             controller: _controller,
@@ -509,13 +518,15 @@ class _HomeDesktopState extends State<HomeDesktop> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         setState(() {
-                          output = "Launching X-Ray Analysis Demo on port 7860...";
+                          output =
+                              "Launching X-Ray Analysis Demo on port 7860...";
                         });
                       },
                       icon: const Icon(Icons.add_chart, size: 18),
                       label: const Text("X-RAY ANALYSIS"),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 14),
                       ),
                     ),
                   ),
@@ -530,7 +541,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
                       icon: const Icon(Icons.folder_shared, size: 18),
                       label: const Text("EHR ASSISTANT"),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 14),
                       ),
                     ),
                   ),
@@ -590,13 +602,15 @@ class _HomeDesktopState extends State<HomeDesktop> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         setState(() {
-                          output = "Launching Homework Grader Demo on port 7861...";
+                          output =
+                              "Launching Homework Grader Demo on port 7861...";
                         });
                       },
                       icon: const Icon(Icons.assignment_turned_in, size: 18),
                       label: const Text("HOMEWORK GRADER"),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 14),
                       ),
                     ),
                   ),
@@ -611,7 +625,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
                       icon: const Icon(Icons.quiz, size: 18),
                       label: const Text("QUIZ GENERATOR"),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 14),
                       ),
                     ),
                   ),
@@ -668,12 +683,16 @@ class _HomeDesktopState extends State<HomeDesktop> {
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: _isAnalyzingXRay ? null : _uploadAndAnalyzeXRay,
-                icon: _isAnalyzingXRay 
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                icon: _isAnalyzingXRay
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.upload_file, size: 18),
                 label: Text(_isAnalyzingXRay ? "ANALYZING..." : "UPLOAD X-RAY"),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 ),
               ),
               const SizedBox(height: 20),
@@ -691,7 +710,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.analytics, color: AppColors.accentBlue, size: 20),
+                          const Icon(Icons.analytics,
+                              color: AppColors.accentBlue, size: 20),
                           const SizedBox(width: 8),
                           Text(
                             "Analysis Results",
@@ -704,9 +724,12 @@ class _HomeDesktopState extends State<HomeDesktop> {
                         ],
                       ),
                       const Divider(),
-                      _resultRow("Findings", _xrayResult!['findings']?.toString() ?? "N/A"),
-                      _resultRow("Confidence", "${((_xrayResult!['confidence'] ?? 0) * 100).toStringAsFixed(1)}%"),
-                      _resultRow("Explanation", _xrayResult!['explanation']?.toString() ?? "N/A"),
+                      _resultRow("Findings",
+                          _xrayResult!['findings']?.toString() ?? "N/A"),
+                      _resultRow("Confidence",
+                          "${((_xrayResult!['confidence'] ?? 0) * 100).toStringAsFixed(1)}%"),
+                      _resultRow("Explanation",
+                          _xrayResult!['explanation']?.toString() ?? "N/A"),
                       if (_xrayResult!['recommendations'] != null) ...[
                         const SizedBox(height: 8),
                         Text(
@@ -720,7 +743,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
                         const SizedBox(height: 4),
                         Text(
                           _xrayResult!['recommendations']?.toString() ?? "",
-                          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                          style: TextStyle(
+                              color: AppColors.textSecondary, fontSize: 12),
                         ),
                       ],
                       const SizedBox(height: 12),
@@ -729,11 +753,13 @@ class _HomeDesktopState extends State<HomeDesktop> {
                         decoration: BoxDecoration(
                           color: AppColors.accentOrange.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.accentOrange.withOpacity(0.3)),
+                          border: Border.all(
+                              color: AppColors.accentOrange.withOpacity(0.3)),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.warning_amber, color: AppColors.accentOrange, size: 16),
+                            const Icon(Icons.warning_amber,
+                                color: AppColors.accentOrange, size: 16),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -762,7 +788,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.folder_shared, size: 64, color: AppColors.accentPurple),
+              const Icon(Icons.folder_shared,
+                  size: 64, color: AppColors.accentPurple),
               const SizedBox(height: 20),
               const Text(
                 "FHIR-compatible EHR function calling with safety guardrails",
@@ -782,7 +809,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
                 icon: const Icon(Icons.link, size: 18),
                 label: const Text("CONNECT EHR"),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 ),
               ),
             ],
@@ -806,11 +834,16 @@ class _HomeDesktopState extends State<HomeDesktop> {
               ElevatedButton.icon(
                 onPressed: _isGradingHomework ? null : _uploadAndGradeHomework,
                 icon: _isGradingHomework
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.upload_file, size: 18),
-                label: Text(_isGradingHomework ? "GRADING..." : "UPLOAD HOMEWORK"),
+                label:
+                    Text(_isGradingHomework ? "GRADING..." : "UPLOAD HOMEWORK"),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 ),
               ),
               const SizedBox(height: 20),
@@ -828,7 +861,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.assignment_turned_in, color: AppColors.success, size: 20),
+                          const Icon(Icons.assignment_turned_in,
+                              color: AppColors.success, size: 20),
                           const SizedBox(width: 8),
                           Text(
                             "Grading Results",
@@ -841,9 +875,12 @@ class _HomeDesktopState extends State<HomeDesktop> {
                         ],
                       ),
                       const Divider(),
-                      _resultRow("Score", "${((_homeworkResult!['score'] ?? 0) * 100).toStringAsFixed(1)}%"),
-                      _resultRow("Subject", _homeworkResult!['subject']?.toString() ?? "N/A"),
-                      _resultRow("Grade Level", "${_homeworkResult!['grade_level'] ?? "N/A"}"),
+                      _resultRow("Score",
+                          "${((_homeworkResult!['score'] ?? 0) * 100).toStringAsFixed(1)}%"),
+                      _resultRow("Subject",
+                          _homeworkResult!['subject']?.toString() ?? "N/A"),
+                      _resultRow("Grade Level",
+                          "${_homeworkResult!['grade_level'] ?? "N/A"}"),
                       if (_homeworkResult!['feedback'] != null) ...[
                         const SizedBox(height: 12),
                         Text(
@@ -857,7 +894,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
                         const SizedBox(height: 4),
                         Text(
                           _homeworkResult!['feedback']?.toString() ?? "",
-                          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                          style: TextStyle(
+                              color: AppColors.textSecondary, fontSize: 12),
                         ),
                       ],
                     ],
@@ -885,11 +923,16 @@ class _HomeDesktopState extends State<HomeDesktop> {
               ElevatedButton.icon(
                 onPressed: _isGeneratingQuiz ? null : _generateQuiz,
                 icon: _isGeneratingQuiz
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.auto_awesome, size: 18),
-                label: Text(_isGeneratingQuiz ? "GENERATING..." : "GENERATE QUIZ"),
+                label:
+                    Text(_isGeneratingQuiz ? "GENERATING..." : "GENERATE QUIZ"),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 ),
               ),
               const SizedBox(height: 20),
@@ -907,7 +950,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.quiz, color: AppColors.accentOrange, size: 20),
+                          const Icon(Icons.quiz,
+                              color: AppColors.accentOrange, size: 20),
                           const SizedBox(width: 8),
                           Text(
                             "Quiz Generated",
@@ -920,9 +964,12 @@ class _HomeDesktopState extends State<HomeDesktop> {
                         ],
                       ),
                       const Divider(),
-                      _resultRow("Topic", _quizResult!['quiz']?['topic']?.toString() ?? "N/A"),
-                      _resultRow("Questions", "${_quizResult!['quiz']?['questions']?.length ?? 0}"),
-                      _resultRow("Grade Level", "${_quizResult!['quiz']?['grade_level'] ?? "N/A"}"),
+                      _resultRow("Topic",
+                          _quizResult!['quiz']?['topic']?.toString() ?? "N/A"),
+                      _resultRow("Questions",
+                          "${_quizResult!['quiz']?['questions']?.length ?? 0}"),
+                      _resultRow("Grade Level",
+                          "${_quizResult!['quiz']?['grade_level'] ?? "N/A"}"),
                       if (_quizResult!['quiz']?['questions'] != null) ...[
                         const SizedBox(height: 12),
                         Text(
@@ -935,12 +982,14 @@ class _HomeDesktopState extends State<HomeDesktop> {
                         ),
                         const SizedBox(height: 8),
                         ...(List.generate(
-                          (_quizResult!['quiz']?['questions']?.length ?? 0).clamp(0, 3),
+                          (_quizResult!['quiz']?['questions']?.length ?? 0)
+                              .clamp(0, 3),
                           (i) => Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: Text(
                               "${i + 1}. ${_quizResult!['quiz']?['questions'][i]['question'] ?? ""}",
-                              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                              style: TextStyle(
+                                  color: AppColors.textSecondary, fontSize: 12),
                             ),
                           ),
                         )),
@@ -1006,7 +1055,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
     );
   }
 
-  Widget _telemetryCard(String label, String value, String subtitle, int percentage) {
+  Widget _telemetryCard(
+      String label, String value, String subtitle, int percentage) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -1049,7 +1099,8 @@ class _HomeDesktopState extends State<HomeDesktop> {
             child: LinearProgressIndicator(
               value: percentage / 100,
               backgroundColor: AppColors.borderDefault,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accentBlue),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppColors.accentBlue),
               minHeight: 6,
             ),
           ),
@@ -1102,12 +1153,16 @@ class _HomeDesktopState extends State<HomeDesktop> {
     final isSelected = selectedTab == text;
     return GestureDetector(
       onTap: () {
-        if (text == "Health Track" || text == "X-Ray Analysis" || text == "EHR Assistant") {
+        if (text == "Health Track" ||
+            text == "X-Ray Analysis" ||
+            text == "EHR Assistant") {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const HealthScreen()),
           );
-        } else if (text == "Education Track" || text == "Homework Grader" || text == "Quiz Generator") {
+        } else if (text == "Education Track" ||
+            text == "Homework Grader" ||
+            text == "Quiz Generator") {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const EducationScreen()),
@@ -1120,7 +1175,9 @@ class _HomeDesktopState extends State<HomeDesktop> {
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isCategory ? AppColors.backgroundSurface.withOpacity(0.3) : (isSelected ? AppColors.backgroundSurface : Colors.transparent),
+          color: isCategory
+              ? AppColors.backgroundSurface.withOpacity(0.3)
+              : (isSelected ? AppColors.backgroundSurface : Colors.transparent),
           borderRadius: BorderRadius.circular(8),
           border: isSelected
               ? Border.all(color: AppColors.borderDefault, width: 1)
@@ -1130,7 +1187,11 @@ class _HomeDesktopState extends State<HomeDesktop> {
           children: [
             Icon(
               icon,
-              color: isCategory ? AppColors.accentPurple : (isSelected ? AppColors.accentBlue : AppColors.textSecondary),
+              color: isCategory
+                  ? AppColors.accentPurple
+                  : (isSelected
+                      ? AppColors.accentBlue
+                      : AppColors.textSecondary),
               size: isCategory ? 16 : 18,
             ),
             const SizedBox(width: 10),
@@ -1138,9 +1199,15 @@ class _HomeDesktopState extends State<HomeDesktop> {
               child: Text(
                 text,
                 style: TextStyle(
-                  color: isCategory ? AppColors.accentPurple : (isSelected ? AppColors.textPrimary : AppColors.textSecondary),
+                  color: isCategory
+                      ? AppColors.accentPurple
+                      : (isSelected
+                          ? AppColors.textPrimary
+                          : AppColors.textSecondary),
                   fontSize: isCategory ? 12 : 13,
-                  fontWeight: isCategory ? FontWeight.w700 : (isSelected ? FontWeight.w600 : FontWeight.w500),
+                  fontWeight: isCategory
+                      ? FontWeight.w700
+                      : (isSelected ? FontWeight.w600 : FontWeight.w500),
                   letterSpacing: isCategory ? 0.5 : 0,
                 ),
                 overflow: TextOverflow.ellipsis,

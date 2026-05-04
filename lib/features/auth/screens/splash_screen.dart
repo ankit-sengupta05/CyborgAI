@@ -24,11 +24,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late final Animation<double> _fadeAnim;
 
   // ── State ─────────────────────────────────────────────────────────────────
-  double _progress       = 0.0;
+  double _progress = 0.0;
   double _displayProgress = 0.0; // smoothly animated
-  String _statusText     = 'Initializing Cyborg…';
+  String _statusText = 'Initializing Cyborg…';
   String _currentDetails = '';
-  bool   _isError        = false;
+  bool _isError = false;
   final List<_LogLine> _logLines = [];
 
   StreamSubscription<BackendProgress>? _sub;
@@ -38,9 +38,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void initState() {
     super.initState();
 
-    _pulseCtrl = AnimationController(
-        vsync: this, duration: const Duration(seconds: 2))
-      ..repeat(reverse: true);
+    _pulseCtrl =
+        AnimationController(vsync: this, duration: const Duration(seconds: 2))
+          ..repeat(reverse: true);
 
     _fadeCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 900))
@@ -49,11 +49,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _progressCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 600));
 
-    _pulseAnim = Tween<double>(begin: 0.85, end: 1.08).animate(
-        CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
+    _pulseAnim = Tween<double>(begin: 0.85, end: 1.08)
+        .animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
 
-    _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut));
+    _fadeAnim = Tween<double>(begin: 0.0, end: 1.0)
+        .animate(CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut));
 
     _progressCtrl.addListener(() {
       setState(() => _displayProgress = _progressCtrl.value);
@@ -103,36 +103,34 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void _onProgress(BackendProgress evt) {
     if (!mounted) return;
     setState(() {
-      _statusText     = evt.message;
+      _statusText = evt.message;
       _currentDetails = evt.details;
-      _isError        = evt.status == BackendStatus.error;
-      _progress       = evt.progress;
+      _isError = evt.status == BackendStatus.error;
+      _progress = evt.progress;
       _logLines.add(_LogLine(evt.message, _isError));
       if (_logLines.length > 6) _logLines.removeAt(0);
     });
     _progressCtrl.animateTo(evt.progress,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeOut);
+        duration: const Duration(milliseconds: 500), curve: Curves.easeOut);
   }
 
   void _addStep(String msg, double prog) {
     if (!mounted) return;
     setState(() {
       _statusText = msg;
-      _progress   = prog;
+      _progress = prog;
       _logLines.add(_LogLine(msg, false));
       if (_logLines.length > 6) _logLines.removeAt(0);
     });
     _progressCtrl.animateTo(prog,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOut);
+        duration: const Duration(milliseconds: 400), curve: Curves.easeOut);
   }
 
   void _setError(String msg) {
     if (!mounted) return;
     setState(() {
       _statusText = msg;
-      _isError    = true;
+      _isError = true;
       _logLines.add(_LogLine(msg, true));
     });
   }
@@ -192,7 +190,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           fontWeight: FontWeight.w800,
                           letterSpacing: 10,
                           shadows: [
-                            Shadow(color: accent.withValues(alpha: 0.4),
+                            Shadow(
+                                color: accent.withValues(alpha: 0.4),
                                 blurRadius: 20)
                           ],
                         )),
@@ -239,7 +238,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                             _currentDetails,
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: AppColors.textSecondary.withValues(alpha: 0.6),
+                              color: AppColors.textSecondary
+                                  .withValues(alpha: 0.6),
                               fontSize: 10,
                               fontFamily: 'monospace',
                             ),
@@ -274,7 +274,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           // ── Version watermark ─────────────────────────────────────────
           const Positioned(
             bottom: 20,
-            left: 0, right: 0,
+            left: 0,
+            right: 0,
             child: Text('v1.0.0 — local inference engine',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -397,8 +398,7 @@ class _LogPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-            color: accent.withValues(alpha: 0.12), width: 1),
+        border: Border.all(color: accent.withValues(alpha: 0.12), width: 1),
       ),
       child: ListView.builder(
         reverse: true,

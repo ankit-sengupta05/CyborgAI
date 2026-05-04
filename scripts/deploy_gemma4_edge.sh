@@ -27,7 +27,7 @@ log_error() { echo -e "${RED}❌${NC} $1"; }
 # Check system requirements
 check_requirements() {
     log_info "Checking system requirements..."
-    
+
     # Check Python version
     if command -v python3 &> /dev/null; then
         PYTHON_VERSION=$(python3 --version | cut -d' ' -f2)
@@ -36,7 +36,7 @@ check_requirements() {
         log_error "Python 3 required. Please install Python 3.8+"
         exit 1
     fi
-    
+
     # Check RAM (minimum 2GB recommended)
     if command -v free &> /dev/null; then
         RAM_GB=$(free -g | awk '/^Mem:/{print $2}')
@@ -46,7 +46,7 @@ check_requirements() {
             log_info "RAM: ${RAM_GB}GB"
         fi
     fi
-    
+
     # Check disk space
     AVAILABLE_SPACE=$(df -h . | awk 'NR==2{print $4}')
     log_info "Available disk space: $AVAILABLE_SPACE"
@@ -55,20 +55,20 @@ check_requirements() {
 # Create virtual environment
 setup_environment() {
     log_info "Setting up Python environment..."
-    
+
     if [ ! -d "$PYTHON_ENV" ]; then
         python3 -m venv $PYTHON_ENV
         log_info "Created virtual environment: $PYTHON_ENV"
     fi
-    
+
     source $PYTHON_ENV/bin/activate
-    
+
     log_info "Upgrading pip..."
     pip install --upgrade pip
-    
+
     log_info "Installing dependencies..."
     pip install -r requirements.txt
-    
+
     # Install edge-specific packages
     pip install ollama llama-cpp-python pillow torchvision transformers
 }
@@ -76,20 +76,20 @@ setup_environment() {
 # Download models (optional - can be done manually)
 download_models() {
     log_info "Model directory: $MODEL_DIR"
-    
+
     if [ ! -d "$MODEL_DIR" ]; then
         mkdir -p $MODEL_DIR
     fi
-    
+
     echo ""
     echo "📦 Model Download Options:"
     echo "1. Download MedGemma 4B (Health Track) - ~3GB"
     echo "2. Download Gemma 4 4B (Education Track) - ~3GB"
     echo "3. Skip model download (manual installation)"
     echo ""
-    
+
     read -p "Select option (1/2/3): " model_choice
-    
+
     case $model_choice in
         1)
             log_info "Downloading MedGemma 4B (quantized)..."
@@ -114,9 +114,9 @@ download_models() {
 setup_ollama() {
     echo ""
     log_info "Setting up Ollama runtime (optional)..."
-    
+
     read -p "Install Ollama? (y/n): " install_ollama
-    
+
     if [ "$install_ollama" = "y" ]; then
         if command -v ollama &> /dev/null; then
             log_info "Ollama already installed"
@@ -124,12 +124,12 @@ setup_ollama() {
             curl -fsSL https://ollama.com/install.sh | sh
             log_info "Ollama installed successfully"
         fi
-        
+
         # Pull models if available
         echo "Available models to pull:"
         echo "- medgemma:4b (health track)"
         echo "- gemma:4b-it (education track)"
-        
+
         read -p "Pull a model now? (y/n): " pull_model
         if [ "$pull_model" = "y" ]; then
             read -p "Enter model name (e.g., gemma:4b-it): " model_name
@@ -148,17 +148,17 @@ start_demos() {
     echo ""
     echo "Press Ctrl+C to stop all servers"
     echo ""
-    
+
     # Start health demo in background
     python assets/demos/health_demo.py &
     HEALTH_PID=$!
-    
+
     sleep 3
-    
+
     # Start education demo in background
     python assets/demos/education_demo.py &
     EDUCATION_PID=$!
-    
+
     # Wait for both processes
     wait $HEALTH_PID $EDUCATION_PID
 }

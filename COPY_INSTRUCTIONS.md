@@ -7,11 +7,11 @@ The workspace files have been updated with Gemma 4 Health & Education track UI c
 ## 📁 Files to Copy
 
 ### 1. Windows Desktop Home Screen
-**Source:** `/workspace/lib/screens/windows/home_screen.dart`  
+**Source:** `/workspace/lib/screens/windows/home_screen.dart`
 **Destination:** `C:\Users\ankit\Projects\Android\CyborgAI-main\lib\screens\windows\home_screen.dart`
 
-### 2. Android Mobile Home Screen  
-**Source:** `/workspace/lib/screens/android/home_screen.dart`  
+### 2. Android Mobile Home Screen
+**Source:** `/workspace/lib/screens/android/home_screen.dart`
 **Destination:** `C:\Users\ankit\Projects\Android\CyborgAI-main\lib\screens\android\home_screen.dart`
 
 ## 🔧 How to Copy
@@ -88,7 +88,7 @@ The UI buttons currently show status messages. To fully integrate with the Pytho
    ```bash
    # Health demo (port 7860)
    python assets/demos/health_demo.py
-   
+
    # Education demo (port 7861)
    python assets/demos/education_demo.py
    ```

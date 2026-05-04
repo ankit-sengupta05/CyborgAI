@@ -11,7 +11,7 @@
      - Real-time analysis with MedGemma 4B
      - Results display: findings, confidence %, recommendations
      - Medical disclaimer footer
-   
+
    - **Tab 2: EHR Assistant**
      - Patient ID input
      - Query type dropdown (summary, medications, allergies, lab results, vitals)
@@ -25,7 +25,7 @@
      - Grade level slider (1-12)
      - Real-time grading with rubric-based evaluation
      - Results: score %, feedback, strengths, areas for improvement
-   
+
    - **Tab 2: Quiz Generator**
      - Topic input field
      - Grade level slider (1-12)
@@ -167,11 +167,11 @@ The backend should already have these from the PRD v18.0 implementation in:
   - Education: Orange/Green accents
   - Success states: Green
   - Errors: Orange
-  
+
 - **Icons**: Material Design icons throughout
   - Medical: `medical_services`, `add_chart`, `folder_shared`
   - Education: `school`, `assignment_turned_in`, `quiz`
-  
+
 - **Layout**: Clean, modern card-based design
   - Upload cards with drag-and-drop feel
   - Tabbed interface for organizing features
@@ -181,7 +181,7 @@ The backend should already have these from the PRD v18.0 implementation in:
 ## ⚠️ Important Notes
 
 1. **Medical Disclaimer**: Always displayed at bottom of Health screen
-2. **File Formats**: 
+2. **File Formats**:
    - X-Ray: JPG, PNG, DICOM
    - Homework: JPG, PNG, PDF (OCR enabled)
 3. **Offline Mode**: All processing happens locally via backend

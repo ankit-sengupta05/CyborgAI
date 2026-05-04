@@ -1,4 +1,4 @@
-﻿// lib/widgets/floating_panel.dart
+// lib/widgets/floating_panel.dart
 // Grid-based panel with header, no floating positioning
 import 'package:flutter/material.dart';
 import '../wm_theme.dart';
@@ -85,10 +85,13 @@ class _PanelHeader extends StatelessWidget {
           // Drag handle icon (visual only in grid mode)
           const Icon(Icons.drag_indicator, color: WMColors.textMuted, size: 12),
           const SizedBox(width: 6),
-          Text(title, style: const TextStyle(
-            color: WMColors.textPrimary, fontSize: 9,
-            fontWeight: FontWeight.w700, letterSpacing: 1.2,
-          )),
+          Text(title,
+              style: const TextStyle(
+                color: WMColors.textPrimary,
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.2,
+              )),
           if (count != null) ...[
             const SizedBox(width: 6),
             Container(
@@ -97,10 +100,12 @@ class _PanelHeader extends StatelessWidget {
                 color: (countColor ?? WMColors.accentRed).withOpacity(0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
-              child: Text('$count', style: TextStyle(
-                color: countColor ?? WMColors.accentRed,
-                fontSize: 8, fontWeight: FontWeight.bold,
-              )),
+              child: Text('$count',
+                  style: TextStyle(
+                    color: countColor ?? WMColors.accentRed,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                  )),
             ),
           ],
           if (isLive) ...[
@@ -126,29 +131,51 @@ class _PanelHeader extends StatelessWidget {
 
 class _LivePulse extends StatefulWidget {
   const _LivePulse();
-  @override State<_LivePulse> createState() => _LivePulseState();
+  @override
+  State<_LivePulse> createState() => _LivePulseState();
 }
-class _LivePulseState extends State<_LivePulse> with SingleTickerProviderStateMixin {
+
+class _LivePulseState extends State<_LivePulse>
+    with SingleTickerProviderStateMixin {
   late AnimationController _c;
-  @override void initState() { super.initState(); _c = AnimationController(duration: const Duration(seconds: 1), vsync: this)..repeat(reverse: true); }
-  @override void dispose() { _c.dispose(); super.dispose(); }
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(duration: const Duration(seconds: 1), vsync: this)
+      ..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _c,
-    builder: (_, __) => Row(children: [
-      Container(width: 6, height: 6,
-        decoration: BoxDecoration(
-          color: WMColors.accentRed.withOpacity(0.4 + 0.6 * _c.value),
-          shape: BoxShape.circle,
-          boxShadow: [BoxShadow(color: WMColors.accentRed.withOpacity(0.3 * _c.value), blurRadius: 4)],
-        )),
-      const SizedBox(width: 4),
-      Text('LIVE', style: TextStyle(
-        color: WMColors.accentRed.withOpacity(0.5 + 0.5 * _c.value),
-        fontSize: 8, fontWeight: FontWeight.bold,
-      )),
-    ]),
-  );
+        animation: _c,
+        builder: (_, __) => Row(children: [
+          Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: WMColors.accentRed.withOpacity(0.4 + 0.6 * _c.value),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                      color: WMColors.accentRed.withOpacity(0.3 * _c.value),
+                      blurRadius: 4)
+                ],
+              )),
+          const SizedBox(width: 4),
+          Text('LIVE',
+              style: TextStyle(
+                color: WMColors.accentRed.withOpacity(0.5 + 0.5 * _c.value),
+                fontSize: 8,
+                fontWeight: FontWeight.bold,
+              )),
+        ]),
+      );
 }
 
 class WMBtn extends StatelessWidget {
@@ -179,10 +206,13 @@ class WMBtn extends StatelessWidget {
           border: Border.all(color: isActive ? color : WMColors.borderLight),
           borderRadius: BorderRadius.circular(2),
         ),
-        child: Text(label, style: TextStyle(
-          color: isActive ? Colors.black : WMColors.textSecond,
-          fontSize: fontSize, fontWeight: FontWeight.bold, letterSpacing: 0.5,
-        )),
+        child: Text(label,
+            style: TextStyle(
+              color: isActive ? Colors.black : WMColors.textSecond,
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            )),
       ),
     );
   }

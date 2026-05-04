@@ -10,7 +10,8 @@ class ApiService {
 
   // ── Step 1a: Ontology ────────────────────────────────────────────────────────
 
-  Future<Map<String, dynamic>> generateOntology(String requirement, String? filePath) async {
+  Future<Map<String, dynamic>> generateOntology(
+      String requirement, String? filePath) async {
     const system =
         'You are a Swarm Intelligence Analyst for social network simulation. '
         'Extract highly specific, topic-relevant entity and relation types that drive '
@@ -37,8 +38,27 @@ Return ONLY valid JSON (no markdown):
       return await llm.completeJson(prompt, system: system);
     } catch (_) {
       return {
-        'entity_types': ['University','Student','Professor','Alumni','MediaOutlet','GovernmentAgency','NGO','Person','Organization'],
-        'relation_types': ['COMMENTS_ON','RESPONDS_TO','SUPPORTS','OPPOSES','AFFILIATED_WITH','WORKS_FOR','REPORTS_ON','CRITICIZES'],
+        'entity_types': [
+          'University',
+          'Student',
+          'Professor',
+          'Alumni',
+          'MediaOutlet',
+          'GovernmentAgency',
+          'NGO',
+          'Person',
+          'Organization'
+        ],
+        'relation_types': [
+          'COMMENTS_ON',
+          'RESPONDS_TO',
+          'SUPPORTS',
+          'OPPOSES',
+          'AFFILIATED_WITH',
+          'WORKS_FOR',
+          'REPORTS_ON',
+          'CRITICIZES'
+        ],
       };
     }
   }
@@ -51,10 +71,11 @@ Return ONLY valid JSON (no markdown):
     List<String> entityTypes,
     List<String> relationTypes,
     String? filePath, {
-    void Function(List<Map<String,dynamic>> newNodes, List<Map<String,dynamic>> newEdges, int progress)? onBatch,
+    void Function(List<Map<String, dynamic>> newNodes,
+            List<Map<String, dynamic>> newEdges, int progress)?
+        onBatch,
   }) async {
-    const system =
-        'You are a Swarm Intelligence Knowledge Graph Architect. '
+    const system = 'You are a Swarm Intelligence Knowledge Graph Architect. '
         'Extract real, named entities AND abstract social actors from the given topic. '
         'Focus on agents that influence public opinion: media outlets, expert commentators, '
         'online communities, and specific stakeholders. '
@@ -62,8 +83,8 @@ Return ONLY valid JSON (no markdown):
         'Return ONLY valid JSON with no markdown fences.';
 
     // Build in 3 batches for progressive loading
-    final allNodes = <Map<String,dynamic>>[];
-    final edgesCollector = <Map<String,dynamic>>[];
+    final allNodes = <Map<String, dynamic>>[];
+    final edgesCollector = <Map<String, dynamic>>[];
     int nodeCounter = 0;
 
     // Batch 1: Core entities (seed nodes — most important actors)
@@ -100,8 +121,8 @@ Generate 15-20 nodes and 20-30 edges connecting them.
     } catch (e) {
       // Seed with topic-aware fallback
       final seed = _topicSeedNodes(requirement, entityTypes);
-      allNodes.addAll(seed['nodes'] as List<Map<String,dynamic>>);
-      edgesCollector.addAll(seed['edges'] as List<Map<String,dynamic>>);
+      allNodes.addAll(seed['nodes'] as List<Map<String, dynamic>>);
+      edgesCollector.addAll(seed['edges'] as List<Map<String, dynamic>>);
       nodeCounter = allNodes.length;
       onBatch?.call(allNodes, edgesCollector, 30);
     }
@@ -128,7 +149,7 @@ Return ONLY valid JSON:
   "edges": [{"source": "n0", "target": "n$nodeCounter", "label": "RELATES_TO"}, ...]
 }
 
-Generate 15-20 new nodes and connect them to existing ones (use their ids: ${allNodes.map((n)=>n['id']).take(10).join(', ')}).
+Generate 15-20 new nodes and connect them to existing ones (use their ids: ${allNodes.map((n) => n['id']).take(10).join(', ')}).
 ''';
 
     try {
@@ -159,7 +180,7 @@ Extract 10-15 more entities representing:
 Use node ids starting from n$nodeCounter.
 Entity types: ${entityTypes.join(', ')}
 Relation types: ${relationTypes.join(', ')}
-Existing node ids to connect to: ${allNodes.map((n)=>n['id']).take(15).join(', ')}
+Existing node ids to connect to: ${allNodes.map((n) => n['id']).take(15).join(', ')}
 
 Return ONLY valid JSON:
 {
@@ -193,23 +214,24 @@ Return ONLY valid JSON:
 
   // ── Parse helpers ─────────────────────────────────────────────────────────────
 
-  List<Map<String,dynamic>> _parseNodes(dynamic raw, int offset) {
+  List<Map<String, dynamic>> _parseNodes(dynamic raw, int offset) {
     if (raw is! List) return [];
-    final result = <Map<String,dynamic>>[];
+    final result = <Map<String, dynamic>>[];
     for (final item in raw) {
       if (item is! Map) continue;
       result.add({
         'id': item['id']?.toString() ?? 'n${offset + result.length}',
-        'label': item['label']?.toString() ?? item['name']?.toString() ?? 'Node',
+        'label':
+            item['label']?.toString() ?? item['name']?.toString() ?? 'Node',
         'type': item['type']?.toString() ?? 'Entity',
       });
     }
     return result;
   }
 
-  List<Map<String,dynamic>> _parseEdges(dynamic raw) {
+  List<Map<String, dynamic>> _parseEdges(dynamic raw) {
     if (raw is! List) return [];
-    final result = <Map<String,dynamic>>[];
+    final result = <Map<String, dynamic>>[];
     for (final item in raw) {
       if (item is! Map) continue;
       final src = item['source']?.toString() ?? '';
@@ -218,24 +240,37 @@ Return ONLY valid JSON:
       result.add({
         'source': src,
         'target': tgt,
-        'label': item['label']?.toString() ?? item['relation']?.toString() ?? 'RELATES_TO',
+        'label': item['label']?.toString() ??
+            item['relation']?.toString() ??
+            'RELATES_TO',
       });
     }
     return result;
   }
 
   // Topic-aware fallback seed nodes extracted from the requirement text
-  Map<String,dynamic> _topicSeedNodes(String requirement, List<String> entityTypes) {
+  Map<String, dynamic> _topicSeedNodes(
+      String requirement, List<String> entityTypes) {
     // Extract words to use as labels
-    final words = requirement.split(RegExp(r'\s+'))
+    final words = requirement
+        .split(RegExp(r'\s+'))
         .where((w) => w.length > 4)
-        .take(20).toList();
+        .take(20)
+        .toList();
 
-    final types = entityTypes.isNotEmpty ? entityTypes
-        : ['University','Student','Professor','Person','Organization','MediaOutlet'];
+    final types = entityTypes.isNotEmpty
+        ? entityTypes
+        : [
+            'University',
+            'Student',
+            'Professor',
+            'Person',
+            'Organization',
+            'MediaOutlet'
+          ];
 
-    final nodes = <Map<String,dynamic>>[];
-    final edges = <Map<String,dynamic>>[];
+    final nodes = <Map<String, dynamic>>[];
+    final edges = <Map<String, dynamic>>[];
 
     for (int i = 0; i < words.length && i < 15; i++) {
       nodes.add({
@@ -247,13 +282,15 @@ Return ONLY valid JSON:
         edges.add({'source': 'n0', 'target': 'n$i', 'label': 'RELATES_TO'});
       }
       if (i > 2) {
-        edges.add({'source': 'n${i-1}', 'target': 'n$i', 'label': 'RELATES_TO'});
+        edges.add(
+            {'source': 'n${i - 1}', 'target': 'n$i', 'label': 'RELATES_TO'});
       }
     }
     return {'nodes': nodes, 'edges': edges};
   }
 
-  String _capitalize(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+  String _capitalize(String s) =>
+      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
   // ── Step 2: Env Setup ─────────────────────────────────────────────────────────
 
@@ -270,8 +307,7 @@ Return ONLY valid JSON:
     List<String> entityTypes,
     String requirement,
   ) async {
-    const system =
-        'You are an agent profile designer for social simulation. '
+    const system = 'You are an agent profile designer for social simulation. '
         'Create realistic, topic-specific agent personas. '
         'Return ONLY valid JSON with no markdown.';
 
@@ -312,7 +348,12 @@ Stances should be a mix of: neutral, supportive, opposing
     try {
       return await llm.completeJson(prompt, system: system);
     } catch (_) {
-      return {'agents': [], 'related_topics': 272, 'total_agents': 55, 'expected_total': 55};
+      return {
+        'agents': [],
+        'related_topics': 272,
+        'total_agents': 55,
+        'expected_total': 55
+      };
     }
   }
 
@@ -335,14 +376,16 @@ Stances should be a mix of: neutral, supportive, opposing
     }
   }
 
-  Future<List<Map<String, dynamic>>> _generateRoundEvents(int round, int total, String requirement) async {
+  Future<List<Map<String, dynamic>>> _generateRoundEvents(
+      int round, int total, String requirement) async {
     try {
-      final prompt = '''Round $round/$total of social media simulation about: "$requirement"
+      final prompt =
+          '''Round $round/$total of social media simulation about: "$requirement"
 Generate 2-3 short social media posts from different agents discussing this topic.
 Posts should reflect different perspectives (some supportive, some critical, some neutral).
 
 Return ONLY a valid JSON array:
-[{"agent_name": "Name", "agent_type": "Type", "platform": "plaza", "event_type": "post", "content": "Post text relevant to the topic", "time": "${(6 + round % 18).toString().padLeft(2,'0')}:${(round * 3 % 60).toString().padLeft(2,'0')}:00", "round": $round}]''';
+[{"agent_name": "Name", "agent_type": "Type", "platform": "plaza", "event_type": "post", "content": "Post text relevant to the topic", "time": "${(6 + round % 18).toString().padLeft(2, '0')}:${(round * 3 % 60).toString().padLeft(2, '0')}:00", "round": $round}]''';
 
       final raw = await llm.complete(
           '$prompt\n\nRespond ONLY with a valid JSON array, no markdown.');
@@ -356,30 +399,41 @@ Return ONLY a valid JSON array:
   List<Map<String, dynamic>>? _tryDecodeList(String json) {
     try {
       final d = jsonDecode(json);
-      if (d is List) return d.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      if (d is List)
+        return d.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       if (d is Map && d['events'] is List) {
-        return (d['events'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        return (d['events'] as List)
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
       }
     } catch (_) {}
     return null;
   }
 
   List<Map<String, dynamic>> _demoEvents(int round, String requirement) => [
-    {
-      'agent_name': 'University Administration', 'agent_type': 'University',
-      'platform': 'plaza', 'event_type': 'post',
-      'content': 'Official statement regarding: $requirement. We remain committed to fairness and transparency.',
-      'time': '${(6 + round % 18).toString().padLeft(2,'0')}:${(round * 3 % 60).toString().padLeft(2,'0')}:00',
-      'round': round,
-    },
-    {
-      'agent_name': 'Student Representative', 'agent_type': 'Student',
-      'platform': 'community', 'event_type': 'post',
-      'content': 'The community deserves a clear explanation. This situation cannot be ignored. #Justice',
-      'time': '${(7 + round % 17).toString().padLeft(2,'0')}:${((round + 15) * 3 % 60).toString().padLeft(2,'0')}:00',
-      'round': round,
-    },
-  ];
+        {
+          'agent_name': 'University Administration',
+          'agent_type': 'University',
+          'platform': 'plaza',
+          'event_type': 'post',
+          'content':
+              'Official statement regarding: $requirement. We remain committed to fairness and transparency.',
+          'time':
+              '${(6 + round % 18).toString().padLeft(2, '0')}:${(round * 3 % 60).toString().padLeft(2, '0')}:00',
+          'round': round,
+        },
+        {
+          'agent_name': 'Student Representative',
+          'agent_type': 'Student',
+          'platform': 'community',
+          'event_type': 'post',
+          'content':
+              'The community deserves a clear explanation. This situation cannot be ignored. #Justice',
+          'time':
+              '${(7 + round % 17).toString().padLeft(2, '0')}:${((round + 15) * 3 % 60).toString().padLeft(2, '0')}:00',
+          'round': round,
+        },
+      ];
 
   // ── Step 4: Report ────────────────────────────────────────────────────────────
 
@@ -388,14 +442,18 @@ Return ONLY a valid JSON array:
     String requirement,
     GraphData graphData,
   ) async* {
-    const system =
-        'You are a ReportAgent analyzing social simulation results. '
+    const system = 'You are a ReportAgent analyzing social simulation results. '
         'Generate a comprehensive analytical report. '
         'Write in clear analytical prose with concrete insights.';
 
     final entitySummary = graphData.nodes
-        .fold<Map<String,int>>({}, (m, n) { m[n.type] = (m[n.type] ?? 0) + 1; return m; })
-        .entries.map((e) => '${e.value} ${e.key}').join(', ');
+        .fold<Map<String, int>>({}, (m, n) {
+          m[n.type] = (m[n.type] ?? 0) + 1;
+          return m;
+        })
+        .entries
+        .map((e) => '${e.value} ${e.key}')
+        .join(', ');
 
     final prompt = '''
 Simulation requirement: "$requirement"

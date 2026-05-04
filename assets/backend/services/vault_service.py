@@ -505,18 +505,22 @@ Your knowledge is organized using the **Atlas, Calendar, Efforts (ACE)** framewo
         return sorted(results, key=lambda x: x["score"], reverse=True)[:30]
 
     async def get_graph_data(self) -> dict:
-        """Return nodes + edges for Obsidian-style graph."""
+        """Return nodes + edges for Obsidian-style graph with clustering."""
         nodes = []
         edges = []
         title_to_id: dict[str, str] = {
             n.title: n.id for n in self._notes_cache.values()
         }
 
+        import networkx as nx
+        G = nx.Graph()
+
         for note in self._notes_cache.values():
-            nodes.append(note.to_graph_node())
+            G.add_node(note.id)
             for link in note.links:
                 target_id = title_to_id.get(link)
                 if target_id:
+                    G.add_edge(note.id, target_id)
                     edges.append({
                         "source": note.id,
                         "target": target_id,
@@ -524,7 +528,38 @@ Your knowledge is organized using the **Atlas, Calendar, Efforts (ACE)** framewo
                         "weight": 1.0,
                     })
 
-        return {"nodes": nodes, "edges": edges}
+        communities = {}
+        try:
+            import community as community_louvain
+            communities = community_louvain.best_partition(G)
+        except ImportError:
+            for i, component in enumerate(nx.connected_components(G)):
+                for node in component:
+                    communities[node] = i
+
+        degrees = dict(G.degree())
+
+        for note in self._notes_cache.values():
+            node_data = note.to_graph_node()
+            node_data["community"] = communities.get(note.id, 0)
+            node_data["degree"] = degrees.get(note.id, 0)
+            nodes.append(node_data)
+
+        # Generate community meta
+        community_meta = []
+        c_counts = {}
+        for c in communities.values():
+            c_counts[c] = c_counts.get(c, 0) + 1
+
+        for c_id, count in c_counts.items():
+            community_meta.append({
+                "id": c_id,
+                "nodeCount": count,
+                "name": f"Cluster {c_id}",
+                "summary": "Vault cluster"
+            })
+
+        return {"nodes": nodes, "edges": edges, "communities": community_meta}
 
     async def move_note(self, note_id: str, target_folder: str) -> Optional[dict]:
         note = self._notes_cache.get(note_id)

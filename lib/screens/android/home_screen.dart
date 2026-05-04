@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../../../core/theme/app_theme.dart';
 
-class HomeMobile extends StatefulWidget{
+class HomeMobile extends StatefulWidget {
   _HomeMobile createState() => _HomeMobile();
 }
 
@@ -50,7 +50,8 @@ class _HomeMobile extends State<HomeMobile> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.cloud_done, color: AppColors.success, size: 14),
+                const Icon(Icons.cloud_done,
+                    color: AppColors.success, size: 14),
                 const SizedBox(width: 4),
                 const Text(
                   "Online",
@@ -110,9 +111,18 @@ class _HomeMobile extends State<HomeMobile> {
         label: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: isSelected ? AppColors.accentBlue : AppColors.textSecondary),
+            Icon(icon,
+                size: 16,
+                color: isSelected
+                    ? AppColors.accentBlue
+                    : AppColors.textSecondary),
             const SizedBox(width: 6),
-            Text(label, style: TextStyle(fontSize: 12, color: isSelected ? AppColors.textPrimary : AppColors.textSecondary)),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 12,
+                    color: isSelected
+                        ? AppColors.textPrimary
+                        : AppColors.textSecondary)),
           ],
         ),
         selectedColor: AppColors.backgroundSurface,
@@ -131,7 +141,11 @@ class _HomeMobile extends State<HomeMobile> {
           children: [
             Icon(icon, size: 16, color: AppColors.accentPurple),
             const SizedBox(width: 6),
-            Text(label, style: const TextStyle(fontSize: 12, color: AppColors.accentPurple, fontWeight: FontWeight.w700)),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.accentPurple,
+                    fontWeight: FontWeight.w700)),
           ],
         ),
         backgroundColor: AppColors.backgroundSurface.withOpacity(0.3),
@@ -143,7 +157,9 @@ class _HomeMobile extends State<HomeMobile> {
     switch (selectedTab) {
       case "Neural Interface":
         return Center(
-          child: Text(output, style: const TextStyle(color: AppColors.textPrimary, fontSize: 16)),
+          child: Text(output,
+              style:
+                  const TextStyle(color: AppColors.textPrimary, fontSize: 16)),
         );
       case "Health Track":
         return _mobileFeatureCard(
@@ -189,12 +205,14 @@ class _HomeMobile extends State<HomeMobile> {
         );
       default:
         return Center(
-          child: Text(output, style: const TextStyle(color: AppColors.textPrimary)),
+          child: Text(output,
+              style: const TextStyle(color: AppColors.textPrimary)),
         );
     }
   }
 
-  Widget _mobileFeatureCard(String title, String desc, IconData icon, VoidCallback onTap) {
+  Widget _mobileFeatureCard(
+      String title, String desc, IconData icon, VoidCallback onTap) {
     return Card(
       color: AppColors.surfaceVariant,
       child: InkWell(
@@ -210,12 +228,18 @@ class _HomeMobile extends State<HomeMobile> {
                   Icon(icon, color: AppColors.accentBlue, size: 32),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
+                    child: Text(title,
+                        style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              Text(desc, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+              Text(desc,
+                  style: const TextStyle(
+                      color: AppColors.textSecondary, fontSize: 13)),
               const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: onTap,
@@ -228,7 +252,8 @@ class _HomeMobile extends State<HomeMobile> {
     );
   }
 
-  Widget _mobileActionCard(String title, String desc, IconData icon, String btnLabel) {
+  Widget _mobileActionCard(
+      String title, String desc, IconData icon, String btnLabel) {
     return Center(
       child: Card(
         color: AppColors.surfaceVariant,
@@ -239,9 +264,16 @@ class _HomeMobile extends State<HomeMobile> {
             children: [
               Icon(icon, color: AppColors.accentBlue, size: 56),
               const SizedBox(height: 16),
-              Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
+              Text(title,
+                  style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
-              Text(desc, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14), textAlign: TextAlign.center),
+              Text(desc,
+                  style: const TextStyle(
+                      color: AppColors.textSecondary, fontSize: 14),
+                  textAlign: TextAlign.center),
               const SizedBox(height: 20),
               ElevatedButton.icon(
                 onPressed: () => setState(() => output = "$btnLabel pressed"),

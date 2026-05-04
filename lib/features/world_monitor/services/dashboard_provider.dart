@@ -47,14 +47,39 @@ class DashboardProvider extends ChangeNotifier {
   String _riskTrend = 'Stable';
 
   final List<PanelDef> _panels = [
-    PanelDef(id: PanelId.liveNews,            title: 'LIVE NEWS',            visible: true,  order: 0),
-    PanelDef(id: PanelId.liveWebcams,         title: 'LIVE WEBCAMS',         visible: true,  order: 1),
-    PanelDef(id: PanelId.aiInsights,          title: 'AI INSIGHTS',          visible: true,  order: 2),
-    PanelDef(id: PanelId.aiForecasts,         title: 'AI FORECASTS',         visible: true,  order: 3),
-    PanelDef(id: PanelId.countryInstability,  title: 'COUNTRY INSTABILITY',  visible: true,  order: 4),
-    PanelDef(id: PanelId.strategicRisk,       title: 'STRATEGIC RISK',       visible: true,  order: 5),
-    PanelDef(id: PanelId.aiStrategicPosture,  title: 'AI STRATEGIC POSTURE', visible: true,  order: 6),
-    PanelDef(id: PanelId.debtClock,           title: 'NATIONAL DEBT CLOCK',  visible: false, order: 7),
+    PanelDef(id: PanelId.liveNews, title: 'LIVE NEWS', visible: true, order: 0),
+    PanelDef(
+        id: PanelId.liveWebcams,
+        title: 'LIVE WEBCAMS',
+        visible: true,
+        order: 1),
+    PanelDef(
+        id: PanelId.aiInsights, title: 'AI INSIGHTS', visible: true, order: 2),
+    PanelDef(
+        id: PanelId.aiForecasts,
+        title: 'AI FORECASTS',
+        visible: true,
+        order: 3),
+    PanelDef(
+        id: PanelId.countryInstability,
+        title: 'COUNTRY INSTABILITY',
+        visible: true,
+        order: 4),
+    PanelDef(
+        id: PanelId.strategicRisk,
+        title: 'STRATEGIC RISK',
+        visible: true,
+        order: 5),
+    PanelDef(
+        id: PanelId.aiStrategicPosture,
+        title: 'AI STRATEGIC POSTURE',
+        visible: true,
+        order: 6),
+    PanelDef(
+        id: PanelId.debtClock,
+        title: 'NATIONAL DEBT CLOCK',
+        visible: false,
+        order: 7),
   ];
 
   DateTime get now => _now;
@@ -84,18 +109,43 @@ class DashboardProvider extends ChangeNotifier {
     });
     _riskTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (!_disposed) {
-        _globalRisk = (_globalRisk + (Random().nextDouble() * 4 - 2)).clamp(20.0, 90.0);
+        _globalRisk =
+            (_globalRisk + (Random().nextDouble() * 4 - 2)).clamp(20.0, 90.0);
         notifyListeners();
       }
     });
   }
 
-  void setMapVariant(MapVariant v) { _mapVariant = v; notifyListeners(); }
-  void setMapMode(String m) { _mapMode = m; notifyListeners(); }
-  void setTimeFilter(String f) { _timeFilter = f; notifyListeners(); }
-  void toggleSettings() { _settingsOpen = !_settingsOpen; notifyListeners(); }
-  void setNewsSource(String s) { _newsSource = s; notifyListeners(); }
-  void setWebcamCategory(String c) { _webcamCategory = c; notifyListeners(); }
+  void setMapVariant(MapVariant v) {
+    _mapVariant = v;
+    notifyListeners();
+  }
+
+  void setMapMode(String m) {
+    _mapMode = m;
+    notifyListeners();
+  }
+
+  void setTimeFilter(String f) {
+    _timeFilter = f;
+    notifyListeners();
+  }
+
+  void toggleSettings() {
+    _settingsOpen = !_settingsOpen;
+    notifyListeners();
+  }
+
+  void setNewsSource(String s) {
+    _newsSource = s;
+    notifyListeners();
+  }
+
+  void setWebcamCategory(String c) {
+    _webcamCategory = c;
+    notifyListeners();
+  }
+
   void selectCountry(String name) {
     _selectedCountry = _selectedCountry == name ? '' : name;
     notifyListeners();

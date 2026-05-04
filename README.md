@@ -56,8 +56,9 @@ graph TD
         INTEL["📡 Intel Service"]
     end
 
-    subgraph "Storage (Knowledge Vault)"
+    subgraph "Storage (Knowledge Vault - Vectorless RAG)"
         ACE["📂 ACE/Atlas/Calendar/Efforts"]
+        GRAPH["🌌 Obsidian-style Knowledge Graph"]
         KEEP[".gitkeep Sentinels"]
         IGNORE[".gitignore Isolation"]
     end
@@ -67,8 +68,20 @@ graph TD
     API <--> VAULT
     API <--> INTEL
     VAULT --> ACE
+    VAULT --> GRAPH
     SYNC --> GITHUB[(Private GitHub Repo)]
 ```
+
+---
+
+## 🌌 Vectorless RAG & Native Vault Knowledge Graph
+Cyborg pioneers a fully offline, **Vectorless RAG (Retrieval-Augmented Generation)** methodology to manage long-term memory and knowledge graphs.
+
+*   **🗄️ No Vector Database Needed**: Information ingested into Cyborg is contextually chunked and natively written into the local Vault as pure `.md` files.
+*   **🔗 Auto-Wikilinking**: Instead of abstract vector embeddings, an LLM extracts triplet relationships and creates explicit `[[Wikilinks]]` to your previous notes and concepts, naturally binding your knowledge together.
+*   **🕸️ Active Physics Engine**: A real-time, force-directed graph UI (similar to Obsidian) clusters your `.md` files via **Leiden/Louvain community detection**, scaling nodes based on their degree of connectedness.
+*   **📥 Multi-modal TrOCR Ingestion**: Drop `.pdf`, `.docx`, `.mp4` (Whisper transcription), and images straight into the system. Cyborg uses HuggingFace Transformers (TrOCR) locally to extract even handwritten text directly into your graph.
+*   **💬 Chat Persistence**: All your chat sessions and memories are automatically serialized into markdown files within the `Archive` folder, bridging the gap between conversational memory and your structured knowledge graph.
 
 ---
 

@@ -12,7 +12,7 @@ from PIL import Image
 class HomeworkGrader:
     """
     AI-powered homework grader using Gemma 4 multimodal capabilities
-    
+
     Features:
     - OCR for handwritten/printed text
     - Diagram interpretation
@@ -20,20 +20,20 @@ class HomeworkGrader:
     - Error analysis and feedback
     - Multi-language support
     """
-    
-    def __init__(self, 
+
+    def __init__(self,
                  gemma_model: str = "assets/models/gemma-4-4b-it-Q4_K_M.gguf",
                  language: str = "en"):
         self.model_path = gemma_model
         self.language = language
         self.llm_backend = None
         self._initialized = False
-        
+
     def initialize(self):
         """Lazy initialization"""
         if self._initialized:
             return
-        
+
         # Try to initialize Ollama or llama-cpp backend
         try:
             import ollama
@@ -51,13 +51,13 @@ class HomeworkGrader:
                 self.llm_backend = "llama_cpp"
             except ImportError:
                 self.llm_backend = "mock"
-        
+
         self._initialized = True
-    
+
     def _ocr_with_layout(self, image_path: str) -> Dict[str, Any]:
         """
         Extract text from homework image with layout information
-        
+
         Returns dict with:
         - extracted_text: Full text content
         - layout: Bounding boxes and structure
@@ -68,16 +68,16 @@ class HomeworkGrader:
         # - Tesseract OCR
         # - EasyOCR
         # - Google Cloud Vision (optional cloud)
-        
+
         return {
             "extracted_text": "Sample math problem solution...",
             "layout": {"lines": [], "diagrams": []},
             "confidence": 0.95
         }
-    
+
     def _load_domain_rubrics(self, subject: str) -> Dict[str, Any]:
         """Load grading rubrics for specific subject"""
-        
+
         rubrics = {
             "math": {
                 "elementary": {
@@ -121,9 +121,9 @@ class HomeworkGrader:
                 }
             }
         }
-        
+
         return rubrics.get(subject, rubrics["math"]["elementary"])
-    
+
     def _build_grading_prompt(self,
                              problem: str,
                              rubric: Dict[str, Any],
@@ -131,7 +131,7 @@ class HomeworkGrader:
                              subject: str,
                              grade_level: int) -> str:
         """Construct grading prompt with rubric"""
-        
+
         prompts = {
             "en": f"""You are a supportive tutor grading {subject} homework for grade {grade_level}.
 
@@ -185,9 +185,9 @@ Sé alentador pero honesto.""",
 3. स्पष्टीकरण के साथ त्रुटियों की पहचान करें
 4. 1-2 अभ्यास समस्याओं का सुझाव दें""",
         }
-        
+
         return prompts.get(language, prompts["en"])
-    
+
     def _generate(self, prompt: str, **kwargs) -> str:
         """Generate response from LLM"""
         if self.llm_backend == "ollama":
@@ -203,14 +203,14 @@ Sé alentador pero honesto.""",
             return response['choices'][0]['text']
         else:
             return self._mock_response(prompt)
-    
+
     def _mock_response(self, prompt: str) -> str:
         """Mock response for development"""
         return """
 SCORE: 85/100
 
 FEEDBACK:
-Great effort! You've shown good understanding of the core concept. 
+Great effort! You've shown good understanding of the core concept.
 
 ✅ What you did well:
 - Correct approach to setting up the equation
@@ -228,7 +228,7 @@ Try these similar problems:
 
 Keep up the good work! Practice makes perfect. 🌟
 """
-    
+
     def _extract_score(self, analysis: str) -> int:
         """Extract numerical score from analysis"""
         import re
@@ -236,28 +236,28 @@ Keep up the good work! Practice makes perfect. 🌟
         if match:
             return int(match.group(1))
         return 0
-    
+
     def _categorize_errors(self, analysis: str) -> List[Dict[str, str]]:
         """Categorize identified errors"""
         # Simple parsing - can be enhanced with NLP
         errors = []
-        
+
         if "calculation error" in analysis.lower():
             errors.append({
                 "type": "calculation",
                 "description": "Arithmetic or computation mistake",
                 "severity": "minor"
             })
-        
+
         if "method" in analysis.lower() and "error" in analysis.lower():
             errors.append({
                 "type": "methodology",
                 "description": "Incorrect approach or formula",
                 "severity": "major"
             })
-        
+
         return errors
-    
+
     def grade_submission(self,
                         image_path: str,
                         subject: str,
@@ -265,35 +265,35 @@ Keep up the good work! Practice makes perfect. 🌟
                         language: Optional[str] = None) -> Dict[str, Any]:
         """
         Main entry point for homework grading
-        
+
         Args:
             image_path: Path to homework photo
             subject: Subject area (math, science, literacy)
             grade_level: Grade level (1-12)
             language: Language code (en, es, hi, etc.)
-            
+
         Returns:
             Structured grading results
         """
         self.initialize()
         language = language or self.language
-        
+
         # Validate input
         if not os.path.exists(image_path):
             raise FileNotFoundError(f"Image not found: {image_path}")
-        
+
         # Extract text from image
         ocr_result = self._ocr_with_layout(image_path)
         extracted_text = ocr_result["extracted_text"]
-        
+
         # Load rubric
         rubric = self._load_domain_rubrics(subject)
         grade_rubric = rubric.get(
-            "elementary" if grade_level <= 5 else 
+            "elementary" if grade_level <= 5 else
             "middle_school" if grade_level <= 8 else "general",
             list(rubric.values())[0]
         )
-        
+
         # Build prompt
         prompt = self._build_grading_prompt(
             problem=extracted_text,
@@ -302,10 +302,10 @@ Keep up the good work! Practice makes perfect. 🌟
             subject=subject,
             grade_level=grade_level
         )
-        
+
         # Generate analysis
         analysis = self._generate(prompt)
-        
+
         # Parse results
         result = {
             "score": self._extract_score(analysis),
@@ -316,30 +316,30 @@ Keep up the good work! Practice makes perfect. 🌟
             "grade_level": grade_level,
             "language": language
         }
-        
+
         # Generate remediation quiz
         result["remediation_quiz"] = self.generate_quiz(
             weak_concepts=result["error_categories"],
             language=language,
             difficulty=grade_level
         )
-        
+
         return result
-    
+
     def generate_quiz(self,
                      weak_concepts: List[Dict[str, str]],
                      language: str,
                      difficulty: int) -> List[Dict[str, Any]]:
         """
         Generate adaptive quiz targeting knowledge gaps
-        
+
         Returns list of quiz questions
         """
         # Mock quiz generation
         # In production, call LLM to generate personalized questions
-        
+
         questions = []
-        
+
         for i, error in enumerate(weak_concepts[:3]):  # Max 3 questions
             questions.append({
                 "id": i + 1,
@@ -349,7 +349,7 @@ Keep up the good work! Practice makes perfect. 🌟
                 "correct_answer": "C",
                 "explanation": f"This tests your understanding of {error['description'].lower()}"
             })
-        
+
         return questions if questions else [{
             "id": 1,
             "type": "encouragement",

@@ -11,26 +11,28 @@ class EducationScreen extends StatefulWidget {
   State<EducationScreen> createState() => _EducationScreenState();
 }
 
-class _EducationScreenState extends State<EducationScreen> with SingleTickerProviderStateMixin {
+class _EducationScreenState extends State<EducationScreen>
+    with SingleTickerProviderStateMixin {
   final HealthEduService _eduService = HealthEduService();
-  
+
   late TabController _tabController;
   int _currentTab = 0; // 0: Homework Grader, 1: Quiz Generator
-  
+
   String? _selectedHomeworkPath;
   bool _isGrading = false;
   Map<String, dynamic>? _gradeResults;
-  
+
   String _quizTopic = '';
   int _quizGradeLevel = 5;
   int _quizNumQuestions = 5;
   bool _isGeneratingQuiz = false;
   Map<String, dynamic>? _quizResults;
-  
+
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _rubricController = TextEditingController();
   final TextEditingController _topicController = TextEditingController();
-  final TextEditingController _culturalContextController = TextEditingController();
+  final TextEditingController _culturalContextController =
+      TextEditingController();
 
   @override
   void initState() {
@@ -59,7 +61,7 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
         type: FileType.image,
         allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
       );
-      
+
       if (result != null && result.files.single.path != null) {
         setState(() {
           _selectedHomeworkPath = result.files.single.path!;
@@ -125,8 +127,8 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
         topic: topic,
         gradeLevel: _quizGradeLevel,
         numQuestions: _quizNumQuestions,
-        culturalContext: _culturalContextController.text.trim().isEmpty 
-            ? null 
+        culturalContext: _culturalContextController.text.trim().isEmpty
+            ? null
             : _culturalContextController.text,
         language: 'en',
       );
@@ -163,7 +165,8 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: AppColors.surfaceVariant,
-              border: Border(bottom: BorderSide(color: AppColors.borderDefault)),
+              border:
+                  Border(bottom: BorderSide(color: AppColors.borderDefault)),
             ),
             child: Row(
               children: [
@@ -200,7 +203,9 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
             unselectedLabelColor: AppColors.textSecondary,
             indicatorColor: AppColors.accentPurple,
             tabs: const [
-              Tab(icon: Icon(Icons.assignment_turned_in), text: 'Homework Grader'),
+              Tab(
+                  icon: Icon(Icons.assignment_turned_in),
+                  text: 'Homework Grader'),
               Tab(icon: Icon(Icons.quiz), text: 'Quiz Generator'),
             ],
           ),
@@ -228,9 +233,9 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
         children: [
           // Upload Section
           _buildUploadCard(),
-          
+
           const SizedBox(height: 20),
-          
+
           // Subject Input
           TextField(
             controller: _subjectController,
@@ -245,9 +250,9 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
               fillColor: AppColors.surfaceVariant,
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Grade Level Slider
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -275,16 +280,16 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
               ),
             ],
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Grade Button
           SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton.icon(
               onPressed: _isGrading ? null : _gradeHomework,
-              icon: _isGrading 
+              icon: _isGrading
                   ? const SizedBox(
                       width: 20,
                       height: 20,
@@ -304,9 +309,9 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
               ),
             ),
           ),
-          
+
           const SizedBox(height: 30),
-          
+
           // Results
           if (_gradeResults != null) _buildGradeResults(),
         ],
@@ -326,15 +331,17 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
       child: Column(
         children: [
           Icon(
-            _selectedHomeworkPath != null ? Icons.check_circle : Icons.upload_file,
+            _selectedHomeworkPath != null
+                ? Icons.check_circle
+                : Icons.upload_file,
             size: 64,
-            color: _selectedHomeworkPath != null 
-                ? AppColors.success 
+            color: _selectedHomeworkPath != null
+                ? AppColors.success
                 : AppColors.textSecondary,
           ),
           const SizedBox(height: 16),
           Text(
-            _selectedHomeworkPath != null 
+            _selectedHomeworkPath != null
                 ? 'File Selected: ${_selectedHomeworkPath!.split('\\').last}'
                 : 'Upload Homework Image',
             style: TextStyle(
@@ -397,13 +404,14 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
             ],
           ),
           const Divider(),
-          
           if (_gradeResults!['score'] != null) ...[
             Row(
               children: [
                 Text(
                   'Score: ',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary),
                 ),
                 Text(
                   '${(_gradeResults!['score'] * 100).toStringAsFixed(1)}%',
@@ -417,11 +425,11 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
             ),
             const SizedBox(height: 16),
           ],
-          
           if (_gradeResults!['feedback'] != null) ...[
             Text(
               'Feedback:',
-              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 8),
             Container(
@@ -438,11 +446,11 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
             ),
             const SizedBox(height: 16),
           ],
-          
           if (_gradeResults!['strengths'] != null) ...[
             Text(
               'Strengths:',
-              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 8),
             Text(
@@ -451,11 +459,11 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
             ),
             const SizedBox(height: 16),
           ],
-          
           if (_gradeResults!['areas_for_improvement'] != null) ...[
             Text(
               'Areas for Improvement:',
-              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 8),
             Text(
@@ -488,9 +496,9 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
               fillColor: AppColors.surfaceVariant,
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Grade Level Slider
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -518,9 +526,9 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Number of Questions
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -548,9 +556,9 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Cultural Context (Optional)
           TextField(
             controller: _culturalContextController,
@@ -565,16 +573,16 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
               fillColor: AppColors.surfaceVariant,
             ),
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Generate Button
           SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton.icon(
               onPressed: _isGeneratingQuiz ? null : _generateQuiz,
-              icon: _isGeneratingQuiz 
+              icon: _isGeneratingQuiz
                   ? const SizedBox(
                       width: 20,
                       height: 20,
@@ -594,14 +602,14 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
               ),
             ),
           ),
-          
+
           const SizedBox(height: 30),
-          
+
           // Results
           if (_quizResults != null) _buildQuizResults(),
-          
+
           const SizedBox(height: 20),
-          
+
           // Multi-language Info Card
           Container(
             padding: const EdgeInsets.all(16),
@@ -670,16 +678,19 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
             ],
           ),
           const Divider(),
-          
           if (_quizResults!['questions'] != null) ...[
             Text(
               'Questions:',
-              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 12),
-            
+
             // Display questions list
-            ...(_quizResults!['questions'] as List).asMap().entries.map((entry) {
+            ...(_quizResults!['questions'] as List)
+                .asMap()
+                .entries
+                .map((entry) {
               final index = entry.key + 1;
               final question = entry.value;
               return Container(
@@ -702,12 +713,12 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
                     if (question['options'] != null) ...[
                       const SizedBox(height: 8),
                       ...(question['options'] as List).map((option) => Padding(
-                        padding: const EdgeInsets.only(left: 16, top: 4),
-                        child: Text(
-                          '• $option',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
-                      )),
+                            padding: const EdgeInsets.only(left: 16, top: 4),
+                            child: Text(
+                              '• $option',
+                              style: TextStyle(color: AppColors.textSecondary),
+                            ),
+                          )),
                     ],
                     if (question['answer'] != null) ...[
                       const SizedBox(height: 8),
@@ -724,7 +735,6 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
               );
             }).toList(),
           ],
-          
           if (_quizResults!['difficulty_adaptation'] != null) ...[
             const SizedBox(height: 16),
             Text(

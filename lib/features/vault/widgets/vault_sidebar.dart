@@ -32,20 +32,23 @@ class VaultSidebar extends ConsumerWidget {
               padding: const EdgeInsets.all(10),
               child: Row(
                 children: [
-                  const Icon(Icons.edit_note_outlined, color: AppColors.accent, size: 16),
+                  const Icon(Icons.edit_note_outlined,
+                      color: AppColors.accent, size: 16),
                   const SizedBox(width: 6),
-                  const Text('Vault Explorer', style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  )),
+                  const Text('Vault Explorer',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      )),
                   const Spacer(),
                   if (onClose != null)
                     IconButton(
                       icon: const Icon(Icons.close, size: 16),
                       onPressed: onClose,
                       padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                      constraints:
+                          const BoxConstraints(minWidth: 24, minHeight: 24),
                     ),
                 ],
               ),
@@ -55,12 +58,14 @@ class VaultSidebar extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: TextField(
               onChanged: n.search,
-              style: const TextStyle(color: AppColors.textPrimary, fontSize: 12),
+              style:
+                  const TextStyle(color: AppColors.textPrimary, fontSize: 12),
               decoration: const InputDecoration(
                 hintText: 'Search notes...',
                 isDense: true,
                 prefixIcon: Icon(Icons.search, size: 14),
-                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               ),
             ),
           ),
@@ -82,7 +87,10 @@ class _SharedFolderList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final all = [{'key': 'all', 'name': 'All Notes'}, ...state.folders];
+    final all = [
+      {'key': 'all', 'name': 'All Notes'},
+      ...state.folders
+    ];
     return SizedBox(
       height: 180,
       child: ListView(
@@ -106,11 +114,14 @@ class _SharedFolderList extends StatelessWidget {
             dense: true,
             selected: active,
             selectedTileColor: AppColors.accent.withOpacity(0.1),
-            leading: Icon(icon, size: 14, color: active ? AppColors.accent : AppColors.textMuted),
-            title: Text(f['name'] as String, style: TextStyle(
-              fontSize: 11,
-              color: active ? AppColors.accent : AppColors.textSecondary,
-            )),
+            leading: Icon(icon,
+                size: 14,
+                color: active ? AppColors.accent : AppColors.textMuted),
+            title: Text(f['name'] as String,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: active ? AppColors.accent : AppColors.textSecondary,
+                )),
             onTap: () => notifier.setFolder(f['key'] as String),
           );
         }).toList(),
@@ -127,7 +138,10 @@ class _SharedNoteList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (state.loading) return const Center(child: CircularProgressIndicator());
-    if (state.notes.isEmpty) return const Center(child: Text('No notes', style: TextStyle(fontSize: 11, color: AppColors.textMuted)));
+    if (state.notes.isEmpty)
+      return const Center(
+          child: Text('No notes',
+              style: TextStyle(fontSize: 11, color: AppColors.textMuted)));
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -139,12 +153,15 @@ class _SharedNoteList extends StatelessWidget {
           dense: true,
           selected: active,
           selectedTileColor: AppColors.accent.withOpacity(0.1),
-          title: Text(note.title, overflow: TextOverflow.ellipsis, style: TextStyle(
-            fontSize: 11,
-            fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-            color: active ? AppColors.accent : AppColors.textPrimary,
-          )),
-          subtitle: Text(note.folder, style: const TextStyle(fontSize: 9, color: AppColors.textMuted)),
+          title: Text(note.title,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                color: active ? AppColors.accent : AppColors.textPrimary,
+              )),
+          subtitle: Text(note.folder,
+              style: const TextStyle(fontSize: 9, color: AppColors.textMuted)),
           onTap: () => notifier.selectNote(note),
         );
       },

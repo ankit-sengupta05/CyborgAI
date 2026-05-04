@@ -13,7 +13,7 @@ class ApiService {
     dio = Dio(BaseOptions(
       baseUrl: ApiConstants.baseUrl,
       connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 300),
+      receiveTimeout: const Duration(hours: 1), // Extended for long ingestions
     ));
 
     dio.interceptors.add(InterceptorsWrapper(

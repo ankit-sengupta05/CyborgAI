@@ -16,9 +16,10 @@ log = structlog.get_logger(__name__)
 
 
 class GraphService:
-    def __init__(self, embedding_service: EmbeddingService, llm_service: LLMService):
+    def __init__(self, embedding_service: EmbeddingService, llm_service: LLMService, vault_service):
         self._embedding_svc = embedding_service
         self._llm_svc = llm_service
+        self._vault_svc = vault_service
         self._graph = nx.Graph()
         self._nodes: dict[str, dict] = {}
         self._edges: list[dict] = []
@@ -165,7 +166,7 @@ class GraphService:
         return {"total": total, "success": success, "failed": failed}
 
     async def _ingest_single_file(self, file_path: Path, detect_communities: bool = True) -> dict:
-        """Extract text, chunk, embed, and add to graph."""
+        """Extract text, chunk, embed, and add to graph via Vault Notes."""
         content = await self._extract_text(file_path)
         if not content.strip():
             return {"nodes_created": 0}
@@ -174,61 +175,37 @@ class GraphService:
         nodes_created = 0
 
         for i, chunk in enumerate(chunks):
-            # 1. Extract Triplets via LLM (Graphify style)
+            # 1. Extract Triplets via LLM
             triplets = await self._extract_triplets(chunk)
 
-            # 2. Process extracted entities as nodes
+            # 2. Build Markdown content with Wikilinks
+            links = set()
             for entity in triplets.get("entities", []):
-                # Deterministic ID based on normalized label for resolution
-                label = entity.get("label", "Unknown").strip()
-                node_id = hashlib.sha256(label.lower().encode()).hexdigest()[:16]
+                label = entity.get("label", "").strip()
+                if label:
+                    links.add(f"[[{label}]]")
 
-                if node_id not in self._nodes:
-                    embedding = await self._embedding_svc.embed(chunk)
-                    node = {
-                        "id": node_id,
-                        "label": label,
-                        "content": chunk,
-                        "content_type": entity.get(
-                            "type", self._get_content_type(file_path.suffix)
-                        ),
-                        "source": str(file_path),
-                        "chunk_index": i,
-                        "embedding": embedding,
-                        "community": 0,
-                        "degree": 0,
-                    }
-                    async with get_db() as db:
-                        await GraphNodeDB.create(db, node)
-                    self._add_node_to_graph(node)
-                    nodes_created += 1
-
-            # 3. Process extracted relationships as edges
             for rel in triplets.get("relationships", []):
-                s_label = rel.get("source", "").strip()
                 t_label = rel.get("target", "").strip()
-                if not s_label or not t_label:
-                    continue
+                if t_label:
+                    links.add(f"[[{t_label}]]")
 
-                s_id = hashlib.sha256(s_label.lower().encode()).hexdigest()[:16]
-                t_id = hashlib.sha256(t_label.lower().encode()).hexdigest()[:16]
+            md_content = f"## Chunk {i}\n\n{chunk}\n\n"
+            if links:
+                md_content += "### Semantic Connections\n" + " | ".join(links) + "\n"
 
-                if s_id in self._nodes and t_id in self._nodes:
-                    edge = {
-                        "source": s_id,
-                        "target": t_id,
-                        "type": rel.get("type", "related"),
-                        "weight": rel.get("weight", 1.0),
-                    }
-                    async with get_db() as db:
-                        await GraphEdgeDB.create(db, edge)
-                    self._add_edge_to_graph(edge)
+            # 3. Save as Vault Note
+            base_title = self._extract_title(chunk, file_path)
+            note_title = f"{base_title} (Chunk {i})"
 
-        # Re-detect communities after adding nodes
-
-        # Re-detect communities after adding nodes
-        if nodes_created > 0 and detect_communities:
-            await self._detect_communities()
+            await self._vault_svc.create_note(
+                title=note_title,
+                content=md_content,
+                folder="atlas",
+                tags=["ingested", "chunk"],
+                note_type="knowledge_chunk"
+            )
+            nodes_created += 1
 
         return {"nodes_created": nodes_created, "file": str(file_path)}
 
@@ -345,11 +322,14 @@ TEXT:
                 prompt, temperature=0.1, max_tokens=1000
             )
             # Find JSON block
-            import json
+            import yaml
             import re
             match = re.search(r"\{.*\}", response, re.DOTALL)
             if match:
-                return json.loads(match.group(0))
+                try:
+                    return yaml.safe_load(match.group(0)) or {"entities": [], "relationships": []}
+                except yaml.YAMLError as exc:
+                    log.warning(f"YAML parsing failed: {exc} on text {match.group(0)[:100]}")
         except Exception as e:
             log.warning(f"LLM triplet extraction failed: {e}")
 

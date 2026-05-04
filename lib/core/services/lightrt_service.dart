@@ -22,8 +22,10 @@ import 'device_discovery_service.dart';
 class AndroidInferenceService implements InferenceBackend {
   final _progressController = StreamController<InferenceProgress>.broadcast();
 
-  static const MethodChannel _channel = MethodChannel('com.ankit.cyborg/lightrt');
-  static const EventChannel _eventChannel = EventChannel('com.ankit.cyborg/lightrt_events');
+  static const MethodChannel _channel =
+      MethodChannel('com.ankit.cyborg/lightrt');
+  static const EventChannel _eventChannel =
+      EventChannel('com.ankit.cyborg/lightrt_events');
   StreamSubscription? _eventSubscription;
 
   @override
@@ -50,17 +52,22 @@ class AndroidInferenceService implements InferenceBackend {
   Future<void> initialize() async {
     if (_status == InferenceStatus.ready) return;
 
-    _emit(InferenceStatus.initializing, 'Initializing Android inference…', 0.05);
+    _emit(
+        InferenceStatus.initializing, 'Initializing Android inference…', 0.05);
 
     // LightRT requires initialization per-model via loadModel(),
     // so here we just setup the event listener for streaming tokens.
     _setupEventListener();
-    _nativeAvailable = true; // Assume available until loadModel proves otherwise
+    _nativeAvailable =
+        true; // Assume available until loadModel proves otherwise
 
     // Try finding Windows PC just in case we need a fallback
-    _emit(InferenceStatus.initializing, 'Scanning for Windows Cyborg as fallback…', 0.30);
+    _emit(InferenceStatus.initializing,
+        'Scanning for Windows Cyborg as fallback…', 0.30);
     try {
-      _remoteBaseUrl = await _discovery.findWindowsCyborgInstance().timeout(const Duration(seconds: 4));
+      _remoteBaseUrl = await _discovery
+          .findWindowsCyborgInstance()
+          .timeout(const Duration(seconds: 4));
       if (_remoteBaseUrl != null) {
         _emit(InferenceStatus.ready,
             'No LightRT / Network PC found. Mock Engine Active.', 1.0);
@@ -73,12 +80,11 @@ class AndroidInferenceService implements InferenceBackend {
 
   void _setupEventListener() {
     _eventSubscription?.cancel();
-    _eventSubscription = _eventChannel.receiveBroadcastStream().listen(
-      (event) {},
-      onError: (error) {
-        debugPrint('[LightRT] Stream error: $error');
-      }
-    );
+    _eventSubscription = _eventChannel
+        .receiveBroadcastStream()
+        .listen((event) {}, onError: (error) {
+      debugPrint('[LightRT] Stream error: $error');
+    });
   }
 
   // ── Model loading ──────────────────────────────────────────────────────────
@@ -96,7 +102,8 @@ class AndroidInferenceService implements InferenceBackend {
     }
 
     try {
-      final success = await _channel.invokeMethod<bool>('init_lightrt', {'modelPath': modelPath});
+      final success = await _channel
+          .invokeMethod<bool>('init_lightrt', {'modelPath': modelPath});
       if (success == true) {
         _loadedModelPath = modelPath;
         _emit(InferenceStatus.ready, 'Model loaded ✓', 1.0);
@@ -109,8 +116,6 @@ class AndroidInferenceService implements InferenceBackend {
       throw Exception('LightRT Init Failed: $e');
     }
   }
-
-
 
   // ── Inference ──────────────────────────────────────────────────────────────
   @override
@@ -144,7 +149,8 @@ class AndroidInferenceService implements InferenceBackend {
 
   Stream<String> _completeMock({required String prompt}) async* {
     _status = InferenceStatus.inferring;
-    const response = "This is a mock response from the on-device inference engine. "
+    const response =
+        "This is a mock response from the on-device inference engine. "
         "The real LightRT C++ binary (liblightrt.so) is missing or not compiled yet, "
         "but the UI and state management are fully connected and functional!";
     final words = response.split(' ');
@@ -218,14 +224,16 @@ class AndroidInferenceService implements InferenceBackend {
 }''');
 
       final response = await request.close();
-      await for (final chunk in response.transform(const SystemEncoding().decoder)) {
+      await for (final chunk
+          in response.transform(const SystemEncoding().decoder)) {
         for (final line in chunk.split('\n')) {
           if (line.startsWith('data: ') && !line.contains('[DONE]')) {
             final data = line.substring(6).trim();
             if (data.isEmpty) continue;
             try {
               // Extract delta.content from SSE JSON
-              final match = RegExp(r'"content"\s*:\s*"([^"]*)"').firstMatch(data);
+              final match =
+                  RegExp(r'"content"\s*:\s*"([^"]*)"').firstMatch(data);
               if (match != null) yield match.group(1)!;
             } catch (_) {}
           }
@@ -237,9 +245,11 @@ class AndroidInferenceService implements InferenceBackend {
   }
 
   // ── Performance metrics ────────────────────────────────────────────────────
-  bool get isGpuAccelerated => _nativeAvailable; // MediaPipe Tasks GenAI auto-selects GPU when available
+  bool get isGpuAccelerated =>
+      _nativeAvailable; // MediaPipe Tasks GenAI auto-selects GPU when available
 
-  double get tokensPerSecond => 0.0; // MediaPipe SDK does not expose this directly yet
+  double get tokensPerSecond =>
+      0.0; // MediaPipe SDK does not expose this directly yet
 
   String get backendMode =>
       _nativeAvailable ? 'LightRT (on-device)' : 'Windows Cyborg (offload)';
@@ -288,15 +298,22 @@ class DeviceCapabilities {
     try {
       // CPU cores from platform
       specs.cpuCores = Platform.numberOfProcessors;
-      specs.optimalThreads = specs.cpuCores >= 8 ? 6 : specs.cpuCores >= 4 ? 4 : 2;
+      specs.optimalThreads = specs.cpuCores >= 8
+          ? 6
+          : specs.cpuCores >= 4
+              ? 4
+              : 2;
 
       // Memory heuristic from cache dir (conservative estimate)
       final dir = await getTemporaryDirectory();
       final stat = await dir.stat();
       // Available memory estimate (no public API on Android without native code)
       specs.availableMemoryMb = 3000; // conservative default
-      specs.optimalContextSize = specs.availableMemoryMb > 4000 ? 8192 :
-                                 specs.availableMemoryMb > 2000 ? 4096 : 2048;
+      specs.optimalContextSize = specs.availableMemoryMb > 4000
+          ? 8192
+          : specs.availableMemoryMb > 2000
+              ? 4096
+              : 2048;
 
       // Vulkan support detection (requires native call in production)
       // For now, assume Vulkan is available on API 28+ (Android 9+)

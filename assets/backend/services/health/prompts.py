@@ -39,8 +39,8 @@ RECOMMENDATIONS:
 {recommendations}
 
 ---
-DISCLAIMER: This AI-generated report is for educational and decision-support purposes only. 
-It does not constitute a medical diagnosis. A qualified radiologist or physician must review 
+DISCLAIMER: This AI-generated report is for educational and decision-support purposes only.
+It does not constitute a medical diagnosis. A qualified radiologist or physician must review
 all imaging and clinical data before making diagnostic or treatment decisions.
 """,
 
@@ -113,12 +113,12 @@ CONFIDENCE_LEVELS = {
 # Medical disclaimer templates
 DISCLAIMERS = {
     "short": "⚠️ This is not a diagnosis. Please consult a healthcare professional.",
-    
-    "standard": """⚠️ IMPORTANT: This AI assistance provides information and suggestions only. 
-It is NOT a substitute for professional medical advice, diagnosis, or treatment. 
+
+    "standard": """⚠️ IMPORTANT: This AI assistance provides information and suggestions only.
+It is NOT a substitute for professional medical advice, diagnosis, or treatment.
 Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.""",
-    
-    "emergency": """🚨 If you think you may have a medical emergency, call your doctor or emergency services immediately. 
+
+    "emergency": """🚨 If you think you may have a medical emergency, call your doctor or emergency services immediately.
 This AI tool cannot diagnose emergencies or provide urgent care guidance."""
 }
 
@@ -126,18 +126,18 @@ This AI tool cannot diagnose emergencies or provide urgent care guidance."""
 def get_prompt(template_name: str, **kwargs) -> str:
     """
     Get a formatted prompt template
-    
+
     Args:
         template_name: Name of the template from MEDICAL_PROMPTS
         **kwargs: Variables to fill in the template
-        
+
     Returns:
         Formatted prompt string
     """
     template = MEDICAL_PROMPTS.get(template_name)
     if not template:
         raise ValueError(f"Unknown template: {template_name}")
-    
+
     return template.format(**kwargs)
 
 
@@ -149,7 +149,7 @@ def get_disclaimer(level: str = "standard") -> str:
 def format_confidence(confidence_pct: float) -> dict:
     """
     Format confidence percentage into structured info
-    
+
     Returns dict with level, description, and color
     """
     if confidence_pct >= 86:
@@ -158,7 +158,7 @@ def format_confidence(confidence_pct: float) -> dict:
         level_info = CONFIDENCE_LEVELS["medium"]
     else:
         level_info = CONFIDENCE_LEVELS["low"]
-    
+
     return {
         "percentage": confidence_pct,
         "level": level_info["range"].split('-')[0],

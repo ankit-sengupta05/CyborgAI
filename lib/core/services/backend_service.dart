@@ -39,7 +39,10 @@ class BackendProgress {
   final bool voiceReady;
 
   const BackendProgress(this.status, this.message, this.progress,
-      {this.details = '', this.cudaActive = false, this.llmReady = false, this.voiceReady = false});
+      {this.details = '',
+      this.cudaActive = false,
+      this.llmReady = false,
+      this.voiceReady = false});
 }
 
 // ── Service ───────────────────────────────────────────────────────────────────
@@ -66,8 +69,8 @@ class BackendService {
     // Backend is Windows-only (local Python process).
     // On Android/iOS the app connects to a remote/cloud backend instead.
     if (!Platform.isWindows) {
-      _emit(BackendStatus.running,
-          'Remote backend mode (non-Windows platform)', 1.0);
+      _emit(BackendStatus.running, 'Remote backend mode (non-Windows platform)',
+          1.0);
       return;
     }
 
@@ -85,14 +88,15 @@ class BackendService {
 
     final backendDir = _backendDir();
     if (!Directory(backendDir).existsSync()) {
-      _emit(BackendStatus.error,
-          'Backend directory not found: $backendDir', 0.0);
+      _emit(
+          BackendStatus.error, 'Backend directory not found: $backendDir', 0.0);
       throw Exception('Backend directory missing');
     }
 
     // Always run setup script. UV verifies/installs requirements in milliseconds.
     await _runSetupScript(backendDir);
-    _emit(BackendStatus.checkingEnv, 'Environment ready ✓ — starting server…', 0.55);
+    _emit(BackendStatus.checkingEnv, 'Environment ready ✓ — starting server…',
+        0.55);
 
     await _startServer(backendDir);
   }
@@ -104,14 +108,15 @@ class BackendService {
       'python3.12',
       'python3.11',
       'python3.10',
-      'py',         // Windows Python Launcher (will try to pick 3.12)
+      'py', // Windows Python Launcher (will try to pick 3.12)
       'python',
       'python3',
       'python3.13',
     ];
 
     final home = Platform.environment['USERPROFILE'] ??
-        Platform.environment['HOME'] ?? '';
+        Platform.environment['HOME'] ??
+        '';
     final localApp = Platform.environment['LOCALAPPDATA'] ?? '';
 
     final absolutePaths = <String>[
@@ -124,8 +129,10 @@ class BackendService {
       r'C:\Python311\python.exe',
       r'C:\Python310\python.exe',
       r'C:\Python313\python.exe',
-      p.join(home, 'AppData', 'Local', 'Programs', 'Python', 'Python312', 'python.exe'),
-      p.join(home, 'AppData', 'Local', 'Programs', 'Python', 'Python313', 'python.exe'),
+      p.join(home, 'AppData', 'Local', 'Programs', 'Python', 'Python312',
+          'python.exe'),
+      p.join(home, 'AppData', 'Local', 'Programs', 'Python', 'Python313',
+          'python.exe'),
     ];
 
     for (final candidate in [...candidates, ...absolutePaths]) {
@@ -140,7 +147,8 @@ class BackendService {
             final major = int.parse(m.group(1)!);
             final minor = int.parse(m.group(2)!);
             if (major > 3 || (major == 3 && minor >= 8)) {
-              debugPrint('[BackendService] Found Python: $candidate → $version');
+              debugPrint(
+                  '[BackendService] Found Python: $candidate → $version');
               return candidate;
             }
           }
@@ -168,7 +176,8 @@ class BackendService {
     }
 
     debugPrint('[BackendService] Running setup_env.py with: $python');
-    _emit(BackendStatus.creatingVenv, 'First launch — preparing environment…', 0.08);
+    _emit(BackendStatus.creatingVenv, 'First launch — preparing environment…',
+        0.08);
 
     final process = await Process.start(
       python,
@@ -215,9 +224,9 @@ class BackendService {
       final cuda = json['cuda_active'] as bool? ?? false;
 
       final backendStatus = switch (status) {
-        'done'  => BackendStatus.installingDeps,
+        'done' => BackendStatus.installingDeps,
         'error' => BackendStatus.error,
-        _       => _statusFromProgress(progress),
+        _ => _statusFromProgress(progress),
       };
 
       _emit(backendStatus, message, progress, cudaActive: cuda);
@@ -239,8 +248,10 @@ class BackendService {
 
     final python = _venvPython(backendDir);
     if (!File(python).existsSync()) {
-      _emit(BackendStatus.error,
-          'venv Python not found at: $python\nRun the app again to retry setup.', 0.0);
+      _emit(
+          BackendStatus.error,
+          'venv Python not found at: $python\nRun the app again to retry setup.',
+          0.0);
       throw Exception('venv python missing');
     }
 
@@ -287,7 +298,8 @@ class BackendService {
       line.contains('Started server process');
 
   Future<void> _pollUntilAlive() async {
-    _emit(BackendStatus.starting, 'Waiting for backend to accept connections…', 0.65);
+    _emit(BackendStatus.starting, 'Waiting for backend to accept connections…',
+        0.65);
     for (var i = 0; i < 600; i++) {
       await Future.delayed(const Duration(milliseconds: 1000));
       if (await _isBackendAlive()) {
@@ -302,7 +314,8 @@ class BackendService {
                 : ApiConstants.baseUrl.replaceAll('/api/v1/', '');
 
             _discoveryResponder.start(apiBaseUrl: discoveryUrl).then((_) {
-              debugPrint('[BackendService] Discovery responder active on UDP:17173 (announced: $discoveryUrl)');
+              debugPrint(
+                  '[BackendService] Discovery responder active on UDP:17173 (announced: $discoveryUrl)');
             });
           });
           return;
@@ -319,14 +332,16 @@ class BackendService {
             msg = 'Initializing Voice...';
           }
 
-          _emit(BackendStatus.starting, msg, 0.80 + (i / 600) * 0.15, details: detailText);
+          _emit(BackendStatus.starting, msg, 0.80 + (i / 600) * 0.15,
+              details: detailText);
         }
       } else {
         final prog = 0.65 + (i / 600) * (0.75 - 0.65);
         _emit(BackendStatus.starting, 'Starting up… (${i + 1}s)', prog);
       }
     }
-    _emit(BackendStatus.error, 'Backend timed out — check logs/backend.log', 0.0);
+    _emit(
+        BackendStatus.error, 'Backend timed out — check logs/backend.log', 0.0);
     _status = BackendStatus.error;
   }
 
@@ -336,7 +351,14 @@ class BackendService {
     if (Platform.isWindows) {
       // In development, prioritize the source assets/backend so .venv persists
       final devBackend = p.normalize(p.join(
-        exeDir, '..', '..', '..', '..', '..', 'assets', 'backend',
+        exeDir,
+        '..',
+        '..',
+        '..',
+        '..',
+        '..',
+        'assets',
+        'backend',
       ));
       if (Directory(devBackend).existsSync()) {
         return devBackend;
@@ -345,7 +367,14 @@ class BackendService {
     }
     // Android/Linux Dev mode fallback
     return p.normalize(p.join(
-      exeDir, '..', '..', '..', '..', '..', 'assets', 'backend',
+      exeDir,
+      '..',
+      '..',
+      '..',
+      '..',
+      '..',
+      'assets',
+      'backend',
     ));
   }
 
@@ -375,15 +404,15 @@ class BackendService {
         final detailsMap = data['details'] as Map<String, dynamic>? ?? {};
         String detailStr = '';
         if (detailsMap.isNotEmpty) {
-           final llmD = detailsMap['llm'] ?? '';
-           final voiceD = detailsMap['voice'] ?? '';
-           if (!llm && !voice) {
-             detailStr = 'LLM: $llmD | Voice: $voiceD';
-           } else if (!llm) {
-             detailStr = 'LLM: $llmD';
-           } else if (!voice) {
-             detailStr = 'Voice: $voiceD';
-           }
+          final llmD = detailsMap['llm'] ?? '';
+          final voiceD = detailsMap['voice'] ?? '';
+          if (!llm && !voice) {
+            detailStr = 'LLM: $llmD | Voice: $voiceD';
+          } else if (!llm) {
+            detailStr = 'LLM: $llmD';
+          } else if (!voice) {
+            detailStr = 'Voice: $voiceD';
+          }
         }
 
         // Update progress state with latest health info
@@ -392,7 +421,10 @@ class BackendService {
             _currentProgress.voiceReady != voice ||
             _currentProgress.details != detailStr) {
           _emit(_status, _currentProgress.message, _currentProgress.progress,
-              details: detailStr, cudaActive: cuda, llmReady: llm, voiceReady: voice);
+              details: detailStr,
+              cudaActive: cuda,
+              llmReady: llm,
+              voiceReady: voice);
         }
         return true;
       }

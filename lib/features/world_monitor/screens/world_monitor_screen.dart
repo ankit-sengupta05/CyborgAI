@@ -41,7 +41,8 @@ class _WorldMonitorScreenState extends State<WorldMonitorScreen> {
   void _onDragStart(DragStartDetails d) => _dragStartSheetH = _sheetH;
 
   void _onDragUpdate(DragUpdateDetails d) {
-    setState(() => _sheetH = (_sheetH - d.delta.dy).clamp(_minSheet, _maxSheet));
+    setState(
+        () => _sheetH = (_sheetH - d.delta.dy).clamp(_minSheet, _maxSheet));
   }
 
   void _onDragEnd(DragEndDetails d) {
@@ -83,19 +84,28 @@ class _WorldMonitorScreenState extends State<WorldMonitorScreen> {
         setState(() => _sheetH = target);
       }
     }
+
     Future.delayed(const Duration(milliseconds: 14), tick);
   }
 
   Widget _buildPanelWidget(PanelId id) {
     switch (id) {
-      case PanelId.liveNews:           return const LiveNewsPanel();
-      case PanelId.liveWebcams:        return const LiveWebcamsPanel();
-      case PanelId.aiInsights:         return const AiInsightsPanel();
-      case PanelId.aiForecasts:        return const AiForecastsPanel();
-      case PanelId.countryInstability: return const CountryInstabilityPanel();
-      case PanelId.strategicRisk:      return const StrategicRiskPanel();
-      case PanelId.aiStrategicPosture: return const AiStrategicPosturePanel();
-      case PanelId.debtClock:          return const DebtClockPanel();
+      case PanelId.liveNews:
+        return const LiveNewsPanel();
+      case PanelId.liveWebcams:
+        return const LiveWebcamsPanel();
+      case PanelId.aiInsights:
+        return const AiInsightsPanel();
+      case PanelId.aiForecasts:
+        return const AiForecastsPanel();
+      case PanelId.countryInstability:
+        return const CountryInstabilityPanel();
+      case PanelId.strategicRisk:
+        return const StrategicRiskPanel();
+      case PanelId.aiStrategicPosture:
+        return const AiStrategicPosturePanel();
+      case PanelId.debtClock:
+        return const DebtClockPanel();
     }
   }
 
@@ -211,10 +221,15 @@ class _DragHandle extends StatelessWidget {
   final VoidCallback onSnapCollapsed, onSnapHalf, onSnapFull;
 
   const _DragHandle({
-    required this.sheetH, required this.maxSheet,
+    required this.sheetH,
+    required this.maxSheet,
     required this.provider,
-    required this.onDragStart, required this.onDragUpdate, required this.onDragEnd,
-    required this.onSnapCollapsed, required this.onSnapHalf, required this.onSnapFull,
+    required this.onDragStart,
+    required this.onDragUpdate,
+    required this.onDragEnd,
+    required this.onSnapCollapsed,
+    required this.onSnapHalf,
+    required this.onSnapFull,
   });
 
   bool get _isCollapsed => sheetH < 40;
@@ -232,7 +247,8 @@ class _DragHandle extends StatelessWidget {
         decoration: BoxDecoration(
           color: WMColors.bgHeader,
           border: Border(
-            top: BorderSide(color: WMColors.accentGreen.withOpacity(0.35), width: 1),
+            top: BorderSide(
+                color: WMColors.accentGreen.withOpacity(0.35), width: 1),
             bottom: BorderSide(color: WMColors.border),
           ),
         ),
@@ -240,12 +256,16 @@ class _DragHandle extends StatelessWidget {
           const SizedBox(width: 8),
           GestureDetector(
             onTap: () {
-              if (_isCollapsed) onSnapHalf();
-              else if (!_isFull) onSnapFull();
-              else onSnapCollapsed();
+              if (_isCollapsed)
+                onSnapHalf();
+              else if (!_isFull)
+                onSnapFull();
+              else
+                onSnapCollapsed();
             },
             child: Container(
-              width: 36, height: 4,
+              width: 36,
+              height: 4,
               margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
               decoration: BoxDecoration(
                 color: WMColors.borderLight,
@@ -258,21 +278,26 @@ class _DragHandle extends StatelessWidget {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: provider.panels.map((p) => _PChip(
-                  label: _short(p.title),
-                  isOn: p.visible,
-                  onTap: () => provider.togglePanel(p.id),
-                )).toList(),
+                children: provider.panels
+                    .map((p) => _PChip(
+                          label: _short(p.title),
+                          isOn: p.visible,
+                          onTap: () => provider.togglePanel(p.id),
+                        ))
+                    .toList(),
               ),
             ),
           ),
           GestureDetector(
-            onTap: _isCollapsed ? onSnapHalf : (_isFull ? onSnapCollapsed : onSnapFull),
+            onTap: _isCollapsed
+                ? onSnapHalf
+                : (_isFull ? onSnapCollapsed : onSnapFull),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
               child: Icon(
                 _isFull ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
-                color: WMColors.textMuted, size: 16,
+                color: WMColors.textMuted,
+                size: 16,
               ),
             ),
           ),
@@ -288,7 +313,11 @@ class _DragHandle extends StatelessWidget {
               child: const Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.add, color: WMColors.textMuted, size: 10),
                 SizedBox(width: 3),
-                Text('MANAGE PANELS', style: TextStyle(color: WMColors.textMuted, fontSize: 7, letterSpacing: 0.7)),
+                Text('MANAGE PANELS',
+                    style: TextStyle(
+                        color: WMColors.textMuted,
+                        fontSize: 7,
+                        letterSpacing: 0.7)),
               ]),
             ),
           ),
@@ -299,35 +328,49 @@ class _DragHandle extends StatelessWidget {
 
   String _short(String t) {
     const m = {
-      'LIVE NEWS': 'LIVE NEWS', 'LIVE WEBCAMS': 'WEBCAMS',
-      'AI INSIGHTS': 'AI INSIGHTS', 'AI FORECASTS': 'FORECASTS',
-      'COUNTRY INSTABILITY': 'INSTABILITY', 'STRATEGIC RISK': 'RISK',
-      'AI STRATEGIC POSTURE': 'POSTURE', 'NATIONAL DEBT CLOCK': 'DEBT CLOCK',
+      'LIVE NEWS': 'LIVE NEWS',
+      'LIVE WEBCAMS': 'WEBCAMS',
+      'AI INSIGHTS': 'AI INSIGHTS',
+      'AI FORECASTS': 'FORECASTS',
+      'COUNTRY INSTABILITY': 'INSTABILITY',
+      'STRATEGIC RISK': 'RISK',
+      'AI STRATEGIC POSTURE': 'POSTURE',
+      'NATIONAL DEBT CLOCK': 'DEBT CLOCK',
     };
     return m[t] ?? t;
   }
 }
 
 class _PChip extends StatelessWidget {
-  final String label; final bool isOn; final VoidCallback onTap;
+  final String label;
+  final bool isOn;
+  final VoidCallback onTap;
   const _PChip({required this.label, required this.isOn, required this.onTap});
   @override
   Widget build(BuildContext ctx) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      margin: const EdgeInsets.only(right: 5, top: 5, bottom: 5),
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color: isOn ? WMColors.accentGreen.withOpacity(0.12) : Colors.transparent,
-        border: Border.all(color: isOn ? WMColors.accentGreen.withOpacity(0.6) : WMColors.borderLight),
-        borderRadius: BorderRadius.circular(2),
-      ),
-      child: Text(label, style: TextStyle(
-        color: isOn ? WMColors.accentGreen : WMColors.textMuted,
-        fontSize: 7, fontWeight: FontWeight.bold, letterSpacing: 0.5,
-      )),
-    ),
-  );
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(right: 5, top: 5, bottom: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+          decoration: BoxDecoration(
+            color: isOn
+                ? WMColors.accentGreen.withOpacity(0.12)
+                : Colors.transparent,
+            border: Border.all(
+                color: isOn
+                    ? WMColors.accentGreen.withOpacity(0.6)
+                    : WMColors.borderLight),
+            borderRadius: BorderRadius.circular(2),
+          ),
+          child: Text(label,
+              style: TextStyle(
+                color: isOn ? WMColors.accentGreen : WMColors.textMuted,
+                fontSize: 7,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              )),
+        ),
+      );
 }
 
 // ── Panel Grid ────────────────────────────────────────────────────────────────
@@ -335,7 +378,8 @@ class _PanelGrid extends StatefulWidget {
   final DashboardProvider provider;
   final Widget Function(PanelId) buildPanel;
   const _PanelGrid({required this.provider, required this.buildPanel});
-  @override State<_PanelGrid> createState() => _PanelGridState();
+  @override
+  State<_PanelGrid> createState() => _PanelGridState();
 }
 
 class _PanelGridState extends State<_PanelGrid> {
@@ -345,10 +389,13 @@ class _PanelGridState extends State<_PanelGrid> {
   Widget build(BuildContext context) {
     final visible = widget.provider.visiblePanels;
     if (visible.isEmpty) {
-      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Icon(Icons.dashboard_outlined, color: WMColors.textMuted, size: 32),
+      return Center(
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        const Icon(Icons.dashboard_outlined,
+            color: WMColors.textMuted, size: 32),
         const SizedBox(height: 10),
-        const Text('No panels visible', style: TextStyle(color: WMColors.textMuted, fontSize: 11)),
+        const Text('No panels visible',
+            style: TextStyle(color: WMColors.textMuted, fontSize: 11)),
         const SizedBox(height: 10),
         GestureDetector(
           onTap: widget.provider.toggleSettings,
@@ -358,77 +405,112 @@ class _PanelGridState extends State<_PanelGrid> {
               border: Border.all(color: WMColors.accentGreen),
               borderRadius: BorderRadius.circular(2),
             ),
-            child: const Text('Manage Panels', style: TextStyle(color: WMColors.accentGreen, fontSize: 10)),
+            child: const Text('Manage Panels',
+                style: TextStyle(color: WMColors.accentGreen, fontSize: 10)),
           ),
         ),
       ]));
     }
 
     final w = MediaQuery.of(context).size.width;
-    final cols = w > 1400 ? 4 : w > 900 ? 3 : w > 600 ? 2 : 1;
+    final cols = w > 1400
+        ? 4
+        : w > 900
+            ? 3
+            : w > 600
+                ? 2
+                : 1;
     const rowH = 300.0;
 
     final rows = <Widget>[];
     for (int r = 0; r * cols < visible.length; r++) {
-      final rowPanels = visible.sublist(r * cols, ((r + 1) * cols).clamp(0, visible.length));
+      final rowPanels =
+          visible.sublist(r * cols, ((r + 1) * cols).clamp(0, visible.length));
       rows.add(SizedBox(
         height: rowH,
         child: Row(children: [
           ...rowPanels.asMap().entries.map((e) {
             final idx = r * cols + e.key;
-            return Expanded(child: Padding(
+            return Expanded(
+                child: Padding(
               padding: const EdgeInsets.all(2),
               child: DragTarget<int>(
                 onWillAcceptWithDetails: (d) => d.data != idx,
-                onAcceptWithDetails: (d) => widget.provider.reorderPanels(d.data, idx),
+                onAcceptWithDetails: (d) =>
+                    widget.provider.reorderPanels(d.data, idx),
                 builder: (ctx, candidates, _) => Container(
-                  decoration: BoxDecoration(border: Border.all(
-                    color: candidates.isNotEmpty ? WMColors.accentGreen : Colors.transparent, width: 2)),
+                  decoration: BoxDecoration(
+                      border: Border.all(
+                          color: candidates.isNotEmpty
+                              ? WMColors.accentGreen
+                              : Colors.transparent,
+                          width: 2)),
                   child: Draggable<int>(
                     data: idx,
                     onDragStarted: () => setState(() => _draggingIdx = idx),
                     onDragEnd: (_) => setState(() => _draggingIdx = null),
-                    feedback: Material(color: Colors.transparent,
-                      child: Opacity(opacity: 0.72,
-                        child: SizedBox(width: 260, height: 220,
-                          child: widget.buildPanel(e.value.id)))),
+                    feedback: Material(
+                        color: Colors.transparent,
+                        child: Opacity(
+                            opacity: 0.72,
+                            child: SizedBox(
+                                width: 260,
+                                height: 220,
+                                child: widget.buildPanel(e.value.id)))),
                     childWhenDragging: Container(
-                      decoration: BoxDecoration(
-                        color: WMColors.accentGreen.withOpacity(0.04),
-                        border: Border.all(color: WMColors.accentGreen.withOpacity(0.3))),
-                      child: const Center(child: Icon(Icons.add_box_outlined, color: WMColors.accentGreen, size: 24))),
+                        decoration: BoxDecoration(
+                            color: WMColors.accentGreen.withOpacity(0.04),
+                            border: Border.all(
+                                color: WMColors.accentGreen.withOpacity(0.3))),
+                        child: const Center(
+                            child: Icon(Icons.add_box_outlined,
+                                color: WMColors.accentGreen, size: 24))),
                     child: widget.buildPanel(e.value.id),
                   ),
                 ),
               ),
             ));
           }),
-          ...List.generate(cols - rowPanels.length, (_) => Expanded(child: Padding(
-            padding: const EdgeInsets.all(2),
-            child: DragTarget<int>(
-              onWillAcceptWithDetails: (_) => true,
-              onAcceptWithDetails: (_) {},
-              builder: (ctx, candidates, _) => GestureDetector(
-                onTap: widget.provider.toggleSettings,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: candidates.isNotEmpty
-                        ? WMColors.accentGreen.withOpacity(0.05)
-                        : WMColors.bgPanel.withOpacity(0.4),
-                    border: Border.all(color: candidates.isNotEmpty
-                        ? WMColors.accentGreen : WMColors.border.withOpacity(0.4))),
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(Icons.add_circle_outline,
-                      color: candidates.isNotEmpty ? WMColors.accentGreen : WMColors.textMuted, size: 20),
-                    const SizedBox(height: 6),
-                    Text('ADD PANEL', style: TextStyle(
-                      color: candidates.isNotEmpty ? WMColors.accentGreen : WMColors.textMuted,
-                      fontSize: 8, letterSpacing: 1.2)),
-                  ]),
-                ),
-              ),
-            ),
-          ))),
+          ...List.generate(
+              cols - rowPanels.length,
+              (_) => Expanded(
+                      child: Padding(
+                    padding: const EdgeInsets.all(2),
+                    child: DragTarget<int>(
+                      onWillAcceptWithDetails: (_) => true,
+                      onAcceptWithDetails: (_) {},
+                      builder: (ctx, candidates, _) => GestureDetector(
+                        onTap: widget.provider.toggleSettings,
+                        child: Container(
+                          decoration: BoxDecoration(
+                              color: candidates.isNotEmpty
+                                  ? WMColors.accentGreen.withOpacity(0.05)
+                                  : WMColors.bgPanel.withOpacity(0.4),
+                              border: Border.all(
+                                  color: candidates.isNotEmpty
+                                      ? WMColors.accentGreen
+                                      : WMColors.border.withOpacity(0.4))),
+                          child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_circle_outline,
+                                    color: candidates.isNotEmpty
+                                        ? WMColors.accentGreen
+                                        : WMColors.textMuted,
+                                    size: 20),
+                                const SizedBox(height: 6),
+                                Text('ADD PANEL',
+                                    style: TextStyle(
+                                        color: candidates.isNotEmpty
+                                            ? WMColors.accentGreen
+                                            : WMColors.textMuted,
+                                        fontSize: 8,
+                                        letterSpacing: 1.2)),
+                              ]),
+                        ),
+                      ),
+                    ),
+                  ))),
         ]),
       ));
     }

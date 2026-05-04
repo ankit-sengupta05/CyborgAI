@@ -45,12 +45,12 @@ $mainContent = Get-Content $mainDest -Raw
 # Add health_edu import if not present
 if ($mainContent -notmatch "health_edu") {
     $mainContent = $mainContent -replace "(from api\.routes import \([^)]*)(voice,)", '$1`n    health_edu as health_edu_router,`n    $2'
-    
+
     # Add router registration
     if ($mainContent -notmatch "health_edu_router\.router") {
         $mainContent = $mainContent -replace '(app\.include_router\(voice\.router,[^)]+\))', '$1`n    app.include_router(health_edu_router.router,   prefix="/api/v1",              tags=["Health & Education"])'
     }
-    
+
     Set-Content -Path $mainDest -Value $mainContent
     Write-Host "  ✅ main.py updated with health_edu routes" -ForegroundColor Green
 } else {

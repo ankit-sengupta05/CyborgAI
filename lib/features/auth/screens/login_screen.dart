@@ -7,7 +7,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/routing/app_router.dart' as router;
 
 final _authLoadingProvider = StateProvider<bool>((ref) => false);
-final _authErrorProvider   = StateProvider<String?>((ref) => null);
+final _authErrorProvider = StateProvider<String?>((ref) => null);
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -18,7 +18,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen>
     with TickerProviderStateMixin {
-  final _emailController    = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
@@ -32,10 +32,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     _slideController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 600))
       ..forward();
-    _slideAnim = Tween<Offset>(
-            begin: const Offset(0, 0.1), end: Offset.zero)
-        .animate(CurvedAnimation(
-            parent: _slideController, curve: Curves.easeOut));
+    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero)
+        .animate(
+            CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
   }
 
   @override
@@ -57,10 +56,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     }
 
     ref.read(_authLoadingProvider.notifier).state = true;
-    ref.read(_authErrorProvider.notifier).state  = null;
+    ref.read(_authErrorProvider.notifier).state = null;
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email:    _emailController.text.trim(),
+        email: _emailController.text.trim(),
         password: _passwordController.text,
       );
     } on FirebaseAuthException catch (e) {
@@ -72,7 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   Future<void> _signInWithGoogle() async {
     ref.read(_authLoadingProvider.notifier).state = true;
-    ref.read(_authErrorProvider.notifier).state  = null;
+    ref.read(_authErrorProvider.notifier).state = null;
     try {
       final googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) {
@@ -96,18 +95,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   String _mapError(String code) => switch (code) {
-        'user-not-found'   => 'No account found with this email.',
-        'wrong-password'   => 'Incorrect password.',
-        'invalid-email'    => 'Invalid email address.',
-        'user-disabled'    => 'This account has been disabled.',
-        'too-many-requests'=> 'Too many attempts. Try again later.',
-        _                  => 'Authentication failed. Please try again.',
+        'user-not-found' => 'No account found with this email.',
+        'wrong-password' => 'Incorrect password.',
+        'invalid-email' => 'Invalid email address.',
+        'user-disabled' => 'This account has been disabled.',
+        'too-many-requests' => 'Too many attempts. Try again later.',
+        _ => 'Authentication failed. Please try again.',
       };
 
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(_authLoadingProvider);
-    final error     = ref.watch(_authErrorProvider);
+    final error = ref.watch(_authErrorProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -119,8 +118,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             child: Container(
               decoration: const BoxDecoration(
                 color: AppColors.surface,
-                border: Border(
-                    right: BorderSide(color: AppColors.border)),
+                border: Border(right: BorderSide(color: AppColors.border)),
               ),
               child: Center(
                 child: SingleChildScrollView(
@@ -164,14 +162,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         ('🔒', 'Privacy-First'),
                         ('📦', '100% Offline'),
                       ].map((f) => Padding(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 4),
+                            padding: const EdgeInsets.symmetric(vertical: 4),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(f.$1,
-                                    style:
-                                        const TextStyle(fontSize: 16)),
+                                    style: const TextStyle(fontSize: 16)),
                                 const SizedBox(width: 10),
                                 Text(
                                   f.$2,
@@ -216,8 +212,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           const Text(
                             'Sign in to your Cyborg instance',
                             style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 14),
+                                color: AppColors.textSecondary, fontSize: 14),
                           ),
                           const SizedBox(height: 32),
                           // Error banner
@@ -228,14 +223,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 color: AppColors.accentRed.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                    color: AppColors.accentRed
-                                        .withOpacity(0.3)),
+                                    color:
+                                        AppColors.accentRed.withOpacity(0.3)),
                               ),
                               child: Row(
                                 children: [
                                   const Icon(Icons.error_outline,
-                                      color: AppColors.accentRed,
-                                      size: 16),
+                                      color: AppColors.accentRed, size: 16),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
@@ -257,16 +251,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
                             style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 14),
+                                color: AppColors.textPrimary, fontSize: 14),
                             decoration: const InputDecoration(
                               hintText: 'you@example.com',
-                              prefixIcon:
-                                  Icon(Icons.email_outlined, size: 18),
+                              prefixIcon: Icon(Icons.email_outlined, size: 18),
                             ),
-                            validator: (v) => v?.isEmpty == true
-                                ? 'Email is required'
-                                : null,
+                            validator: (v) =>
+                                v?.isEmpty == true ? 'Email is required' : null,
                           ),
                           const SizedBox(height: 16),
                           // Password
@@ -276,8 +267,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             controller: _passwordController,
                             obscureText: _obscurePassword,
                             style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 14),
+                                color: AppColors.textPrimary, fontSize: 14),
                             decoration: InputDecoration(
                               hintText: '••••••••',
                               prefixIcon:
@@ -289,8 +279,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                       : Icons.visibility_outlined,
                                   size: 18,
                                 ),
-                                onPressed: () => setState(() =>
-                                    _obscurePassword = !_obscurePassword),
+                                onPressed: () => setState(
+                                    () => _obscurePassword = !_obscurePassword),
                               ),
                             ),
                             validator: (v) => v?.isEmpty == true
@@ -309,8 +299,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                       width: 18,
                                       height: 18,
                                       child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white),
+                                          strokeWidth: 2, color: Colors.white),
                                     )
                                   : const Text('Sign In'),
                             ),
@@ -318,12 +307,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           const SizedBox(height: 16),
                           Row(
                             children: [
-                              const Expanded(child: Divider(color: AppColors.border)),
+                              const Expanded(
+                                  child: Divider(color: AppColors.border)),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                child: Text('OR', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12),
+                                child: Text('OR',
+                                    style: TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 12)),
                               ),
-                              const Expanded(child: Divider(color: AppColors.border)),
+                              const Expanded(
+                                  child: Divider(color: AppColors.border)),
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -343,13 +338,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           const SizedBox(height: 16),
                           Center(
                             child: TextButton(
-                              onPressed: () =>
-                                  context.go('/auth/register'),
+                              onPressed: () => context.go('/auth/register'),
                               child: const Text(
                                 "Don't have an account? Create one",
                                 style: TextStyle(
-                                    color: AppColors.accent,
-                                    fontSize: 13),
+                                    color: AppColors.accent, fontSize: 13),
                               ),
                             ),
                           ),

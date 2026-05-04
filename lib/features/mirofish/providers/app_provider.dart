@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../services/llm_service.dart';
 
 enum AppStep { home, graphBuild, envSetup, simulation, report, interaction }
+
 enum ViewMode { graph, split, workbench }
 
 class AppProvider extends ChangeNotifier {
@@ -123,29 +124,52 @@ class AppProvider extends ChangeNotifier {
 
   // ── Navigation ───────────────────────────────────────────────────────────────
 
-  void setStep(AppStep s) { _step = s; safeNotify(); }
-  void setViewMode(ViewMode v) { _viewMode = v; safeNotify(); }
-  void toggleEdgeLabels() { _showEdgeLabels = !_showEdgeLabels; safeNotify(); }
+  void setStep(AppStep s) {
+    _step = s;
+    safeNotify();
+  }
+
+  void setViewMode(ViewMode v) {
+    _viewMode = v;
+    safeNotify();
+  }
+
+  void toggleEdgeLabels() {
+    _showEdgeLabels = !_showEdgeLabels;
+    safeNotify();
+  }
 
   int get stepNumber {
     switch (_step) {
-      case AppStep.home: return 0;
-      case AppStep.graphBuild: return 1;
-      case AppStep.envSetup: return 2;
-      case AppStep.simulation: return 3;
-      case AppStep.report: return 4;
-      case AppStep.interaction: return 5;
+      case AppStep.home:
+        return 0;
+      case AppStep.graphBuild:
+        return 1;
+      case AppStep.envSetup:
+        return 2;
+      case AppStep.simulation:
+        return 3;
+      case AppStep.report:
+        return 4;
+      case AppStep.interaction:
+        return 5;
     }
   }
 
   String get stepName {
     switch (_step) {
-      case AppStep.home: return 'Home';
-      case AppStep.graphBuild: return 'Graph Build';
-      case AppStep.envSetup: return 'Env Setup';
-      case AppStep.simulation: return 'Simulation';
-      case AppStep.report: return 'Report';
-      case AppStep.interaction: return 'Interaction';
+      case AppStep.home:
+        return 'Home';
+      case AppStep.graphBuild:
+        return 'Graph Build';
+      case AppStep.envSetup:
+        return 'Env Setup';
+      case AppStep.simulation:
+        return 'Simulation';
+      case AppStep.report:
+        return 'Report';
+      case AppStep.interaction:
+        return 'Interaction';
     }
   }
 
@@ -175,7 +199,8 @@ class AppProvider extends ChangeNotifier {
 
   void addLog(String line) {
     final ts = DateTime.now();
-    final hms = '${ts.hour.toString().padLeft(2,'0')}:${ts.minute.toString().padLeft(2,'0')}:${ts.second.toString().padLeft(2,'0')}.${ts.millisecond.toString().padLeft(3,'0')}';
+    final hms =
+        '${ts.hour.toString().padLeft(2, '0')}:${ts.minute.toString().padLeft(2, '0')}:${ts.second.toString().padLeft(2, '0')}.${ts.millisecond.toString().padLeft(3, '0')}';
     _consoleLogs.add('$hms   $line');
     if (_consoleLogs.length > 200) _consoleLogs.removeAt(0);
     safeNotify();
@@ -188,9 +213,15 @@ class AppProvider extends ChangeNotifier {
       addLog('ERROR: LLM not configured. Please set up in Settings.');
       return;
     }
-    _project = MFProject(id: 'proj_${DateTime.now().millisecondsSinceEpoch}', name: 'Simulation');
+    _project = MFProject(
+        id: 'proj_${DateTime.now().millisecondsSinceEpoch}',
+        name: 'Simulation');
     _sessionId = _project!.id;
-    _buildStatus = {'ontology': 'processing', 'graphrag': 'pending', 'buildComplete': 'pending'};
+    _buildStatus = {
+      'ontology': 'processing',
+      'graphrag': 'pending',
+      'buildComplete': 'pending'
+    };
     _step = AppStep.graphBuild;
     // Start with empty graph
     _graphData = GraphData.empty();
@@ -199,11 +230,15 @@ class AppProvider extends ChangeNotifier {
     reportRequirement = requirement; // store for use in simulation
     addLog('Starting ontology generation...');
     try {
-      final ontResult = await apiService.generateOntology(requirement, uploadedFilePath);
-      entityTypes = List<String>.from(ontResult['entity_types'] ?? _defaultEntityTypes);
-      relationTypes = List<String>.from(ontResult['relation_types'] ?? _defaultRelationTypes);
+      final ontResult =
+          await apiService.generateOntology(requirement, uploadedFilePath);
+      entityTypes =
+          List<String>.from(ontResult['entity_types'] ?? _defaultEntityTypes);
+      relationTypes = List<String>.from(
+          ontResult['relation_types'] ?? _defaultRelationTypes);
       _buildStatus['ontology'] = 'complete';
-      addLog('✓ Ontology generated: ${entityTypes.length} entity types, ${relationTypes.length} relation types');
+      addLog(
+          '✓ Ontology generated: ${entityTypes.length} entity types, ${relationTypes.length} relation types');
       safeNotify();
 
       _buildStatus['graphrag'] = 'processing';
@@ -215,7 +250,10 @@ class AppProvider extends ChangeNotifier {
       final accEdges = <GraphEdge>[];
 
       final graphResult = await apiService.buildGraph(
-        requirement, entityTypes, relationTypes, uploadedFilePath,
+        requirement,
+        entityTypes,
+        relationTypes,
+        uploadedFilePath,
         onBatch: (newNodes, newEdges, progress) {
           // Convert and add new nodes
           for (final n in newNodes) {
@@ -232,9 +270,13 @@ class AppProvider extends ChangeNotifier {
           for (final e in newEdges) {
             final src = e['source'] as String;
             final tgt = e['target'] as String;
-            if (accNodes.any((n) => n.id == src) && accNodes.any((n) => n.id == tgt)) {
+            if (accNodes.any((n) => n.id == src) &&
+                accNodes.any((n) => n.id == tgt)) {
               if (!accEdges.any((ex) => ex.source == src && ex.target == tgt)) {
-                accEdges.add(GraphEdge(source: src, target: tgt, label: e['label'] as String? ?? ''));
+                accEdges.add(GraphEdge(
+                    source: src,
+                    target: tgt,
+                    label: e['label'] as String? ?? ''));
               }
             }
           }
@@ -245,21 +287,28 @@ class AppProvider extends ChangeNotifier {
             entityTypes: entityTypes,
             relationTypes: relationTypes,
           );
-          addLog('Graph refreshed: ${accNodes.length} nodes, ${accEdges.length} edges');
+          addLog(
+              'Graph refreshed: ${accNodes.length} nodes, ${accEdges.length} edges');
           safeNotify();
         },
       );
 
-      entityNodes = (graphResult['entity_nodes'] as num?)?.toInt() ?? accNodes.length;
-      relationEdges = (graphResult['relation_edges'] as num?)?.toInt() ?? accEdges.length;
-      schemaTypes = (graphResult['schema_types'] as num?)?.toInt() ?? entityTypes.length;
-      _project!.graphId = graphResult['graph_id'] as String? ?? 'mirofish_${DateTime.now().millisecondsSinceEpoch}';
+      entityNodes =
+          (graphResult['entity_nodes'] as num?)?.toInt() ?? accNodes.length;
+      relationEdges =
+          (graphResult['relation_edges'] as num?)?.toInt() ?? accEdges.length;
+      schemaTypes =
+          (graphResult['schema_types'] as num?)?.toInt() ?? entityTypes.length;
+      _project!.graphId = graphResult['graph_id'] as String? ??
+          'mirofish_${DateTime.now().millisecondsSinceEpoch}';
 
       // Final graph state from accumulated batches
       if (accNodes.isNotEmpty) {
         _graphData = GraphData(
-          nodes: accNodes, edges: accEdges,
-          entityTypes: entityTypes, relationTypes: relationTypes,
+          nodes: accNodes,
+          edges: accEdges,
+          entityTypes: entityTypes,
+          relationTypes: relationTypes,
         );
       } else {
         _loadDemoGraphData();
@@ -273,7 +322,11 @@ class AppProvider extends ChangeNotifier {
     } catch (e) {
       addLog('ERROR: \$e');
       _loadDemoGraphData();
-      _buildStatus = {'ontology': 'complete', 'graphrag': 'complete', 'buildComplete': 'in_progress'};
+      _buildStatus = {
+        'ontology': 'complete',
+        'graphrag': 'complete',
+        'buildComplete': 'in_progress'
+      };
       safeNotify();
     }
   }
@@ -281,7 +334,8 @@ class AppProvider extends ChangeNotifier {
   void proceedToEnvSetup() {
     _buildStatus['buildComplete'] = 'complete';
     _step = AppStep.envSetup;
-    _sessionId = _project?.simulationId ?? 'sim_${DateTime.now().millisecondsSinceEpoch}';
+    _sessionId = _project?.simulationId ??
+        'sim_${DateTime.now().millisecondsSinceEpoch}';
     _startEnvSetup();
     safeNotify();
   }
@@ -290,16 +344,22 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> _startEnvSetup() async {
     _envStatus = {
-      'simulationInit': 'processing', 'agentProfiles': 'pending',
-      'generateConfig': 'pending', 'activation': 'pending', 'ready': 'pending'
+      'simulationInit': 'processing',
+      'agentProfiles': 'pending',
+      'generateConfig': 'pending',
+      'activation': 'pending',
+      'ready': 'pending'
     };
     safeNotify();
 
     try {
       // Step 1: Init simulation
-      final initResult = await apiService.createSimulation(_project!.graphId ?? '');
-      _project!.simulationId = initResult['simulation_id'] ?? 'sim_${DateTime.now().millisecondsSinceEpoch}';
-      _project!.taskId = initResult['task_id'] ?? 'task_prepare_${DateTime.now().millisecondsSinceEpoch}';
+      final initResult =
+          await apiService.createSimulation(_project!.graphId ?? '');
+      _project!.simulationId = initResult['simulation_id'] ??
+          'sim_${DateTime.now().millisecondsSinceEpoch}';
+      _project!.taskId = initResult['task_id'] ??
+          'task_prepare_${DateTime.now().millisecondsSinceEpoch}';
       _sessionId = _project!.simulationId;
       addLog('Total agents: 55');
       addLog('Duration: 72 hours');
@@ -310,7 +370,8 @@ class AppProvider extends ChangeNotifier {
       // Step 2: Agent profiles
       _envStatus['agentProfiles'] = 'processing';
       safeNotify();
-      final profileResult = await apiService.generateAgentProfiles(_project!.simulationId!, entityTypes, _simulationRequirement);
+      final profileResult = await apiService.generateAgentProfiles(
+          _project!.simulationId!, entityTypes, _simulationRequirement);
       agents = _parseAgents(profileResult);
       totalAgents = agents.length;
       expectedTotal = agents.length;
@@ -340,8 +401,11 @@ class AppProvider extends ChangeNotifier {
       addLog('ERROR in env setup: $e — using demo data');
       _loadDemoAgents();
       _envStatus = {
-        'simulationInit': 'completed', 'agentProfiles': 'completed',
-        'generateConfig': 'completed', 'activation': 'completed', 'ready': 'in_progress'
+        'simulationInit': 'completed',
+        'agentProfiles': 'completed',
+        'generateConfig': 'completed',
+        'activation': 'completed',
+        'ready': 'in_progress'
       };
       safeNotify();
     }
@@ -353,9 +417,12 @@ class AppProvider extends ChangeNotifier {
     _simRunning = true;
     _simulationRequirement = requirement;
     _step = AppStep.simulation;
-    plazaRound = 0; plazaActs = 0;
-    communityRound = 0; communityActs = 0;
-    totalEvents = 0; simEvents.clear();
+    plazaRound = 0;
+    plazaActs = 0;
+    communityRound = 0;
+    communityActs = 0;
+    totalEvents = 0;
+    simEvents.clear();
     plazaTotalRounds = rounds;
     safeNotify();
 
@@ -377,7 +444,8 @@ class AppProvider extends ChangeNotifier {
           final p = plazaRound;
           final c = communityRound;
           addLog('[Plaza] R$p/$rounds | T:${plazaRound}h | A:$plazaActs');
-          addLog('[Community] R$c/$rounds | T:${communityRound}h | A:$communityActs');
+          addLog(
+              '[Community] R$c/$rounds | T:${communityRound}h | A:$communityActs');
 
           // Update graph nodes
           if ((p % 5) == 0 && _graphData.nodes.isNotEmpty) {
@@ -388,7 +456,8 @@ class AppProvider extends ChangeNotifier {
       );
       _simRunning = false;
       addLog('✓ Simulation completed');
-      addLog('Graph sync updated, nodes: ${_graphData.nodes.length}, edges: ${_graphData.edges.length}, progress: 100%');
+      addLog(
+          'Graph sync updated, nodes: ${_graphData.nodes.length}, edges: ${_graphData.edges.length}, progress: 100%');
       safeNotify();
     } catch (e) {
       addLog('Simulation error: $e — running demo mode');
@@ -408,7 +477,8 @@ class AppProvider extends ChangeNotifier {
 
       if (r % 5 == 0) {
         _addSimulatedNodes();
-        addLog('Graph sync updated, nodes: ${_graphData.nodes.length}, edges: ${_graphData.edges.length}, progress: ${(r / rounds * 100).round()}%');
+        addLog(
+            'Graph sync updated, nodes: ${_graphData.nodes.length}, edges: ${_graphData.edges.length}, progress: ${(r / rounds * 100).round()}%');
       }
       safeNotify();
     }
@@ -418,20 +488,36 @@ class AppProvider extends ChangeNotifier {
   }
 
   List<SimEvent> _demoEvents(int round) => [
-    SimEvent(agentName: 'University Admin', agentType: 'University', platform: 'plaza',
-      eventType: 'post', content: 'Official update on the ongoing situation. We remain committed to transparency. Round \$round.',
-      time: '${(6 + round % 18).toString().padLeft(2,"0")}:${(round * 3 % 60).toString().padLeft(2,"0")}:00', round: round),
-    SimEvent(agentName: 'Student Rep', agentType: 'Student', platform: 'community',
-      eventType: 'post', content: 'The community deserves answers. This cannot be ignored. #Justice',
-      time: '${(8 + round % 16).toString().padLeft(2,"0")}:${(round * 5 % 60).toString().padLeft(2,"0")}:00', round: round),
-  ];
+        SimEvent(
+            agentName: 'University Admin',
+            agentType: 'University',
+            platform: 'plaza',
+            eventType: 'post',
+            content:
+                'Official update on the ongoing situation. We remain committed to transparency. Round \$round.',
+            time:
+                '${(6 + round % 18).toString().padLeft(2, "0")}:${(round * 3 % 60).toString().padLeft(2, "0")}:00',
+            round: round),
+        SimEvent(
+            agentName: 'Student Rep',
+            agentType: 'Student',
+            platform: 'community',
+            eventType: 'post',
+            content:
+                'The community deserves answers. This cannot be ignored. #Justice',
+            time:
+                '${(8 + round % 16).toString().padLeft(2, "0")}:${(round * 5 % 60).toString().padLeft(2, "0")}:00',
+            round: round),
+      ];
 
   void _addSimulatedNodes() {
     // Add new nodes as simulation progresses
     final newNodes = List.generate(3, (i) {
       final id = 'sim_node_${_graphData.nodes.length + i}';
       return GraphNode(
-        id: id, label: 'Agent_$id', type: 'Person',
+        id: id,
+        label: 'Agent_$id',
+        type: 'Person',
         position: Offset(
           200 + (_graphData.nodes.length + i) % 10 * 80.0,
           200 + (_graphData.nodes.length + i) ~/ 10 * 80.0,
@@ -440,8 +526,10 @@ class AppProvider extends ChangeNotifier {
     });
     final updatedNodes = [..._graphData.nodes, ...newNodes];
     _graphData = GraphData(
-      nodes: updatedNodes, edges: _graphData.edges,
-      entityTypes: _graphData.entityTypes, relationTypes: _graphData.relationTypes);
+        nodes: updatedNodes,
+        edges: _graphData.edges,
+        entityTypes: _graphData.entityTypes,
+        relationTypes: _graphData.relationTypes);
   }
 
   // ── Report flow ───────────────────────────────────────────────────────────────
@@ -459,7 +547,7 @@ class AppProvider extends ChangeNotifier {
 
     try {
       final stream = apiService.generateReport(
-        _project?.simulationId ?? '', requirement, _graphData);
+          _project?.simulationId ?? '', requirement, _graphData);
 
       await for (final chunk in stream) {
         reportContent += chunk;
@@ -482,7 +570,11 @@ class AppProvider extends ChangeNotifier {
     ];
 
     for (final title in sections) {
-      reportSections.add(ReportSection(id: '${reportSections.length}', title: title, status: 'in_progress', content: ''));
+      reportSections.add(ReportSection(
+          id: '${reportSections.length}',
+          title: title,
+          status: 'in_progress',
+          content: ''));
       addLog('INFO: Section start: ${reportSections.length}. $title');
       safeNotify();
       await Future.delayed(const Duration(milliseconds: 300));
@@ -492,7 +584,8 @@ class AppProvider extends ChangeNotifier {
     reportContent = '';
     final words = _demoReportContent.split(' ');
     for (int i = 0; i < words.length; i += 3) {
-      final chunk = words.skip(i).take(3).join(' ') + (i + 3 < words.length ? ' ' : '');
+      final chunk =
+          words.skip(i).take(3).join(' ') + (i + 3 < words.length ? ' ' : '');
       reportContent += chunk;
       safeNotify();
       await Future.delayed(const Duration(milliseconds: 15));
@@ -505,16 +598,29 @@ class AppProvider extends ChangeNotifier {
   // ── Helpers ───────────────────────────────────────────────────────────────────
 
   GraphData _parseGraphData(Map<String, dynamic> result) {
-    final nodes = (result['nodes'] as List? ?? []).map((n) => GraphNode.fromJson(n as Map<String, dynamic>)).toList();
-    final edges = (result['edges'] as List? ?? []).map((e) => GraphEdge.fromJson(e as Map<String, dynamic>)).toList();
+    final nodes = (result['nodes'] as List? ?? [])
+        .map((n) => GraphNode.fromJson(n as Map<String, dynamic>))
+        .toList();
+    final edges = (result['edges'] as List? ?? [])
+        .map((e) => GraphEdge.fromJson(e as Map<String, dynamic>))
+        .toList();
     // Never fall back to demo — return whatever LLM gave us (even if few nodes)
-    return GraphData(nodes: nodes, edges: edges, entityTypes: entityTypes, relationTypes: relationTypes);
+    return GraphData(
+        nodes: nodes,
+        edges: edges,
+        entityTypes: entityTypes,
+        relationTypes: relationTypes);
   }
 
   List<AgentProfile> _parseAgents(Map<String, dynamic> result) {
     final list = result['agents'] as List? ?? [];
     if (list.isEmpty) return _demoAgents;
-    return list.asMap().entries.map((e) => AgentProfile.fromJson(e.value as Map<String, dynamic>, e.key)).toList();
+    return list
+        .asMap()
+        .entries
+        .map((e) =>
+            AgentProfile.fromJson(e.value as Map<String, dynamic>, e.key))
+        .toList();
   }
 
   void _loadDemoGraphData() {
@@ -545,8 +651,14 @@ class AppProvider extends ChangeNotifier {
   GraphData _generateDemoGraph() {
     final rng = _Rng(42);
     final nodeTypes = [
-      ('University', 8), ('Student', 20), ('Professor', 10), ('Alumni', 8),
-      ('Organization', 12), ('Person', 15), ('Media Outlet', 5), ('Legal Authority', 4),
+      ('University', 8),
+      ('Student', 20),
+      ('Professor', 10),
+      ('Alumni', 8),
+      ('Organization', 12),
+      ('Person', 15),
+      ('Media Outlet', 5),
+      ('Legal Authority', 4),
     ];
 
     final nodes = <GraphNode>[];
@@ -566,59 +678,150 @@ class AppProvider extends ChangeNotifier {
     }
 
     final edges = <GraphEdge>[];
-    final relations = ['RELATES_TO','CRITICIZES','SUPPORTS','REPORTS_ON','AFFILIATED_WITH','ADVISES','STUDIES_AT'];
+    final relations = [
+      'RELATES_TO',
+      'CRITICIZES',
+      'SUPPORTS',
+      'REPORTS_ON',
+      'AFFILIATED_WITH',
+      'ADVISES',
+      'STUDIES_AT'
+    ];
     for (int i = 0; i < 180; i++) {
       final s = rng.nextInt(nodes.length);
       var t = rng.nextInt(nodes.length);
       while (t == s) t = rng.nextInt(nodes.length);
-      edges.add(GraphEdge(source: nodes[s].id, target: nodes[t].id,
+      edges.add(GraphEdge(
+          source: nodes[s].id,
+          target: nodes[t].id,
           label: relations[rng.nextInt(relations.length)]));
     }
 
-    return GraphData(nodes: nodes, edges: edges, entityTypes: _defaultEntityTypes, relationTypes: _defaultRelationTypes);
+    return GraphData(
+        nodes: nodes,
+        edges: edges,
+        entityTypes: _defaultEntityTypes,
+        relationTypes: _defaultRelationTypes);
   }
 
   double _cos(double a) => math.cos(a);
   double _sin(double a) => math.sin(a);
 
   static const _defaultEntityTypes = [
-    'University', 'Student', 'Professor', 'Alumni', 'MediaOutlet', 'GovernmentAgency', 'NGO', 'Person', 'Organization'
+    'University',
+    'Student',
+    'Professor',
+    'Alumni',
+    'MediaOutlet',
+    'GovernmentAgency',
+    'NGO',
+    'Person',
+    'Organization'
   ];
   static const _defaultRelationTypes = [
-    'COMMENTS_ON', 'RESPONDS_TO', 'SUPPORTS', 'OPPOSES', 'AFFILIATED_WITH', 'WORKS_FOR'
+    'COMMENTS_ON',
+    'RESPONDS_TO',
+    'SUPPORTS',
+    'OPPOSES',
+    'AFFILIATED_WITH',
+    'WORKS_FOR'
   ];
   static const _demoNames = [
-    'Wuhan U.', 'Student', 'Alumni', 'Professor', 'Media', 'Insight', 'Legal ex.',
-    'Domestic', 'Young Ai.', 'Post-80s', 'Masters', 'Luojia M.', 'Union Ho.',
-    'Top Univ.', 'Xiao', 'Yang Jin.', 'Analyst', 'Graduate', 'Facebook', 'WeChat',
-    'Douyin', 'Weibo', 'Twitter', 'UC Berke.', 'Library', 'Court', 'NGO', 'Agency',
+    'Wuhan U.',
+    'Student',
+    'Alumni',
+    'Professor',
+    'Media',
+    'Insight',
+    'Legal ex.',
+    'Domestic',
+    'Young Ai.',
+    'Post-80s',
+    'Masters',
+    'Luojia M.',
+    'Union Ho.',
+    'Top Univ.',
+    'Xiao',
+    'Yang Jin.',
+    'Analyst',
+    'Graduate',
+    'Facebook',
+    'WeChat',
+    'Douyin',
+    'Weibo',
+    'Twitter',
+    'UC Berke.',
+    'Library',
+    'Court',
+    'NGO',
+    'Agency',
   ];
 
   static final _demoAgents = [
-    AgentProfile(index: 0, id: 'facebook_273', name: 'Facebook', type: 'Organization',
-      stance: 'neutral', description: 'Facebook is a globally renowned social media platform.',
-      topics: ['Study Abroad', 'Alumni Exchange', 'Higher Education'],
-      activeHours: List.generate(24, (i) => i >= 8 && i <= 22),
-      postsPerHour: 3, commentsPerHour: 5, responseDelay: '5-30min',
-      activityLevel: 0.5, sentimentBias: 0.0, influenceWeight: 2.5),
-    AgentProfile(index: 1, id: 'hubei_ip_504', name: 'Hubei IP User', type: 'Person',
-      stance: 'supportive', description: 'A parent of a student in the Hubei region.',
-      topics: ['Educational Equity', 'Academic Integrity', 'Family Education'],
-      activeHours: List.generate(24, (i) => i >= 18 && i <= 23),
-      postsPerHour: 10, commentsPerHour: 8, responseDelay: '1-15min',
-      activityLevel: 0.7, sentimentBias: 0.5, influenceWeight: 1.0),
-    AgentProfile(index: 2, id: 'alumni_948', name: 'Alumni', type: 'Alumni',
-      stance: 'neutral', description: 'A Wuhan University alumnus.',
-      topics: ['University Governance', 'Academic Freedom'],
-      activeHours: List.generate(24, (i) => i >= 12 && i <= 20),
-      postsPerHour: 2, commentsPerHour: 3, responseDelay: '10-60min',
-      activityLevel: 0.4, sentimentBias: 0.0, influenceWeight: 1.5),
-    AgentProfile(index: 3, id: 'whu_vice', name: 'WHU Vice President', type: 'Professor',
-      stance: 'opposing', description: 'WHU administration representative.',
-      topics: ['Institutional Policy', 'University Management'],
-      activeHours: List.generate(24, (i) => i >= 9 && i <= 18),
-      postsPerHour: 1, commentsPerHour: 2, responseDelay: '30-120min',
-      activityLevel: 0.3, sentimentBias: -0.8, influenceWeight: 3.0),
+    AgentProfile(
+        index: 0,
+        id: 'facebook_273',
+        name: 'Facebook',
+        type: 'Organization',
+        stance: 'neutral',
+        description: 'Facebook is a globally renowned social media platform.',
+        topics: ['Study Abroad', 'Alumni Exchange', 'Higher Education'],
+        activeHours: List.generate(24, (i) => i >= 8 && i <= 22),
+        postsPerHour: 3,
+        commentsPerHour: 5,
+        responseDelay: '5-30min',
+        activityLevel: 0.5,
+        sentimentBias: 0.0,
+        influenceWeight: 2.5),
+    AgentProfile(
+        index: 1,
+        id: 'hubei_ip_504',
+        name: 'Hubei IP User',
+        type: 'Person',
+        stance: 'supportive',
+        description: 'A parent of a student in the Hubei region.',
+        topics: [
+          'Educational Equity',
+          'Academic Integrity',
+          'Family Education'
+        ],
+        activeHours: List.generate(24, (i) => i >= 18 && i <= 23),
+        postsPerHour: 10,
+        commentsPerHour: 8,
+        responseDelay: '1-15min',
+        activityLevel: 0.7,
+        sentimentBias: 0.5,
+        influenceWeight: 1.0),
+    AgentProfile(
+        index: 2,
+        id: 'alumni_948',
+        name: 'Alumni',
+        type: 'Alumni',
+        stance: 'neutral',
+        description: 'A Wuhan University alumnus.',
+        topics: ['University Governance', 'Academic Freedom'],
+        activeHours: List.generate(24, (i) => i >= 12 && i <= 20),
+        postsPerHour: 2,
+        commentsPerHour: 3,
+        responseDelay: '10-60min',
+        activityLevel: 0.4,
+        sentimentBias: 0.0,
+        influenceWeight: 1.5),
+    AgentProfile(
+        index: 3,
+        id: 'whu_vice',
+        name: 'WHU Vice President',
+        type: 'Professor',
+        stance: 'opposing',
+        description: 'WHU administration representative.',
+        topics: ['Institutional Policy', 'University Management'],
+        activeHours: List.generate(24, (i) => i >= 9 && i <= 18),
+        postsPerHour: 1,
+        commentsPerHour: 2,
+        responseDelay: '30-120min',
+        activityLevel: 0.3,
+        sentimentBias: -0.8,
+        influenceWeight: 3.0),
   ];
 
   static const _demoReportContent = '''

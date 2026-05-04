@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_theme.dart';    // FIX: was ../../core
+import '../../../core/theme/app_theme.dart'; // FIX: was ../../core
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -12,10 +12,10 @@ class RegisterScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
-  final _nameController     = TextEditingController();
-  final _emailController    = TextEditingController();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmController  = TextEditingController();
+  final _confirmController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   String? _error;
@@ -32,7 +32,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _isLoading = true; _error = null; });
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
     try {
       final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
@@ -43,9 +46,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       setState(() {
         _error = switch (e.code) {
           'email-already-in-use' => 'Email already registered.',
-          'weak-password'        => 'Password must be at least 6 characters.',
-          'invalid-email'        => 'Invalid email address.',
-          _                      => 'Registration failed: ${e.message}',
+          'weak-password' => 'Password must be at least 6 characters.',
+          'invalid-email' => 'Invalid email address.',
+          _ => 'Registration failed: ${e.message}',
         };
       });
     } finally {
@@ -99,8 +102,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   const SizedBox(height: 6),
                   const Text(
                     'Join the Cyborg ecosystem',
-                    style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: 13),
+                    style:
+                        TextStyle(color: AppColors.textSecondary, fontSize: 13),
                   ),
                   const SizedBox(height: 28),
                   if (_error != null) ...[
@@ -125,8 +128,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       validator: (v) =>
                           v?.isEmpty == true ? 'Name is required' : null),
                   const SizedBox(height: 14),
-                  _buildField('Email', _emailController,
-                      Icons.email_outlined, 'you@example.com',
+                  _buildField('Email', _emailController, Icons.email_outlined,
+                      'you@example.com',
                       keyboardType: TextInputType.emailAddress,
                       validator: (v) =>
                           v?.isEmpty == true ? 'Email is required' : null),
@@ -134,9 +137,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   _buildField('Password', _passwordController,
                       Icons.lock_outline, '••••••••',
                       isPassword: true,
-                      validator: (v) => (v?.length ?? 0) < 6
-                          ? 'Minimum 6 characters'
-                          : null),
+                      validator: (v) =>
+                          (v?.length ?? 0) < 6 ? 'Minimum 6 characters' : null),
                   const SizedBox(height: 14),
                   _buildField('Confirm Password', _confirmController,
                       Icons.lock_outline, '••••••••',
@@ -152,7 +154,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       onPressed: _isLoading ? null : _register,
                       child: _isLoading
                           ? const SizedBox(
-                              width: 18, height: 18,
+                              width: 18,
+                              height: 18,
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: Colors.white))
                           : const Text('Create Account'),
@@ -164,8 +167,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       onPressed: () => context.go('/auth/login'),
                       child: const Text(
                         'Already have an account? Sign in',
-                        style:
-                            TextStyle(color: AppColors.accent, fontSize: 13),
+                        style: TextStyle(color: AppColors.accent, fontSize: 13),
                       ),
                     ),
                   ),
@@ -203,8 +205,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           controller: controller,
           obscureText: isPassword && _obscurePassword,
           keyboardType: keyboardType,
-          style: const TextStyle(
-              color: AppColors.textPrimary, fontSize: 14),
+          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: Icon(icon, size: 18),
@@ -216,8 +217,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           : Icons.visibility_outlined,
                       size: 18,
                     ),
-                    onPressed: () => setState(
-                        () => _obscurePassword = !_obscurePassword),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
                   )
                 : null,
           ),

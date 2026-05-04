@@ -17,9 +17,9 @@ class MedGemmaPipeline:
     Multimodal medical imaging pipeline using MedGemma 4B
     Supports chest X-ray analysis with vision encoder + language model
     """
-    
+
     _instance = None
-    
+
     def __init__(self, model_path: str = "assets/models/medgemma-4b-Q4_K_M.gguf", device: str = "cuda"):
         self.model_path = model_path
         self.device = device if torch.cuda.is_available() else "cpu"
@@ -27,33 +27,33 @@ class MedGemmaPipeline:
         self.vision_encoder = None
         self.llm_backend = None
         self._initialized = False
-        
+
     @classmethod
     def get_instance(cls, model_path: str = None) -> 'MedGemmaPipeline':
         """Singleton pattern for efficient model loading"""
         if cls._instance is None:
             cls._instance = cls(model_path=model_path or "assets/models/medgemma-4b-Q4_K_M.gguf")
         return cls._instance
-    
+
     def initialize(self):
         """Lazy initialization of models"""
         if self._initialized:
             return
-            
+
         try:
             # Initialize tokenizer
             self.tokenizer = AutoTokenizer.from_pretrained(
                 "google/gemma-2b-it",
                 cache_dir=os.path.join(os.path.dirname(self.model_path), "cache")
             )
-            
+
             # Initialize vision encoder (SigLIP)
             from transformers import SiglipVisionModel
             self.vision_encoder = SiglipVisionModel.from_pretrained(
                 "google/siglip-so400m-patch14-384"
             ).to(self.device)
             self.vision_encoder.eval()
-            
+
             # Initialize Ollama backend for GGUF inference
             try:
                 import ollama
@@ -76,46 +76,46 @@ class MedGemmaPipeline:
                         "Please install ollama or llama-cpp-python for GGUF inference:\n"
                         "pip install ollama\nor\npip install llama-cpp-python"
                     )
-            
+
             self._initialized = True
             print(f"✅ MedGemmaPipeline initialized on {self.device}")
-            
+
         except Exception as e:
             print(f"⚠️ Model initialization failed: {e}")
             print("Running in mock mode for development")
             self._initialized = True  # Allow mock mode
             self.llm_backend = "mock"
-    
+
     def _encode_image(self, image_path: str) -> torch.Tensor:
         """Encode medical image using SigLIP vision encoder"""
         from PIL import Image
         import torchvision.transforms as transforms
-        
+
         # Load and preprocess image
         image = Image.open(image_path).convert("RGB")
-        
+
         # SigLIP preprocessing
         transform = transforms.Compose([
             transforms.Resize((384, 384)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         ])
-        
+
         image_tensor = transform(image).unsqueeze(0).to(self.device)
-        
+
         # Extract features
         with torch.no_grad():
             outputs = self.vision_encoder(pixel_values=image_tensor)
             image_features = outputs.last_hidden_state
-        
+
         return image_features
-    
-    def _build_medical_prompt(self, 
+
+    def _build_medical_prompt(self,
                              image_features: torch.Tensor,
                              context: Optional[Dict[str, Any]] = None,
                              template: str = "explain_like_im_5") -> str:
         """Construct medical prompt with patient context"""
-        
+
         templates = {
             "explain_like_im_5": """You are a compassionate medical assistant analyzing a chest X-ray.
 
@@ -132,7 +132,7 @@ Analyze this X-ray and explain in simple terms:
 IMPORTANT: Always end with: "⚠️ This is not a diagnosis. Please consult a healthcare professional for medical advice."
 
 Analysis:""",
-            
+
             "clinical_summary": """Clinical X-ray Analysis Report
 
 Patient: Age {age}, Symptoms: {symptoms}
@@ -143,20 +143,20 @@ Recommendations:
 
 DISCLAIMER: AI assistance only - not a substitute for professional medical evaluation."""
         }
-        
+
         prompt_template = templates.get(template, templates["explain_like_im_5"])
-        
+
         return prompt_template.format(
             age=context.get("age", "N/A") if context else "N/A",
             symptoms=", ".join(context.get("symptoms", [])) if context and context.get("symptoms") else "None reported"
         )
-    
-    def _safe_generate(self, 
+
+    def _safe_generate(self,
                       prompt: str,
                       max_new_tokens: int = 512,
                       stop_sequences: Optional[List[str]] = None) -> str:
         """Generate response with safety constraints"""
-        
+
         if self.llm_backend == "ollama":
             import ollama
             response = ollama.generate(
@@ -169,7 +169,7 @@ DISCLAIMER: AI assistance only - not a substitute for professional medical evalu
                 }
             )
             return response['response']
-            
+
         elif self.llm_backend == "llama_cpp":
             response = self.llm(
                 prompt,
@@ -178,13 +178,13 @@ DISCLAIMER: AI assistance only - not a substitute for professional medical evalu
                 temperature=0.3
             )
             return response['choices'][0]['text']
-            
+
         elif self.llm_backend == "mock":
             # Mock response for development without models
             return self._generate_mock_response(prompt)
-        
+
         return ""
-    
+
     def _generate_mock_response(self, prompt: str) -> str:
         """Generate realistic mock response for testing"""
         return """
@@ -205,7 +205,7 @@ Based on the information provided, there are no immediate risk factors visible i
 
 ⚠️ This is not a diagnosis. Please consult a healthcare professional for medical advice.
 """
-    
+
     def _parse_medical_response(self, response: str) -> Dict[str, Any]:
         """Parse structured medical response"""
         # Simple parsing - can be enhanced with regex or NLP
@@ -218,11 +218,11 @@ Based on the information provided, there are no immediate risk factors visible i
             "ehr_functions": None,
             "full_response": response
         }
-        
+
         # Extract sections
         lines = response.split('\n')
         current_section = None
-        
+
         for line in lines:
             line = line.strip()
             if 'Confidence' in line and '%' in line:
@@ -243,65 +243,65 @@ Based on the information provided, there are no immediate risk factors visible i
                 result["risk_factors"].append(line)
             elif current_section == "recommendations" and line:
                 result["recommendations"].append(line)
-        
+
         result["plain_language_explanation"] = result["plain_language_explanation"].strip()
-        
+
         return result
-    
-    def analyze_xray(self, 
+
+    def analyze_xray(self,
                     image_path: str,
                     patient_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Main entry point for X-ray analysis
-        
+
         Args:
             image_path: Path to chest X-ray image (PNG/JPG/DICOM)
             patient_context: Optional dict with age, symptoms, language
-            
+
         Returns:
             Structured analysis results
         """
         self.initialize()
-        
+
         # Validate input
         if not os.path.exists(image_path):
             raise FileNotFoundError(f"Image not found: {image_path}")
-        
+
         # Encode image
         try:
             image_features = self._encode_image(image_path)
         except Exception as e:
             print(f"Warning: Vision encoding failed ({e}), proceeding with text-only analysis")
             image_features = None
-        
+
         # Build prompt
         prompt = self._build_medical_prompt(
             image_features,
             context=patient_context,
             template="explain_like_im_5"
         )
-        
+
         # Generate response with safety constraints
         response = self._safe_generate(
             prompt,
             max_new_tokens=512,
             stop_sequences=["###", "Patient should", "[INST]"]
         )
-        
+
         # Parse and return structured results
         result = self._parse_medical_response(response)
-        
+
         # Add disclaimer if missing
         if "⚠️" not in result.get("full_response", ""):
             result["full_response"] += "\n\n⚠️ This is not a diagnosis. Please consult a healthcare professional for medical advice."
-        
+
         # Clean up memory
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-        
+
         return result
-    
+
     def unload(self):
         """Free GPU memory"""
         if self.vision_encoder:

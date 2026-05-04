@@ -27,7 +27,7 @@ OPTION B: Manual Copy
 Copy these 3 files to your Flutter project:
 
 1. lib\core\constants\api_constants.dart
-2. lib\core\services\health_edu_service.dart  
+2. lib\core\services\health_edu_service.dart
 3. lib\screens\windows\home_screen.dart
 
 THEN RUN:
@@ -44,7 +44,7 @@ SIDEBAR NAVIGATION:
   🏥 Health Track
      ├─ X-Ray Analysis (upload chest X-ray → get AI analysis)
      └─ EHR Assistant (FHIR-compatible medical records)
-  
+
   📚 Education Track
      ├─ Homework Grader (OCR + rubric-based evaluation)
      └─ Quiz Generator (adaptive quizzes with cultural relevance)
@@ -73,7 +73,7 @@ Health:
   POST /api/v1/health/analyze-xray
   POST /api/v1/health/ehr/query
   POST /api/v1/health/ehr/update
-  
+
 Education:
   GET  /api/v1/education/status
   POST /api/v1/education/grade-homework

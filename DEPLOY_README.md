@@ -58,7 +58,7 @@ flutter run -d windows
 - **Health Track** (Purple accent)
   - 🩻 X-Ray Analysis - Upload chest X-ray → Get findings with confidence %
   - 🏥 EHR Assistant - FHIR-compatible medical record queries
-  
+
 - **Education Track** (Purple accent)
   - 📝 Homework Grader - Upload homework → OCR + rubric-based grading
   - 📚 Quiz Generator - Adaptive quizzes with cultural relevance

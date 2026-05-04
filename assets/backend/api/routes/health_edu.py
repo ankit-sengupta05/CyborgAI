@@ -63,7 +63,7 @@ async def analyze_xray(
 ):
     """
     Analyze chest X-ray using MedGemma 4B
-    
+
     Returns structured analysis with:
     - Findings and confidence levels
     - Plain-language explanation
@@ -73,17 +73,17 @@ async def analyze_xray(
     """
     if not HEALTH_AVAILABLE:
         raise HTTPException(status_code=503, detail="Health services not initialized")
-    
+
     try:
         # Save uploaded file temporarily
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(image.filename)[1]) as tmp:
             shutil.copyfileobj(image.file, tmp)
             tmp_path = tmp.name
-        
+
         try:
             # Initialize pipeline
             pipeline = MedGemmaPipeline.get_instance()
-            
+
             # Build patient context
             patient_context = {}
             if age:
@@ -92,22 +92,22 @@ async def analyze_xray(
                 patient_context["symptoms"] = [s.strip() for s in symptoms.split(",")]
             if language:
                 patient_context["language"] = language
-            
+
             # Run analysis
             result = pipeline.analyze_xray(tmp_path, patient_context=patient_context)
-            
+
             # Add metadata
             result["timestamp"] = datetime.utcnow().isoformat()
             result["image_name"] = image.filename
             result["language"] = language
-            
+
             return JSONResponse(content=result)
-            
+
         finally:
             # Clean up temp file
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
-                
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
@@ -124,22 +124,22 @@ async def query_ehr(
     """
     if not HEALTH_AVAILABLE:
         raise HTTPException(status_code=503, detail="Health services not initialized")
-    
+
     try:
         ehr_caller = EHRFunctionCaller.get_instance()
-        
+
         result = await ehr_caller.query_patient_data(
             patient_id=patient_id,
             query_type=query_type,
             date_range=date_range
         )
-        
+
         return JSONResponse(content={
             "success": True,
             "data": result,
             "timestamp": datetime.utcnow().isoformat()
         })
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"EHR query failed: {str(e)}")
 
@@ -156,25 +156,25 @@ async def update_ehr(
     """
     if not HEALTH_AVAILABLE:
         raise HTTPException(status_code=503, detail="Health services not initialized")
-    
+
     try:
         import json
         ehr_caller = EHRFunctionCaller.get_instance()
-        
+
         data_dict = json.loads(data)
-        
+
         result = await ehr_caller.update_patient_record(
             patient_id=patient_id,
             update_type=update_type,
             data=data_dict
         )
-        
+
         return JSONResponse(content={
             "success": True,
             "record_id": result.get("record_id"),
             "timestamp": datetime.utcnow().isoformat()
         })
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"EHR update failed: {str(e)}")
 
@@ -210,22 +210,22 @@ async def grade_homework(
     """
     if not EDUCATION_AVAILABLE:
         raise HTTPException(status_code=503, detail="Education services not initialized")
-    
+
     try:
         # Save uploaded file
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(image.filename)[1]) as tmp:
             shutil.copyfileobj(image.file, tmp)
             tmp_path = tmp.name
-        
+
         try:
             grader = HomeworkGrader.get_instance()
-            
+
             # Parse rubric if provided
             rubric_dict = None
             if rubric:
                 import json
                 rubric_dict = json.loads(rubric)
-            
+
             # Grade homework
             result = await grader.grade_submission(
                 image_path=tmp_path,
@@ -234,16 +234,16 @@ async def grade_homework(
                 rubric=rubric_dict,
                 language=language
             )
-            
+
             result["timestamp"] = datetime.utcnow().isoformat()
             result["image_name"] = image.filename
-            
+
             return JSONResponse(content=result)
-            
+
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
-                
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Grading failed: {str(e)}")
 
@@ -263,13 +263,13 @@ async def generate_quiz(
     """
     if not EDUCATION_AVAILABLE:
         raise HTTPException(status_code=503, detail="Education services not initialized")
-    
+
     try:
         generator = AdaptiveQuizGenerator.get_instance()
-        
+
         # Parse question types
         types = [t.strip() for t in question_types.split(",")] if question_types else ["multiple_choice"]
-        
+
         quiz = await generator.generate_quiz(
             topic=topic,
             grade_level=grade_level,
@@ -278,13 +278,13 @@ async def generate_quiz(
             cultural_context=cultural_context,
             language=language
         )
-        
+
         return JSONResponse(content={
             "success": True,
             "quiz": quiz,
             "timestamp": datetime.utcnow().isoformat()
         })
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Quiz generation failed: {str(e)}")
 
@@ -294,20 +294,20 @@ async def get_student_progress(student_id: str):
     """Get student progress and learning path recommendations"""
     if not EDUCATION_AVAILABLE:
         raise HTTPException(status_code=503, detail="Education services not initialized")
-    
+
     try:
         tracker = ProgressTracker.get_instance()
-        
+
         progress = await tracker.get_progress(student_id)
         recommendations = await tracker.get_learning_path(student_id)
-        
+
         return JSONResponse(content={
             "success": True,
             "progress": progress,
             "recommendations": recommendations,
             "timestamp": datetime.utcnow().isoformat()
         })
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Progress retrieval failed: {str(e)}")
 
@@ -323,13 +323,13 @@ async def track_submission(
     """Track quiz submission and update progress"""
     if not EDUCATION_AVAILABLE:
         raise HTTPException(status_code=503, detail="Education services not initialized")
-    
+
     try:
         import json
         tracker = ProgressTracker.get_instance()
-        
+
         answers_dict = json.loads(answers)
-        
+
         await tracker.record_submission(
             student_id=student_id,
             quiz_id=quiz_id,
@@ -337,13 +337,13 @@ async def track_submission(
             score=score,
             time_spent=time_spent
         )
-        
+
         return JSONResponse(content={
             "success": True,
             "message": "Submission tracked successfully",
             "timestamp": datetime.utcnow().isoformat()
         })
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Tracking failed: {str(e)}")
 
@@ -374,7 +374,7 @@ async def get_education_demo_config():
         "subjects": ["math", "science", "english", "history", "geography"],
         "grade_levels": list(range(1, 13)),
         "question_types": [
-            "multiple_choice", "true_false", "short_answer", 
+            "multiple_choice", "true_false", "short_answer",
             "matching", "fill_in_blank"
         ],
         "cultural_contexts": [

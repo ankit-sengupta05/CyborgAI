@@ -48,7 +48,8 @@ class DeviceDiscoveryService {
         if (!message.startsWith(_responsePrefix)) return;
 
         final url = message.substring(_responsePrefix.length).trim();
-        debugPrint('[DeviceDiscovery] Got response from ${datagram.address.address}: $url');
+        debugPrint(
+            '[DeviceDiscovery] Got response from ${datagram.address.address}: $url');
 
         // Verify the endpoint is alive
         if (await _isAlive(url)) {
@@ -71,11 +72,13 @@ class DeviceDiscoveryService {
       // Send UDP probe to broadcast address
       final probe = utf8.encode(_probeMessage);
       _socket!.send(probe, InternetAddress('255.255.255.255'), _discoveryPort);
-      debugPrint('[DeviceDiscovery] Probe sent → 255.255.255.255:$_discoveryPort');
+      debugPrint(
+          '[DeviceDiscovery] Probe sent → 255.255.255.255:$_discoveryPort');
 
       timeout = Timer(_scanTimeout, () {
         if (!completer.isCompleted) {
-          debugPrint('[DeviceDiscovery] Scan timed out — no Windows Cyborg found');
+          debugPrint(
+              '[DeviceDiscovery] Scan timed out — no Windows Cyborg found');
           completer.complete(null);
         }
       });

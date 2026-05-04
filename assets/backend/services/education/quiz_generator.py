@@ -10,18 +10,18 @@ import random
 class QuizGenerator:
     """
     Generate personalized quizzes targeting specific knowledge gaps
-    
+
     Features:
     - Adaptive difficulty
     - Multi-language support
     - Cultural relevance
     - Voice-friendly formatting
     """
-    
+
     def __init__(self, language: str = "en", region: str = "US"):
         self.language = language
         self.region = region
-        
+
     def generate_quiz(self,
                      weak_concepts: List[str],
                      subject: str,
@@ -30,20 +30,20 @@ class QuizGenerator:
                      cultural_context: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Generate adaptive quiz
-        
+
         Args:
             weak_concepts: List of concepts student needs to practice
             subject: Subject area
             grade_level: Grade level (1-12)
             num_questions: Number of questions to generate
             cultural_context: Regional/cultural context for examples
-            
+
         Returns:
             List of quiz question dicts
         """
         # Question templates by subject and concept
         templates = self._get_question_templates(subject, weak_concepts)
-        
+
         questions = []
         for i in range(num_questions):
             template = random.choice(templates)
@@ -53,12 +53,12 @@ class QuizGenerator:
                 cultural_context=cultural_context or self.region
             )
             questions.append(question)
-        
+
         return questions
-    
+
     def _get_question_templates(self, subject: str, concepts: List[str]) -> List[Dict[str, Any]]:
         """Get question templates for subject and concepts"""
-        
+
         templates = {
             "math": [
                 {
@@ -102,15 +102,15 @@ class QuizGenerator:
                 }
             ]
         }
-        
+
         return templates.get(subject, templates["math"])
-    
+
     def _customize_question(self,
                            template: Dict[str, Any],
                            grade_level: int,
                            cultural_context: str) -> Dict[str, Any]:
         """Customize question with age-appropriate values and cultural context"""
-        
+
         # Generate values based on grade level
         if grade_level <= 3:
             max_value = 20
@@ -124,26 +124,26 @@ class QuizGenerator:
         else:
             max_value = 10000
             operations = ["+", "-", "×", "÷", "exponents"]
-        
+
         # Create actual question
         if template["type"] == "multiple_choice":
             a = random.randint(1, max_value // 2)
             b = random.randint(1, max_value // 2)
             op = random.choice(operations[:3])  # Basic ops for MC
-            
+
             question_text = f"If x = {a}, what is x {op} {b}?"
             correct_answer = eval(f"{a} {op.replace('×', '*').replace('÷', '/')} {b}")
-            
+
             # Generate distractors
             distractors = [
                 correct_answer + random.randint(1, 5),
                 correct_answer - random.randint(1, 5),
                 eval(f"{a} + {b}") if op != "+" else correct_answer + 10
             ]
-            
+
             options = [correct_answer] + distractors
             random.shuffle(options)
-            
+
             return {
                 "id": random.randint(1000, 9999),
                 "type": "multiple_choice",
@@ -154,7 +154,7 @@ class QuizGenerator:
                 "difficulty": template["difficulty"],
                 "concept": "algebra"
             }
-        
+
         elif template["type"] == "word_problem":
             # Culturally relevant scenarios
             scenarios = {
@@ -170,10 +170,10 @@ class QuizGenerator:
                     f"There are {random.randint(5, 20)} items and {random.randint(3, 10)} more are added",
                 ]
             }
-            
+
             scenario_list = scenarios.get(cultural_context, scenarios["default"])
             scenario = random.choice(scenario_list)
-            
+
             return {
                 "id": random.randint(1000, 9999),
                 "type": "word_problem",
@@ -183,7 +183,7 @@ class QuizGenerator:
                 "difficulty": template["difficulty"],
                 "concept": "addition"
             }
-        
+
         # Default fallback
         return {
             "id": random.randint(1000, 9999),
@@ -193,12 +193,12 @@ class QuizGenerator:
             "explanation": "Review the concept and try again",
             "difficulty": template["difficulty"]
         }
-    
+
     def format_for_voice(self, question: Dict[str, Any]) -> str:
         """Format question for text-to-speech output"""
         # Add pauses and clear pronunciation markers
         formatted = question["question"]
-        
+
         # Replace symbols with spoken words
         replacements = {
             "=": " equals ",
@@ -208,8 +208,8 @@ class QuizGenerator:
             "÷": " divided by ",
             "?": ". [pause]"
         }
-        
+
         for symbol, spoken in replacements.items():
             formatted = formatted.replace(symbol, spoken)
-        
+
         return formatted

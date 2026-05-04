@@ -6,10 +6,10 @@ This extension adds **multimodal Gemma 4 capabilities** to Cyborg AGI for:
 
 ## ✨ Key Features
 
-✅ **100% Offline**: Runs on Raspberry Pi 4 / Android Go / low-end laptops  
-✅ **Multimodal**: Vision + text fusion for image-based diagnostics & grading  
-✅ **Accessible**: Voice I/O, local languages (en, es, hi, sw), large-touch UI  
-✅ **Privacy-Preserving**: All processing on-device, zero telemetry  
+✅ **100% Offline**: Runs on Raspberry Pi 4 / Android Go / low-end laptops
+✅ **Multimodal**: Vision + text fusion for image-based diagnostics & grading
+✅ **Accessible**: Voice I/O, local languages (en, es, hi, sw), large-touch UI
+✅ **Privacy-Preserving**: All processing on-device, zero telemetry
 
 ## 🚀 Quick Start
 

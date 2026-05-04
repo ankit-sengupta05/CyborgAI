@@ -147,6 +147,6 @@ Check these files for detailed instructions:
 
 ---
 
-**Created:** May 4, 2025  
-**Version:** 18.0 (Gemma 4 Extension)  
+**Created:** May 4, 2025
+**Version:** 18.0 (Gemma 4 Extension)
 **Status:** Ready for Deployment

@@ -1,11 +1,11 @@
 # 🤖 Cyborg AGI: Gemma 4 Health & Education Track Extension
 ## Product Requirements Document (PRD) v18.0
 
-**Project:** Cyborg AGI + Gemma 4 Multimodal Health/Education Suite  
-**Version:** 18.0 (Gemma 4 Integration)  
-**Date:** May 4, 2026  
-**Status:** ✅ Implementation-Ready  
-**Target:** Health/Education Competition Tracks, Rural Deployment, Digital Equity  
+**Project:** Cyborg AGI + Gemma 4 Multimodal Health/Education Suite
+**Version:** 18.0 (Gemma 4 Integration)
+**Date:** May 4, 2026
+**Status:** ✅ Implementation-Ready
+**Target:** Health/Education Competition Tracks, Rural Deployment, Digital Equity
 
 > *Extending Cyborg's local-first AGI platform with Gemma 4 multimodal capabilities for medical diagnostics assistance and adaptive learning—optimized for offline edge deployment in low-resource settings.*
 
@@ -66,20 +66,20 @@ graph TD
         VAULT["🗄️ Knowledge Vault"]
         LLM["🧠 Llama.cpp / Qwen Runtime"]
     end
-    
+
     subgraph "Gemma 4 Multimodal Extension"
         GEMMA["🔷 Gemma 4 4B/26B via Unsloth"]
         MEDGEMMA["🏥 MedGemma 4B (Medical Fine-tune)"]
         VISION["👁️ Vision Encoder (SigLIP/CLIP)"]
         PIPELINE["🔄 Multimodal Fusion Pipeline"]
     end
-    
+
     subgraph "Edge Deployment Layer"
         OLLAMA["⚡ Ollama Runtime (GGUF)"]
         GRADIO["🎨 Gradio Web Demo"]
         EDGE["📱 Raspberry Pi / Jetson / Android"]
     end
-    
+
     UI <-->|WebSocket| API
     API <-->|REST/gRPC| GEMMA
     API <-->|Medical Tasks| MEDGEMMA
@@ -213,7 +213,7 @@ class MedGemmaPipeline:
             "google/siglip-so400m-patch14-384"
         ).to(device)
         self.device = device
-        
+
     def analyze_xray(self, image_path: str, patient_context: dict = None) -> dict:
         """
         Input: Chest X-ray image + optional patient metadata
@@ -221,24 +221,24 @@ class MedGemmaPipeline:
         """
         # 1. Vision encoding
         image_features = self._encode_image(image_path)
-        
+
         # 2. Multimodal prompt construction
         prompt = self._build_medical_prompt(
-            image_features, 
+            image_features,
             context=patient_context,
             template="explain_like_im_5"  # Plain language mode
         )
-        
+
         # 3. Inference with constrained decoding (medical safety)
         response = self._safe_generate(
-            prompt, 
+            prompt,
             max_new_tokens=512,
             stop_sequences=["###", "Patient should"]
         )
-        
+
         # 4. Post-process: extract structured fields + confidence
         return self._parse_medical_response(response)
-    
+
     def _safe_generate(self, prompt: str, **kwargs) -> str:
         """Constrained generation to avoid hallucinated diagnoses"""
         # Implement: medical knowledge grounding, uncertainty calibration
@@ -277,8 +277,8 @@ EHR_FUNCTIONS = {
 }
 
 # Usage in MedGemma prompt:
-# "Based on the X-ray showing possible pneumonia, 
-#  call check_drug_interactions for patient P123 with current meds: ['lisinopril'] 
+# "Based on the X-ray showing possible pneumonia,
+#  call check_drug_interactions for patient P123 with current meds: ['lisinopril']
 #  and proposed: ['azithromycin']"
 ```
 
@@ -316,7 +316,7 @@ class HomeworkGrader:
         self.llm = Gemma4Adapter(model_path=gemma_model)
         self.language = language
         self.rubrics = self._load_domain_rubrics(subject="math")  # or "science", "literacy"
-        
+
     def grade_submission(self, image_path: str, subject: str, grade_level: int) -> dict:
         """
         Input: Photo of student homework + metadata
@@ -324,7 +324,7 @@ class HomeworkGrader:
         """
         # 1. OCR + layout analysis (for handwritten work)
         extracted_text = self._ocr_with_layout(image_path)
-        
+
         # 2. Multimodal reasoning: image context + text
         analysis = self.llm.generate(
             prompt=self._build_grading_prompt(
@@ -334,7 +334,7 @@ class HomeworkGrader:
             ),
             vision_context=image_path  # For diagram interpretation
         )
-        
+
         # 3. Structured output parsing
         return {
             "score": self._extract_score(analysis),  # 0-100
@@ -346,7 +346,7 @@ class HomeworkGrader:
                 difficulty=grade_level
             )
         }
-    
+
     def generate_quiz(self, weak_concepts: list, language: str, difficulty: int) -> list:
         """Generate 5-question adaptive quiz targeting knowledge gaps"""
         # Use Gemma 4 to create culturally relevant, grade-appropriate questions
@@ -365,7 +365,7 @@ class AccessibleTutor:
         # Load lightweight STT/TTS models for target language
         self.stt = WhisperModel(model="tiny", language=language)
         self.tts = PiperVoice(model=f"piper_{language}_medium", speaker="default")
-    
+
     def voice_interaction_loop(self, student_audio: bytes) -> bytes:
         """
         Student speaks question → AI processes → AI responds with voice
@@ -373,10 +373,10 @@ class AccessibleTutor:
         """
         # 1. Speech-to-text (with noise suppression for classroom environments)
         text = self.stt.transcribe(student_audio)
-        
+
         # 2. Process through adaptive tutor
         response_text = self.tutor.process_query(text)
-        
+
         # 3. Text-to-speech with emotional prosody for engagement
         audio_response = self.tts.synthesize(
             response_text,
@@ -409,15 +409,15 @@ class MultimodalFusion:
     def __init__(self, vision_model: str, llm_model: str):
         self.vision_encoder = self._load_vision_encoder(vision_model)  # SigLIP/CLIP
         self.llm = self._load_gemma_adapter(llm_model)  # Gemma 4 with vision tokens
-        
-    def process_multimodal_input(self, 
-                               image: np.ndarray, 
+
+    def process_multimodal_input(self,
+                               image: np.ndarray,
                                text_prompt: str,
                                task_type: Literal["medical", "education", "general"]
                               ) -> str:
         # 1. Image encoding → visual tokens
         visual_tokens = self.vision_encoder.encode(image)
-        
+
         # 2. Token fusion strategy (domain-adaptive)
         if task_type == "medical":
             # Prioritize anatomical region attention
@@ -428,7 +428,7 @@ class MultimodalFusion:
         else:
             # Generic late fusion
             fused_tokens = torch.cat([visual_tokens, self.llm.tokenize(text_prompt)], dim=1)
-        
+
         # 3. Generation with domain constraints
         return self.llm.generate_from_fused_tokens(
             fused_tokens,
@@ -443,22 +443,22 @@ class MultimodalFusion:
 MEDICAL_PROMPTS = {
     "xray_explain_simple": """
     You are a compassionate medical assistant. Analyze this chest X-ray and explain to a patient:
-    
+
     1. What you see in simple terms (avoid jargon)
     2. Possible conditions this might indicate (with confidence levels)
     3. Risk factors the patient should know about
     4. Recommended next steps (when to see a doctor, tests to ask about)
-    
+
     IMPORTANT: Always include: "This is not a diagnosis. Please consult a healthcare professional for medical advice."
-    
+
     Patient context: {patient_context}
     Image analysis: {visual_description}
     """,
-    
+
     "ehr_function_call": """
     Based on the clinical findings, determine if any EHR functions should be called.
     Available functions: {available_functions}
-    
+
     Respond in JSON format:
     {{
       "functions_to_call": [
@@ -473,22 +473,22 @@ MEDICAL_PROMPTS = {
 EDUCATION_PROMPTS = {
     "grade_homework": """
     You are a supportive tutor grading {subject} homework for grade {grade_level}.
-    
+
     Evaluate this student work:
     1. Identify correct steps and concepts
     2. Pinpoint errors with specific, constructive feedback
     3. Explain the correct approach in {language}
     4. Suggest 1-2 practice problems to reinforce learning
-    
+
     Rubric criteria: {rubric}
     Student work: {extracted_text}
     Image context (diagrams, handwriting): {visual_notes}
     """,
-    
+
     "generate_quiz": """
-    Create a 5-question quiz in {language} for a {grade_level} student 
+    Create a 5-question quiz in {language} for a {grade_level} student
     who needs practice with: {weak_concepts}
-    
+
     Requirements:
     - Mix of multiple choice and short answer
     - Culturally relevant examples for {region}
@@ -557,7 +557,7 @@ class EdgeSyncManager:
     def __init__(self, vault_path: str, encryption_key: bytes):
         self.vault = KnowledgeVault(vault_path)
         self.crypto = AES256GCM(encryption_key)
-        
+
     def prepare_sync_package(self, device_id: str) -> bytes:
         """
         Create encrypted bundle of:
@@ -572,7 +572,7 @@ class EdgeSyncManager:
             "model_hash": self._get_current_model_checksum()
         }
         return self.crypto.encrypt(json.dumps(package).encode())
-    
+
     def apply_sync_package(self, encrypted_package: bytes) -> dict:
         """
         Decrypt and apply updates from central server (when online)
@@ -639,36 +639,36 @@ def analyze_xray(image, patient_age, patient_symptoms, language="en"):
     """Gradio interface for X-ray analysis"""
     if image is None:
         return "⚠️ Please upload a chest X-ray image"
-    
+
     # Prepare patient context
     context = {
         "age": patient_age,
         "symptoms": patient_symptoms.split(",") if patient_symptoms else [],
         "language": language
     }
-    
+
     # Run inference
     result = pipeline.analyze_xray(image, patient_context=context)
-    
+
     # Format response for display
     response = f"""
     ### 🔍 Analysis Results
-    
-    **Possible Findings**: {result['diagnosis_suggestion']}  
-    **Confidence**: {result['confidence']}%  
-    
+
+    **Possible Findings**: {result['diagnosis_suggestion']}
+    **Confidence**: {result['confidence']}%
+
     ### 💬 Plain-Language Explanation ({language})
     {result['plain_language_explanation']}
-    
+
     ### ⚠️ Important
-    This AI assistance is not a substitute for professional medical diagnosis. 
+    This AI assistance is not a substitute for professional medical diagnosis.
     Always consult a qualified healthcare provider.
     """
-    
+
     # Optional: Show function calls if EHR integration enabled
     if result.get('ehr_functions'):
         response += f"\n\n### 🔄 EHR Actions Suggested:\n{result['ehr_functions']}"
-    
+
     return response
 
 # Build Gradio interface
@@ -722,11 +722,11 @@ async def analyze_xray_endpoint(
     # Validate file type
     if image.content_type not in ["image/png", "image/jpeg", "application/dicom"]:
         raise HTTPException(400, "Unsupported image format")
-    
+
     # Load image
     image_data = await image.read()
     image_array = preprocess_medical_image(image_data)
-    
+
     # Run inference
     pipeline = MedGemmaPipeline.get_instance()  # Singleton pattern
     result = pipeline.analyze_xray(
@@ -737,11 +737,11 @@ async def analyze_xray_endpoint(
             "language": language
         }
     )
-    
+
     # Optional EHR function calling
     if enable_ehr and result.get("ehr_functions"):
         result["ehr_results"] = await execute_ehr_functions(result["ehr_functions"])
-    
+
     return result
 
 @router.post("/education/grade-homework")
@@ -783,21 +783,21 @@ class MedicalFunctionGuard:
     """
     ALLOWED_FUNCTIONS = {"get_patient_history", "check_drug_interactions", "schedule_followup"}
     BLACKLISTED_TERMS = ["diagnose", "prescribe", "cure", "guarantee"]
-    
+
     @classmethod
     def validate_function_call(cls, function_name: str, parameters: dict) -> bool:
         if function_name not in cls.ALLOWED_FUNCTIONS:
             return False
         # Additional parameter validation...
         return True
-    
+
     @classmethod
     def sanitize_response(cls, text: str) -> str:
         """Remove or flag potentially harmful medical claims"""
         for term in cls.BLACKLISTED_TERMS:
             if term in text.lower():
                 return text.replace(
-                    term, 
+                    term,
                     f"[{term.upper()} - CONSULT PROFESSIONAL]"
                 )
         return text
@@ -819,7 +819,7 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen> {
   File? _selectedImage;
   bool _isAnalyzing = false;
   AnalysisResult? _result;
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -841,7 +841,7 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen> {
               ],
             ),
           ),
-          
+
           // Patient context form (collapsible)
           ExpansionTile(
             title: Text("Patient Context (Optional)"),
@@ -861,7 +861,7 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen> {
               ),
             ],
           ),
-          
+
           // Analyze button with offline indicator
           Container(
             padding: EdgeInsets.all(16),
@@ -872,24 +872,24 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen> {
                 Text("Runs entirely offline", style: TextStyle(color: Colors.grey)),
                 Spacer(),
                 ElevatedButton(
-                  onPressed: _selectedImage != null && !_isAnalyzing 
-                      ? _analyzeImage 
+                  onPressed: _selectedImage != null && !_isAnalyzing
+                      ? _analyzeImage
                       : null,
-                  child: _isAnalyzing 
+                  child: _isAnalyzing
                       ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator())
                       : Text("Analyze X-ray"),
                 ),
               ],
             ),
           ),
-          
+
           // Results display
           if (_result != null) _buildResultsCard(_result!),
         ],
       ),
     );
   }
-  
+
   Widget _buildResultsCard(AnalysisResult result) {
     return Card(
       color: Colors.blue.shade50,
@@ -898,7 +898,7 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("🔍 Analysis Results", 
+            Text("🔍 Analysis Results",
                 style: Theme.of(context).textTheme.titleLarge),
             SizedBox(height: 8),
             Text("Possible Findings: ${result.diagnosisSuggestion}",
@@ -913,11 +913,11 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen> {
               Divider(),
               Text("🔄 Suggested EHR Actions:",
                   style: TextStyle(fontWeight: FontWeight.bold)),
-              ...result.ehrFunctions!.map((fn) => 
+              ...result.ehrFunctions!.map((fn) =>
                   Chip(label: Text(fn.name))),
             ],
             Divider(),
-            Text("⚠️ Important", 
+            Text("⚠️ Important",
                 style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
             Text("This AI assistance is not a substitute for professional medical diagnosis. Always consult a qualified healthcare provider."),
           ],
@@ -961,14 +961,14 @@ components:
     text: "Offline Mode"
     color: "#64748b"
     position: "top_right"
-  
+
   confidence_indicator:
     type: "linear_progress"
     color_map:
       0-60: "#ef4444"   # Low confidence - red
       61-85: "#f59e0b"  # Medium - amber
       86-100: "#10b981" # High - green
-  
+
   voice_toggle:
     icon_on: "mic"
     icon_off: "mic_off"
@@ -997,18 +997,18 @@ class MedicalDataHandler:
             ),
             # Never store: name, DOB, address, ID numbers
         }
-    
+
     @staticmethod
     def encrypt_local_storage(data: bytes, device_key: bytes) -> bytes:
         """AES-256-GCM encryption for on-device data at rest"""
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
         import os
-        
+
         aesgcm = AESGCM(device_key)
         nonce = os.urandom(12)
         ciphertext = aesgcm.encrypt(nonce, data, None)
         return nonce + ciphertext  # Prepend nonce for decryption
-    
+
     @staticmethod
     def audit_log(action: str, device_id: str, timestamp: str):
         """Immutable local audit trail (optional export for compliance)"""
@@ -1035,27 +1035,27 @@ class LearningDataEthics:
         templates = {
             "en": """
             Cyborg Learning Assistant - Parent/Guardian Consent
-            
+
             This tool helps your child practice {subject} by:
             ✓ Grading homework with constructive feedback
             ✓ Creating personalized practice quizzes
             ✓ Tracking progress to identify learning gaps
-            
+
             Your child's work:
             • Is processed entirely on this device (no cloud upload)
             • Is never shared without your explicit permission
             • Can be deleted anytime via Settings → Privacy
-            
+
             [ ] I consent to my child using this learning assistant
             [ ] I would like to receive weekly progress summaries
             [ ] I allow anonymized data to help improve the tool (optional)
-            
+
             Signature: ___________________ Date: ___________
             """,
             # Add templates for es, hi, sw, fr...
         }
         return templates.get(language, templates["en"])
-    
+
     @staticmethod
     def bias_check_quiz_questions(questions: list, cultural_context: str) -> list:
         """Flag potentially biased or culturally insensitive quiz content"""
@@ -1102,7 +1102,7 @@ class LearningDataEthics:
 - [ ] EHR function calling works with mock FHIR server
 - [ ] Gradio demo deploys successfully on Hugging Face Spaces
 
-## Education Module  
+## Education Module
 - [ ] Homework grader processes handwritten math problems with ≥80% OCR accuracy
 - [ ] Feedback is generated in at least 3 languages (en, es, hi)
 - [ ] Voice I/O loop works end-to-end offline (STT → process → TTS)
@@ -1144,7 +1144,7 @@ class LearningDataEthics:
 - [ ] Create Gradio health demo with example X-rays
 - [ ] Benchmark latency/accuracy on edge device
 
-# Week 4: Education Track MVP  
+# Week 4: Education Track MVP
 - [ ] Build homework photo scanner UI with OCR
 - [ ] Implement adaptive quiz generator with localization
 - [ ] Add voice interaction loop for accessibility
@@ -1238,10 +1238,10 @@ This branch extends Cyborg AGI with **multimodal Gemma 4 capabilities** for:
 - **Education**: Adaptive homework grading + personalized quizzes in local languages
 
 ### ✨ Key Features
-✅ **100% Offline**: Runs on Raspberry Pi 4 / Android Go / low-end laptops  
-✅ **Multimodal**: Vision + text fusion for image-based diagnostics & grading  
-✅ **Accessible**: Voice I/O, local languages, large-touch UI  
-✅ **Competition-Ready**: 3-min demo video + live Gradio demo + benchmark metrics  
+✅ **100% Offline**: Runs on Raspberry Pi 4 / Android Go / low-end laptops
+✅ **Multimodal**: Vision + text fusion for image-based diagnostics & grading
+✅ **Accessible**: Voice I/O, local languages, large-touch UI
+✅ **Competition-Ready**: 3-min demo video + live Gradio demo + benchmark metrics
 
 ### 🚀 Quick Start
 ```bash
@@ -1282,8 +1282,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
-> ✅ **PRD v18.0 Complete**  
-> 🔄 **Next Step**: Copy this PRD into your GitHub repo at `prd/GEMMA4_HEALTH_EDU_PRD.md`  
-> 🚀 **Pro Tip**: Start with the `deploy_gemma4_edge.sh` script to validate the edge deployment flow before building UI components  
+> ✅ **PRD v18.0 Complete**
+> 🔄 **Next Step**: Copy this PRD into your GitHub repo at `prd/GEMMA4_HEALTH_EDU_PRD.md`
+> 🚀 **Pro Tip**: Start with the `deploy_gemma4_edge.sh` script to validate the edge deployment flow before building UI components
 
 *Build the future of accessible AI—where technology serves everyone, everywhere, even offline.* 🤖✨🌍

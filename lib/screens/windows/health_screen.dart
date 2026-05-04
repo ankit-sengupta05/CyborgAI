@@ -11,21 +11,22 @@ class HealthScreen extends StatefulWidget {
   State<HealthScreen> createState() => _HealthScreenState();
 }
 
-class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderStateMixin {
+class _HealthScreenState extends State<HealthScreen>
+    with SingleTickerProviderStateMixin {
   final HealthEduService _healthService = HealthEduService();
-  
+
   late TabController _tabController;
   int _currentTab = 0; // 0: X-Ray, 1: EHR
-  
+
   String? _selectedXRayPath;
   bool _isAnalyzingXRay = false;
   Map<String, dynamic>? _xrayResults;
-  
+
   String? _ehrPatientId;
   String _ehrQueryType = 'summary';
   bool _isQueryingEHR = false;
   Map<String, dynamic>? _ehrResults;
-  
+
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _symptomsController = TextEditingController();
   final TextEditingController _patientIdController = TextEditingController();
@@ -56,7 +57,7 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
         type: FileType.image,
         allowedExtensions: ['jpg', 'jpeg', 'png', 'dicom'],
       );
-      
+
       if (result != null && result.files.single.path != null) {
         setState(() {
           _selectedXRayPath = result.files.single.path!;
@@ -81,8 +82,8 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
 
     try {
       final age = int.tryParse(_ageController.text);
-      final symptoms = _symptomsController.text.trim().isEmpty 
-          ? null 
+      final symptoms = _symptomsController.text.trim().isEmpty
+          ? null
           : _symptomsController.text;
 
       final result = await _healthService.analyzeXRay(
@@ -154,11 +155,13 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: AppColors.surfaceVariant,
-              border: Border(bottom: BorderSide(color: AppColors.borderDefault)),
+              border:
+                  Border(bottom: BorderSide(color: AppColors.borderDefault)),
             ),
             child: Row(
               children: [
-                Icon(Icons.medical_services, color: AppColors.accentPurple, size: 32),
+                Icon(Icons.medical_services,
+                    color: AppColors.accentPurple, size: 32),
                 const SizedBox(width: 16),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,12 +216,14 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
             color: AppColors.accentOrange.withOpacity(0.1),
             child: Row(
               children: [
-                Icon(Icons.warning_amber, color: AppColors.accentOrange, size: 20),
+                Icon(Icons.warning_amber,
+                    color: AppColors.accentOrange, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     '⚠️ MEDICAL DISCLAIMER: This tool is for educational purposes only. Not for clinical diagnosis. Always consult qualified healthcare professionals.',
-                    style: TextStyle(fontSize: 12, color: AppColors.accentOrange),
+                    style:
+                        TextStyle(fontSize: 12, color: AppColors.accentOrange),
                   ),
                 ),
               ],
@@ -237,9 +242,9 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
         children: [
           // Upload Section
           _buildUploadCard(),
-          
+
           const SizedBox(height: 20),
-          
+
           // Input Fields
           Row(
             children: [
@@ -275,16 +280,16 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
               ),
             ],
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Analyze Button
           SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton.icon(
               onPressed: _isAnalyzingXRay ? null : _analyzeXRay,
-              icon: _isAnalyzingXRay 
+              icon: _isAnalyzingXRay
                   ? const SizedBox(
                       width: 20,
                       height: 20,
@@ -304,9 +309,9 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
               ),
             ),
           ),
-          
+
           const SizedBox(height: 30),
-          
+
           // Results
           if (_xrayResults != null) _buildXRayResults(),
         ],
@@ -328,13 +333,13 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
           Icon(
             _selectedXRayPath != null ? Icons.check_circle : Icons.upload_file,
             size: 64,
-            color: _selectedXRayPath != null 
-                ? AppColors.success 
+            color: _selectedXRayPath != null
+                ? AppColors.success
                 : AppColors.textSecondary,
           ),
           const SizedBox(height: 16),
           Text(
-            _selectedXRayPath != null 
+            _selectedXRayPath != null
                 ? 'File Selected: ${_selectedXRayPath!.split('\\').last}'
                 : 'Upload Chest X-Ray Image',
             style: TextStyle(
@@ -397,11 +402,11 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
             ],
           ),
           const Divider(),
-          
           if (_xrayResults!['findings'] != null) ...[
             Text(
               'Findings:',
-              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 8),
             Text(
@@ -410,13 +415,14 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
             ),
             const SizedBox(height: 16),
           ],
-          
           if (_xrayResults!['confidence'] != null) ...[
             Row(
               children: [
                 Text(
                   'Confidence: ',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary),
                 ),
                 Text(
                   '${(_xrayResults!['confidence'] * 100).toStringAsFixed(1)}%',
@@ -429,11 +435,11 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
             ),
             const SizedBox(height: 16),
           ],
-          
           if (_xrayResults!['recommendations'] != null) ...[
             Text(
               'Recommendations:',
-              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 8),
             Text(
@@ -466,9 +472,9 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
               fillColor: AppColors.surfaceVariant,
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Query Type Dropdown
           DropdownButtonFormField<String>(
             value: _ehrQueryType,
@@ -482,9 +488,11 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
             ),
             items: const [
               DropdownMenuItem(value: 'summary', child: Text('Full Summary')),
-              DropdownMenuItem(value: 'medications', child: Text('Medications')),
+              DropdownMenuItem(
+                  value: 'medications', child: Text('Medications')),
               DropdownMenuItem(value: 'allergies', child: Text('Allergies')),
-              DropdownMenuItem(value: 'lab_results', child: Text('Lab Results')),
+              DropdownMenuItem(
+                  value: 'lab_results', child: Text('Lab Results')),
               DropdownMenuItem(value: 'vitals', child: Text('Vital Signs')),
             ],
             onChanged: (value) {
@@ -493,16 +501,16 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
               });
             },
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Query Button
           SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton.icon(
               onPressed: _isQueryingEHR ? null : _queryEHR,
-              icon: _isQueryingEHR 
+              icon: _isQueryingEHR
                   ? const SizedBox(
                       width: 20,
                       height: 20,
@@ -522,14 +530,14 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
               ),
             ),
           ),
-          
+
           const SizedBox(height: 30),
-          
+
           // Results
           if (_ehrResults != null) _buildEHRResults(),
-          
+
           const SizedBox(height: 20),
-          
+
           // FHIR Info Card
           Container(
             padding: const EdgeInsets.all(16),
@@ -585,7 +593,8 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
         children: [
           Row(
             children: [
-              Icon(Icons.folder_shared, color: AppColors.accentPurple, size: 24),
+              Icon(Icons.folder_shared,
+                  color: AppColors.accentPurple, size: 24),
               const SizedBox(width: 8),
               Text(
                 'EHR Data Retrieved',
@@ -598,11 +607,12 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
             ],
           ),
           const Divider(),
-          
+
           // Display raw JSON or formatted data
           Text(
             'Data:',
-            style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            style: TextStyle(
+                fontWeight: FontWeight.bold, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 8),
           Container(

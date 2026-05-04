@@ -41,12 +41,18 @@ class _AppRouter extends StatelessWidget {
   Widget build(BuildContext context) {
     final step = context.watch<AppProvider>().step;
     switch (step) {
-      case AppStep.home:        return const HomeScreen();
-      case AppStep.graphBuild:  return const GraphBuildScreen();
-      case AppStep.envSetup:    return const EnvSetupScreen();
-      case AppStep.simulation:  return const SimulationScreen();
-      case AppStep.report:      return const ReportScreen();
-      case AppStep.interaction: return const InteractionScreen();
+      case AppStep.home:
+        return const HomeScreen();
+      case AppStep.graphBuild:
+        return const GraphBuildScreen();
+      case AppStep.envSetup:
+        return const EnvSetupScreen();
+      case AppStep.simulation:
+        return const SimulationScreen();
+      case AppStep.report:
+        return const ReportScreen();
+      case AppStep.interaction:
+        return const InteractionScreen();
     }
   }
 }
