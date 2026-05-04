@@ -1,10 +1,36 @@
-# Build and dependency directories
+```
+# Build artifacts
 build/
+*.apk
+*.aab
+*.app
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Dependencies
+**/node_modules/
+**/.venv/
+**/venv/
+**/__pycache__/
+**/.mypy_cache/
+**/.pytest_cache/
+**/.gradle/
+**/target/
+**/vendor/
+
+# Flutter/Dart specific
 .dart_tool/
 .packages
+.pub-cache/
+pubspec.lock
 
-# Logs and temp files
-*.log
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
 *.tmp
 
 # Environment variables
@@ -12,36 +38,10 @@ build/
 .env.local
 *.env.*
 
-# IDE files
-.idea/
-.vscode/
-*.swp
-*.swo
+# Logs
+*.log
 
-# Coverage reports
-coverage/
-htmlcov/
-
-# Compressed files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+# OS generated files
+.DS_Store
+Thumbs.db
+```
