@@ -1,0 +1,25 @@
+[debug] [2026-05-01T17:41:18.348Z] ----------------------------------------------------------------------
+[debug] [2026-05-01T17:41:18.350Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\ankit\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js apps:create ios cyborg (macos) --bundle-id=com.example.cyborg --json --project=cyborgai-d7a18
+[debug] [2026-05-01T17:41:18.350Z] CLI Version:   15.14.0
+[debug] [2026-05-01T17:41:18.350Z] Platform:      win32
+[debug] [2026-05-01T17:41:18.350Z] Node Version:  v22.21.0
+[debug] [2026-05-01T17:41:18.350Z] Time:          Fri May 01 2026 23:11:18 GMT+0530 (India Standard Time)
+[debug] [2026-05-01T17:41:18.350Z] ----------------------------------------------------------------------
+[debug]
+[debug] [2026-05-01T17:41:18.527Z] Object "" in "firebase.json" has unknown property: {"additionalProperty":"flutter"}
+[debug] [2026-05-01T17:41:18.530Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-01T17:41:18.530Z] > authorizing via signed-in user (ankit.sengupta05@gmail.com)
+[info] Create your IOS app in project cyborgai-d7a18:
+[debug] [2026-05-01T17:41:18.532Z] Checked if tokens are valid: true, expires at: 1777659196199
+[debug] [2026-05-01T17:41:18.532Z] Checked if tokens are valid: true, expires at: 1777659196199
+[debug] [2026-05-01T17:41:18.533Z] >>> [apiv2][query] POST https://firebase.googleapis.com/v1beta1/projects/cyborgai-d7a18/iosApps [none]
+[debug] [2026-05-01T17:41:18.533Z] >>> [apiv2][body] POST https://firebase.googleapis.com/v1beta1/projects/cyborgai-d7a18/iosApps {"displayName":"cyborg (macos)","bundleId":"com.example.cyborg"}
+[debug] [2026-05-01T17:41:19.665Z] <<< [apiv2][status] POST https://firebase.googleapis.com/v1beta1/projects/cyborgai-d7a18/iosApps 409
+[debug] [2026-05-01T17:41:19.665Z] <<< [apiv2][body] POST https://firebase.googleapis.com/v1beta1/projects/cyborgai-d7a18/iosApps {"error":{"code":409,"message":"Requested entity already exists","status":"ALREADY_EXISTS"}}
+[debug] [2026-05-01T17:41:19.666Z] Request to https://firebase.googleapis.com/v1beta1/projects/cyborgai-d7a18/iosApps had HTTP Error: 409, Requested entity already exists
+[debug] [2026-05-01T17:41:19.668Z] FirebaseError: Request to https://firebase.googleapis.com/v1beta1/projects/cyborgai-d7a18/iosApps had HTTP Error: 409, Requested entity already exists
+    at responseToError (C:\Users\ankit\AppData\Roaming\npm\node_modules\firebase-tools\lib\responseToError.js:53:12)
+    at RetryOperation._fn (C:\Users\ankit\AppData\Roaming\npm\node_modules\firebase-tools\lib\apiv2.js:333:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[error]
+[error] Error: Failed to create iOS app for project cyborgai-d7a18. See firebase-debug.log for more info.

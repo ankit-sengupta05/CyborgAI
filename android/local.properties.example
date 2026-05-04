@@ -1,0 +1,8 @@
+# Auto-generated — contains machine-specific paths.
+# Copy to local.properties and update paths for your machine.
+# DO NOT commit local.properties to version control.
+sdk.dir=C:\\Users\\YOUR_USERNAME\\AppData\\Local\\Android\\Sdk
+flutter.sdk=C:\\flutter
+flutter.buildMode=debug
+flutter.versionName=17.0.0
+flutter.versionCode=1
