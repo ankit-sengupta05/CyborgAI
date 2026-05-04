@@ -104,6 +104,11 @@ class _CyborgSidebarState extends ConsumerState<_CyborgSidebar> {
         label: 'GitHub',
         path: '/github',
         group: 'tools'),
+    _NavItem(
+        icon: Icons.settings_outlined,
+        label: 'Settings',
+        path: '/settings',
+        group: 'tools'),
   ];
 
   static const _groupLabels = {

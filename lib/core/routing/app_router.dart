@@ -16,6 +16,7 @@ import '../../features/device_manager/screens/device_manager_screen.dart';
 import '../../features/vault/screens/vault_screen.dart';
 import '../../features/ingest/screens/ingest_screen.dart';
 import '../../features/mirofish/screens/mirofish_screen.dart';
+import '../../features/settings/screens/settings_screen.dart';
 // Gemma 4 Health & Education tracks
 import '../../features/health/screens/health_home_screen.dart';
 import '../../features/health/screens/xray_analyzer_screen.dart';
@@ -74,6 +75,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               builder: (_, __) => const DeviceManagerScreen()),
           GoRoute(path: '/github', builder: (_, __) => const GitHubScreen()),
           GoRoute(path: '/ingest', builder: (_, __) => const IngestScreen()),
+          GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
           // ── Gemma 4: Health Track ────────────────────────────────────────
           GoRoute(
               path: '/health', builder: (_, __) => const HealthHomeScreen()),

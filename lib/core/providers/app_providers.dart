@@ -18,7 +18,24 @@ final miroFishProvider = Provider<mf.AppProvider>((ref) {
 });
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
-final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.dark);
+class ThemeNotifier extends StateNotifier<ThemeMode> {
+  ThemeNotifier() : super(ThemeMode.dark) {
+    _load();
+  }
+  void _load() {
+    final box = Hive.box('cyborg_cache');
+    final isDark = box.get('isDarkMode', defaultValue: true);
+    state = isDark ? ThemeMode.dark : ThemeMode.light;
+  }
+
+  void toggle() {
+    state = state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    Hive.box('cyborg_cache').put('isDarkMode', state == ThemeMode.dark);
+  }
+}
+
+final themeModeProvider =
+    StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) => ThemeNotifier());
 
 // ── Voice Response Toggle ───────────────────────────────────────────────────
 final voiceEnabledProvider = StateProvider<bool>((ref) => false);

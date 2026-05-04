@@ -86,47 +86,71 @@ class GraphState {
   final List<int> hiddenCommunities;
   final String activeSource;
   final String? error;
-  final bool initialized;
   final bool showLabels;
-  const GraphState(
-      {this.nodes = const [],
-      this.edges = const [],
-      this.communities = const [],
-      this.loading = false,
-      this.selectedId,
-      this.selectedCommunity,
-      this.search = '',
-      this.hiddenCommunities = const [],
-      this.activeSource = 'vault',
-      this.error,
-      this.initialized = false,
-      this.showLabels = true});
-  GraphState copyWith(
-          {List<KGNode>? nodes,
-          List<KGEdge>? edges,
-          List<KGCommunity>? communities,
-          bool? loading,
-          String? selectedId,
-          int? selectedCommunity,
-          String? search,
-          List<int>? hiddenCommunities,
-          String? activeSource,
-          String? error,
-          bool? initialized,
-          bool? showLabels}) =>
+  final double repelForce;
+  final double centerForce;
+  final double nodeSize;
+  final double linkThickness;
+  final bool showArrows;
+
+  const GraphState({
+    this.nodes = const [],
+    this.edges = const [],
+    this.communities = const [],
+    this.loading = false,
+    this.selectedId,
+    this.selectedCommunity,
+    this.search = '',
+    this.hiddenCommunities = const [],
+    this.activeSource = 'vault',
+    this.error,
+    this.initialized = false,
+    this.showLabels = true,
+    this.repelForce = -8000.0,
+    this.centerForce = 0.04,
+    this.nodeSize = 1.0,
+    this.linkThickness = 1.0,
+    this.showArrows = true,
+  });
+
+  GraphState copyWith({
+    List<KGNode>? nodes,
+    List<KGEdge>? edges,
+    List<KGCommunity>? communities,
+    bool? loading,
+    String? selectedId,
+    int? selectedCommunity,
+    String? search,
+    List<int>? hiddenCommunities,
+    String? activeSource,
+    String? error,
+    bool? initialized,
+    bool? showLabels,
+    double? repelForce,
+    double? centerForce,
+    double? nodeSize,
+    double? linkThickness,
+    bool? showArrows,
+  }) =>
       GraphState(
-          nodes: nodes ?? this.nodes,
-          edges: edges ?? this.edges,
-          communities: communities ?? this.communities,
-          loading: loading ?? this.loading,
-          selectedId: selectedId ?? this.selectedId,
-          selectedCommunity: selectedCommunity ?? this.selectedCommunity,
-          search: search ?? this.search,
-          hiddenCommunities: hiddenCommunities ?? this.hiddenCommunities,
-          activeSource: activeSource ?? this.activeSource,
-          error: error,
-          initialized: initialized ?? this.initialized,
-          showLabels: showLabels ?? this.showLabels);
+        nodes: nodes ?? this.nodes,
+        edges: edges ?? this.edges,
+        communities: communities ?? this.communities,
+        loading: loading ?? this.loading,
+        selectedId: selectedId ?? this.selectedId,
+        selectedCommunity: selectedCommunity ?? this.selectedCommunity,
+        search: search ?? this.search,
+        hiddenCommunities: hiddenCommunities ?? this.hiddenCommunities,
+        activeSource: activeSource ?? this.activeSource,
+        error: error,
+        initialized: initialized ?? this.initialized,
+        showLabels: showLabels ?? this.showLabels,
+        repelForce: repelForce ?? this.repelForce,
+        centerForce: centerForce ?? this.centerForce,
+        nodeSize: nodeSize ?? this.nodeSize,
+        linkThickness: linkThickness ?? this.linkThickness,
+        showArrows: showArrows ?? this.showArrows,
+      );
 }
 
 class GraphNotifier extends StateNotifier<GraphState> {
@@ -240,6 +264,12 @@ class GraphNotifier extends StateNotifier<GraphState> {
   }
 
   void toggleLabels() => state = state.copyWith(showLabels: !state.showLabels);
+
+  void setRepelForce(double v) => state = state.copyWith(repelForce: v);
+  void setCenterForce(double v) => state = state.copyWith(centerForce: v);
+  void setNodeSize(double v) => state = state.copyWith(nodeSize: v);
+  void setLinkThickness(double v) => state = state.copyWith(linkThickness: v);
+  void toggleArrows() => state = state.copyWith(showArrows: !state.showArrows);
 }
 
 final graphProvider = StateNotifierProvider<GraphNotifier, GraphState>(
@@ -436,21 +466,30 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
                                     TextStyle(color: AppColors.textSecondary))
                           ]))
                             : Container(
-                                color: const Color(0xFFF9FAFB), // Mirofish light background
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.backgroundMain
+                                    : const Color(0xFFF9FAFB),
                                 child: Stack(children: [
                                   _GraphCanvas(
-                                      nodes: s.nodes,
-                                      edges: s.edges,
-                                      search: s.search,
-                                      hiddenCommunities: s.hiddenCommunities,
-                                      onNodeTap: n.select,
-                                      selectedId: s.selectedId,
-                                      showLabels: s.showLabels),
+                                    nodes: s.nodes,
+                                    edges: s.edges,
+                                    search: s.search,
+                                    hiddenCommunities: s.hiddenCommunities,
+                                    onNodeTap: n.select,
+                                    selectedId: s.selectedId,
+                                    showLabels: s.showLabels,
+                                    repelForce: s.repelForce,
+                                    centerForce: s.centerForce,
+                                    nodeSize: s.nodeSize,
+                                    linkThickness: s.linkThickness,
+                                    showArrows: s.showArrows,
+                                  ),
                                   if (selected != null)
                                     _FloatingNodeInfo(
                                       node: selected,
                                       onClose: () => n.select(null),
                                     ),
+                                  _GraphControls(state: s, notifier: n),
                                 ]),
                               )),
         Container(
@@ -677,22 +716,27 @@ class _NodeLayout {
         vy = 0;
 }
 
-class _GraphCanvas extends StatefulWidget {
-  final List<KGNode> nodes;
-  final List<KGEdge> edges;
-  final String search;
-  final List<int> hiddenCommunities;
-  final void Function(String?) onNodeTap;
-  final String? selectedId;
   final bool showLabels;
-  const _GraphCanvas(
-      {required this.nodes,
-      required this.edges,
-      required this.search,
-      required this.hiddenCommunities,
-      required this.onNodeTap,
-      this.selectedId,
-      this.showLabels = true});
+  final double repelForce;
+  final double centerForce;
+  final double nodeSize;
+  final double linkThickness;
+  final bool showArrows;
+
+  const _GraphCanvas({
+    required this.nodes,
+    required this.edges,
+    required this.search,
+    required this.hiddenCommunities,
+    required this.onNodeTap,
+    this.selectedId,
+    this.showLabels = true,
+    required this.repelForce,
+    required this.centerForce,
+    required this.nodeSize,
+    required this.linkThickness,
+    required this.showArrows,
+  });
   @override
   State<_GraphCanvas> createState() => _GraphCanvasState();
 }
@@ -777,12 +821,12 @@ class _GraphCanvasState extends State<_GraphCanvas>
       for (var l in _layouts) l.node.id: l
     };
 
-    // Physics Parameters (Mirofish-inspired, maximum spacing)
-    final repelStrength = -8000.0; // Dramatically increased to prevent overlap
-    final clusterRepelStrength = -4000.0; // Stronger push between communities
+    // Physics Parameters
+    final repelStrength = widget.repelForce; 
+    final clusterRepelStrength = widget.repelForce / 2; 
     final linkStrength = 0.2;
-    final idealLinkDist = 160.0; // Spaced out more
-    final centerStrength = 0.04;
+    final idealLinkDist = 160.0; 
+    final centerStrength = widget.centerForce;
 
     for (var i = 0; i < _layouts.length; i++) {
       final a = _layouts[i];
@@ -929,7 +973,10 @@ class _GraphCanvasState extends State<_GraphCanvas>
                 hoveredId: _hoveredId,
                 scale: _scale,
                 pan: _pan,
-                showLabels: widget.showLabels),
+                showLabels: widget.showLabels,
+                nodeSize: widget.nodeSize,
+                linkThickness: widget.linkThickness,
+                showArrows: widget.showArrows),
             size: Size.infinite,
           ),
         ),
@@ -952,26 +999,25 @@ class _GraphCanvasState extends State<_GraphCanvas>
       (math.sqrt(node.degree.toDouble()) * 2 + 4).clamp(5, 22);
 }
 
-class _ObsidianPainter extends CustomPainter {
-  final List<_NodeLayout> layouts;
-  final List<KGEdge> edges;
-  final List<int> hiddenCommunities;
-  final String searchLower;
-  final String? selectedId, hoveredId;
-  final double scale;
-  final Offset pan;
   final bool showLabels;
+  final double nodeSize;
+  final double linkThickness;
+  final bool showArrows;
 
-  const _ObsidianPainter(
-      {required this.layouts,
-      required this.edges,
-      required this.hiddenCommunities,
-      required this.searchLower,
-      this.selectedId,
-      this.hoveredId,
-      required this.scale,
-      required this.pan,
-      required this.showLabels});
+  const _ObsidianPainter({
+    required this.layouts,
+    required this.edges,
+    required this.hiddenCommunities,
+    required this.searchLower,
+    this.selectedId,
+    this.hoveredId,
+    required this.scale,
+    required this.pan,
+    required this.showLabels,
+    required this.nodeSize,
+    required this.linkThickness,
+    required this.showArrows,
+  });
 
   Offset _p(double x, double y) =>
       Offset(x * scale + pan.dx, y * scale + pan.dy);
@@ -985,14 +1031,6 @@ class _ObsidianPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (!scale.isFinite || scale < 0.01) return;
-
-    // Mirofish Background: Dotted grid on light background
-    final gridPaint = Paint()..color = const Color(0xFFD1D5DB);
-    for (double x = (pan.dx % (32 * scale)); x < size.width; x += 32 * scale) {
-      for (double y = (pan.dy % (32 * scale)); y < size.height; y += 32 * scale) {
-        canvas.drawCircle(Offset(x, y), 1.0, gridPaint);
-      }
-    }
 
     final byId = <String, _NodeLayout>{for (var l in layouts) l.node.id: l};
 
@@ -1020,14 +1058,14 @@ class _ObsidianPainter extends CustomPainter {
       final paint = Paint()
         ..color = (isHighlighted ? AppColors.accent : AppColors.border)
             .withOpacity(opacity)
-        ..strokeWidth = isHighlighted ? (2.0 * scale).clamp(1.0, 4.0) : (0.8 * scale).clamp(0.4, 2.0)
+        ..strokeWidth = (isHighlighted ? (2.0 * scale) : (0.8 * scale)) * linkThickness
         ..style = PaintingStyle.stroke;
 
       canvas.drawLine(posA, posB, paint);
 
       // Arrow Head
-      if (scale > 0.4 || isHighlighted) {
-        _drawArrow(canvas, posA, posB, (isHighlighted ? AppColors.accent : AppColors.border).withOpacity(opacity), scale);
+      if (showArrows && (scale > 0.4 || isHighlighted)) {
+        _drawArrow(canvas, posA, posB, (isHighlighted ? AppColors.accent : AppColors.border).withOpacity(opacity), scale * linkThickness);
       }
 
       // Relationship label
@@ -1059,13 +1097,13 @@ class _ObsidianPainter extends CustomPainter {
       }
       canvas.drawCircle(
           pos,
-          r,
+          r * nodeSize,
           Paint()
             ..color = color.withOpacity(opacity * 0.8)
             ..style = PaintingStyle.fill);
       canvas.drawCircle(
           pos,
-          r,
+          r * nodeSize,
           Paint()
             ..color = (isSelected || isHovered ? color : color.withOpacity(0.4))
                 .withOpacity(opacity)
@@ -1255,6 +1293,169 @@ class _MiroRow extends StatelessWidget {
       ],
     ),
   );
+}
+
+// ── Obsidian-style Graph Controls ───────────────────────────────────────────
+class _GraphControls extends StatelessWidget {
+  final GraphState state;
+  final GraphNotifier notifier;
+
+  const _GraphControls({required this.state, required this.notifier});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final panelColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+
+    return Positioned(
+      top: 10,
+      right: 10,
+      child: Container(
+        width: 260,
+        height: MediaQuery.of(context).size.height - 150,
+        decoration: BoxDecoration(
+          color: panelColor.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.border.withOpacity(0.5)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10),
+          ],
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SectionHeader(title: 'Filters', isDark: isDark),
+              _ToggleRow(label: 'Tags', value: false, onChanged: (v) {}, isDark: isDark),
+              _ToggleRow(label: 'Attachments', value: false, onChanged: (v) {}, isDark: isDark),
+              _ToggleRow(label: 'Existing files only', value: false, onChanged: (v) {}, isDark: isDark),
+              _ToggleRow(label: 'Orphans', value: false, onChanged: (v) {}, isDark: isDark),
+              const SizedBox(height: 16),
+              _SectionHeader(title: 'Display', isDark: isDark),
+              _ToggleRow(label: 'Arrows', value: state.showArrows, onChanged: (v) => notifier.toggleArrows(), isDark: isDark),
+              const SizedBox(height: 12),
+              _SliderRow(
+                label: 'Node size',
+                value: state.nodeSize,
+                min: 0.1,
+                max: 3.0,
+                onChanged: notifier.setNodeSize,
+                isDark: isDark,
+              ),
+              _SliderRow(
+                label: 'Link thickness',
+                value: state.linkThickness,
+                min: 0.1,
+                max: 5.0,
+                onChanged: notifier.setLinkThickness,
+                isDark: isDark,
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                  ),
+                  onPressed: () => notifier.load(source: state.activeSource),
+                  child: const Text('Animate', style: TextStyle(color: Colors.white, fontSize: 12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _SectionHeader(title: 'Forces', isDark: isDark),
+              _SliderRow(
+                label: 'Center force',
+                value: state.centerForce,
+                min: 0.0,
+                max: 0.2,
+                onChanged: notifier.setCenterForce,
+                isDark: isDark,
+              ),
+              _SliderRow(
+                label: 'Repel force',
+                value: state.repelForce,
+                min: -20000.0,
+                max: -100.0,
+                onChanged: notifier.setRepelForce,
+                isDark: isDark,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final bool isDark;
+  const _SectionHeader({required this.title, required this.isDark});
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(title.toUpperCase(),
+            style: TextStyle(
+                color: isDark ? Colors.white54 : Colors.black54,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.1)),
+      );
+}
+
+class _ToggleRow extends StatelessWidget {
+  final String label;
+  final bool value, isDark;
+  final ValueChanged<bool> onChanged;
+  const _ToggleRow({required this.label, required this.value, required this.onChanged, required this.isDark});
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontSize: 11)),
+          Transform.scale(
+            scale: 0.6,
+            child: Switch(
+              value: value,
+              onChanged: onChanged,
+              activeColor: AppColors.accent,
+            ),
+          ),
+        ],
+      );
+}
+
+class _SliderRow extends StatelessWidget {
+  final String label;
+  final double value, min, max;
+  final bool isDark;
+  final ValueChanged<double> onChanged;
+  const _SliderRow({required this.label, required this.value, required this.min, required this.max, required this.onChanged, required this.isDark});
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontSize: 11)),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 2,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+            ),
+            child: Slider(
+              value: value,
+              min: min,
+              max: max,
+              activeColor: AppColors.accent,
+              inactiveColor: isDark ? Colors.white12 : Colors.black12,
+              onChanged: onChanged,
+            ),
+          ),
+        ],
+      );
 }
 
 class _NodeInfo extends StatelessWidget {
