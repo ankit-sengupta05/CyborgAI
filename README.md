@@ -315,7 +315,7 @@ Then edit `.env` with your values:
 
 ```bash
 # Firebase Configuration
-FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_PROJECT_ID=******
 FIREBASE_SERVICE_ACCOUNT_PATH=config/firebase-service-account.json
 
 # LLM Settings

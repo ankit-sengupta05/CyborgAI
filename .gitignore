@@ -1,3 +1,39 @@
+<<<<<<< dockerize-and-update-readme-1109a
+```
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables
+.env
+.env.local
+.env.*
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# IDE specific
+.vscode/
+.idea/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+```
+=======
 # ─── Secrets & Config (NEVER commit) ─────────────────────────────────────────
 .env
 *.env
@@ -73,3 +109,4 @@ Thumbs.db
 # ─── OS ───────────────────────────────────────────────────────────────────────
 .DS_Store
 desktop.ini
+>>>>>>> main

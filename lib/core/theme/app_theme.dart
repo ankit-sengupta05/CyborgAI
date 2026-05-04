@@ -8,16 +8,16 @@ class AppColors {
   static const Color backgroundSidebar = Color(0xFF202022);   // Sidebar background
   static const Color backgroundSurface = Color(0xFF27272A);   // Cards, panels (Zinc 800)
   static const Color backgroundInput = Color(0xFF3F3F46);     // Input fields (Zinc 700)
-  
+
   // Border colors - subtle but defined
   static const Color borderDefault = Color(0xFF3F3F46);       // Default borders
   static const Color borderHover = Color(0xFF52525B);         // Hover state borders
-  
+
   // Text colors - excellent contrast and hierarchy
   static const Color textPrimary = Color(0xFFFAFAFA);         // Primary text (Zinc 50)
   static const Color textSecondary = Color(0xFFA1A1AA);       // Secondary text (Zinc 400)
   static const Color textTertiary = Color(0xFF71717A);        // Muted text (Zinc 500)
-  
+
   // Accent colors - LM Studio's blue plus additional accents
   static const Color accentBlue = Color(0xFF3B82F6);          // Primary accent (Blue 500)
   static const Color accentBlueHover = Color(0xFF2563EB);     // Hover state (Blue 600)
@@ -27,34 +27,34 @@ class AppColors {
   static const Color accentRed = Color(0xFFEF4444);           // Red 500
   static const Color accentOrange = Color(0xFFF97316);        // Orange 500
   static const Color accentYellow = Color(0xFFF59E0B);        // Amber 500
-  
+
   // Phase colors
   static const Color phaseBlue = Color(0xFF3B82F6);
   static const Color phaseGreen = Color(0xFF10B981);
   static const Color phaseRed = Color(0xFFEF4444);
-  
+
   // Status colors
   static const Color success = Color(0xFF10B981);             // Emerald 500
   static const Color warning = Color(0xFFF59E0B);             // Amber 500
   static const Color error = Color(0xFFEF4444);               // Red 500
   static const Color info = Color(0xFF3B82F6);                // Blue 500
-  
+
   // Surface and background aliases for compatibility
   static const Color surface = Color(0xFF27272A);
   static const Color surfaceVariant = Color(0xFF27272A);
   static const Color background = Color(0xFF18181B);
   static const Color border = Color(0xFF3F3F46);
-  
+
   // Text aliases for compatibility
   static const Color textMuted = Color(0xFF71717A);
-  
+
   // Gradient for special elements
   static const LinearGradient accentGradient = LinearGradient(
     colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-  
+
   // Community/node colors (12 distinct colors)
   static const List<Color> communityColors = [
     Color(0xFF3B82F6), Color(0xFF10B981), Color(0xFF8B5CF6),
@@ -71,7 +71,7 @@ class AppTheme {
       brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.backgroundMain,
       primaryColor: AppColors.accentBlue,
-      
+
       colorScheme: const ColorScheme.dark(
         surface: AppColors.backgroundSurface,
         primary: AppColors.accentBlue,
@@ -81,7 +81,7 @@ class AppTheme {
         onSurface: AppColors.textPrimary,
         outline: AppColors.borderDefault,
       ),
-      
+
       // Card Styles - LM Studio style with subtle borders
       cardTheme: CardThemeData(
         color: AppColors.backgroundSurface,
@@ -91,7 +91,7 @@ class AppTheme {
           side: const BorderSide(color: AppColors.borderDefault, width: 1),
         ),
       ),
-      
+
       // AppBar - Clean, minimal
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.backgroundMain,
@@ -106,10 +106,10 @@ class AppTheme {
         ),
         iconTheme: IconThemeData(color: AppColors.textSecondary, size: 20),
       ),
-      
+
       // Typography - Clean Inter font, perfect hierarchy
       textTheme: _buildTextTheme(AppColors.textPrimary, AppColors.textSecondary),
-      
+
       // Input Decoration - LM Studio's signature flat inputs with border on focus
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -129,7 +129,7 @@ class AppTheme {
         hintStyle: const TextStyle(color: AppColors.textTertiary, fontSize: 14),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       ),
-      
+
       // Elevated Buttons - Blue accent, rounded corners
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -141,7 +141,7 @@ class AppTheme {
           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
       ),
-      
+
       // Outlined Buttons - Subtle borders
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
@@ -151,7 +151,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
-      
+
       // Chip Theme
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.backgroundSurface,
@@ -162,23 +162,23 @@ class AppTheme {
         ),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       ),
-      
+
       // Divider - Subtle separation
       dividerTheme: const DividerThemeData(
         color: AppColors.borderDefault,
         thickness: 1,
         space: 1,
       ),
-      
+
       // Icon Theme
       iconTheme: const IconThemeData(color: AppColors.textSecondary, size: 20),
-      
+
       // Progress Indicator - Slim blue line
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: AppColors.accentBlue,
         strokeWidth: 3,
       ),
-      
+
       // Snackbar - Floating with border
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.backgroundSurface,
@@ -190,7 +190,7 @@ class AppTheme {
         behavior: SnackBarBehavior.floating,
         elevation: 4,
       ),
-      
+
       // FAB
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: AppColors.accentBlue,
@@ -198,7 +198,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
       ),
-      
+
       // Scrollbar - Minimalist
       scrollbarTheme: ScrollbarThemeData(
         thumbColor: WidgetStateProperty.all(AppColors.textTertiary),
