@@ -772,37 +772,23 @@ class _GraphCanvasState extends State<_GraphCanvas>
       for (var l in _layouts) l.node.id: l
     };
 
-    // Physics Parameters (Mirofish-inspired, spread out)
-    final repelStrength = -4500.0; // Increased for better spacing
-    final clusterRepelStrength = -2500.0; // Extra push between different communities
-    final linkStrength = 0.15;
-    final idealLinkDist = 140.0; // Spaced out
-    final centerStrength = 0.03;
-    final mouseRepelStrength = -3500.0;
+    // Physics Parameters (Mirofish-inspired, maximum spacing)
+    final repelStrength = -8000.0; // Dramatically increased to prevent overlap
+    final clusterRepelStrength = -4000.0; // Stronger push between communities
+    final linkStrength = 0.2;
+    final idealLinkDist = 160.0; // Spaced out more
+    final centerStrength = 0.04;
 
     for (var i = 0; i < _layouts.length; i++) {
       final a = _layouts[i];
       if (a == _draggedNode) continue;
-
-      // Mouse Repel
-      if (_mousePos != null) {
-        final canvasMouse = (_mousePos! - _pan) / _scale;
-        final mdx = canvasMouse.dx - a.x, mdy = canvasMouse.dy - a.y;
-        final mdistSq = mdx * mdx + mdy * mdy;
-        if (mdistSq < 180 * 180 && mdistSq > 1) {
-          final mforce = (mouseRepelStrength / mdistSq) * alpha * 2.5;
-          a.vx += (mdx / math.sqrt(mdistSq)) * mforce;
-          a.vy += (mdy / math.sqrt(mdistSq)) * mforce;
-          _settled = false;
-        }
-      }
 
       for (var j = i + 1; j < _layouts.length; j++) {
         final b = _layouts[j];
         final dx = b.x - a.x, dy = b.y - a.y;
         final distSq = dx * dx + dy * dy;
         if (distSq < 1) continue;
-        if (distSq > 600 * 600) continue; 
+        if (distSq > 800 * 800) continue; 
 
         double force = (repelStrength / distSq) * alpha;
         
@@ -994,6 +980,15 @@ class _ObsidianPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (!scale.isFinite || scale < 0.01) return;
+
+    // Mirofish Background: Dotted grid
+    final gridPaint = Paint()..color = AppColors.border.withOpacity(0.4);
+    for (double x = (pan.dx % (30 * scale)); x < size.width; x += 30 * scale) {
+      for (double y = (pan.dy % (30 * scale)); y < size.height; y += 30 * scale) {
+        canvas.drawCircle(Offset(x, y), 0.8, gridPaint);
+      }
+    }
+
     final byId = <String, _NodeLayout>{for (var l in layouts) l.node.id: l};
 
     for (final edge in edges) {
@@ -1166,16 +1161,17 @@ class _FloatingNodeInfo extends StatelessWidget {
                   color: AppColors.accent.withOpacity(0.1),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline, color: AppColors.accent, size: 18),
+                      const Icon(Icons.hub_outlined, color: AppColors.accent, size: 18),
                       const SizedBox(width: 8),
                       const Text('NODE INTELLIGENCE',
                           style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
                       const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 16, color: AppColors.textMuted),
-                        onPressed: onClose,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                      MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: onClose,
+                          child: const Icon(Icons.close, size: 18, color: AppColors.textMuted),
+                        ),
                       ),
                     ],
                   ),
@@ -1207,7 +1203,7 @@ class _FloatingNodeInfo extends StatelessWidget {
                             elevation: 0,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
-                          onPressed: () {},
+                          onPressed: () => context.push('/vault'),
                           child: const Text('Open in Vault', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                         ),
                       ),
