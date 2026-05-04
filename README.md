@@ -117,14 +117,42 @@ Inspired by premium AGI interfaces, the Jarvis engine provides zero-latency spee
 
 Cyborg features an **automated Firebase initialization system** that enables instant configuration across your entire project.
 
-### ⚡ Quick Start Procedure
+### ⚡ Quick Start Procedure (Copy-Paste Commands)
 
-1.  **Download `google-services.json`** from your Firebase Console (Project Settings > Your Apps > Android)
-2.  **Place the file** in `android/app/google-services.json`
-3.  **Run the initializer**:
-    ```bash
-    python sync_firebase.py
-    ```
+Follow these exact steps to configure Firebase:
+
+#### Step 1: Install Firebase CLI (if not already installed)
+```bash
+npm install -g firebase-tools
+```
+
+#### Step 2: Run FlutterFire Configuration
+```bash
+dart pub global run flutterfire_cli:flutterfire configure
+```
+
+When prompted:
+- Select **"no"** if asked to reuse existing `firebase.json` values
+- Choose your Firebase project from the list
+- Select platforms: **android, ios, macos, web, windows** (use arrow keys + space to select)
+
+#### Step 3: Download google-services.json
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Select your project → **Project Settings**
+3. Under **Your apps**, select the Android app
+4. Download `google-services.json`
+5. Place it in: `android/app/google-services.json`
+
+#### Step 4: Run the Auto-Sync Script
+```bash
+python sync_firebase.py
+```
+
+#### Step 5: Get Dependencies and Run
+```bash
+flutter pub get
+flutter run -d windows
+```
 
 ### 🔄 What It Does
 
@@ -138,6 +166,27 @@ Cyborg features an **automated Firebase initialization system** that enables ins
 *   **Zero Manual Configuration**: No need to manually update `build.gradle`, `AndroidManifest.xml`, or directory structures
 *   **Multi-Environment Support**: Easily switch between development, staging, and production Firebase projects
 *   **Team-Friendly**: New team members can initialize their local environment in seconds
+
+### 📋 Complete Setup Checklist
+
+```bash
+# 1. Install Firebase CLI
+npm install -g firebase-tools
+
+# 2. Configure FlutterFire
+dart pub global run flutterfire_cli:flutterfire configure
+
+# 3. Place google-services.json in android/app/
+
+# 4. Run auto-sync
+python sync_firebase.py
+
+# 5. Install dependencies
+flutter pub get
+
+# 6. Launch the app
+flutter run -d windows
+```
 
 ---
 
