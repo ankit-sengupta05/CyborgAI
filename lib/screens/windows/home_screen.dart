@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/health_edu_service.dart';
+import 'health_screen.dart';
+import 'education_screen.dart';
 
 class HomeDesktop extends StatefulWidget {
   const HomeDesktop({super.key});
@@ -1099,7 +1101,21 @@ class _HomeDesktopState extends State<HomeDesktop> {
   Widget _sideButton(String text, IconData icon, {bool isCategory = false}) {
     final isSelected = selectedTab == text;
     return GestureDetector(
-      onTap: () => switchTab(text),
+      onTap: () {
+        if (text == "Health Track" || text == "X-Ray Analysis" || text == "EHR Assistant") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const HealthScreen()),
+          );
+        } else if (text == "Education Track" || text == "Homework Grader" || text == "Quiz Generator") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const EducationScreen()),
+          );
+        } else {
+          switchTab(text);
+        }
+      },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

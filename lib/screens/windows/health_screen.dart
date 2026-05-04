@@ -290,7 +290,7 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.analytics),
+                  : Icon(Icons.analytics_outlined),
               label: Text(
                 _isAnalyzingXRay ? 'Analyzing...' : 'Analyze X-Ray',
                 style: const TextStyle(fontSize: 16),
@@ -357,7 +357,7 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
           const SizedBox(height: 20),
           ElevatedButton.icon(
             onPressed: _pickXRayFile,
-            icon: const Icon(Icons.folder_open),
+            icon: Icon(Icons.folder_open_outlined),
             label: const Text('Browse Files'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.accentBlue,
@@ -458,7 +458,7 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
             decoration: InputDecoration(
               labelText: 'Patient ID',
               hintText: 'Enter patient identifier',
-              prefixIcon: const Icon(Icons.person),
+              prefixIcon: Icon(Icons.person_outline),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -508,7 +508,7 @@ class _HealthScreenState extends State<HealthScreen> with SingleTickerProviderSt
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.search),
+                  : Icon(Icons.search_outlined),
               label: Text(
                 _isQueryingEHR ? 'Querying...' : 'Query EHR',
                 style: const TextStyle(fontSize: 16),

@@ -237,7 +237,7 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
             decoration: InputDecoration(
               labelText: 'Subject',
               hintText: 'e.g., Mathematics, Science, English',
-              prefixIcon: const Icon(Icons.book),
+              prefixIcon: Icon(Icons.book_outlined),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -290,7 +290,7 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.assignment_turned_in),
+                  : Icon(Icons.assignment_turned_in_outlined),
               label: Text(
                 _isGrading ? 'Grading...' : 'Grade Homework',
                 style: const TextStyle(fontSize: 16),
@@ -357,7 +357,7 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
           const SizedBox(height: 20),
           ElevatedButton.icon(
             onPressed: _pickHomeworkFile,
-            icon: const Icon(Icons.folder_open),
+            icon: Icon(Icons.folder_open_outlined),
             label: const Text('Browse Files'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.accentBlue,
@@ -480,7 +480,7 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
             decoration: InputDecoration(
               labelText: 'Topic',
               hintText: 'e.g., Photosynthesis, World War II, Fractions',
-              prefixIcon: const Icon(Icons.topic),
+              prefixIcon: Icon(Icons.topic_outlined),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -557,7 +557,7 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
             decoration: InputDecoration(
               labelText: 'Cultural Context (optional)',
               hintText: 'e.g., Indian curriculum, US Common Core',
-              prefixIcon: const Icon(Icons.public),
+              prefixIcon: Icon(Icons.public_outlined),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -580,7 +580,7 @@ class _EducationScreenState extends State<EducationScreen> with SingleTickerProv
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.auto_awesome),
+                  : Icon(Icons.auto_awesome_outlined),
               label: Text(
                 _isGeneratingQuiz ? 'Generating...' : 'Generate Quiz',
                 style: const TextStyle(fontSize: 16),
