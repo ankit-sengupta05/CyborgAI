@@ -27,7 +27,7 @@ except ImportError as e:
 # Import education services
 try:
     from ..services.education.grader import HomeworkGrader
-    from ..services.education.quiz_generator import AdaptiveQuizGenerator
+    from ..services.education.quiz_generator import QuizGenerator as AdaptiveQuizGenerator
     from ..services.education.progress_tracker import ProgressTracker
     EDUCATION_AVAILABLE = True
 except ImportError as e:
