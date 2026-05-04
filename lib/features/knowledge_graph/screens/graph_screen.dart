@@ -142,7 +142,8 @@ class GraphNotifier extends StateNotifier<GraphState> {
   }
 
   Future<void> load({String source = 'vault'}) async {
-    state = state.copyWith(loading: true, activeSource: 'vault', error: null);
+    state = state.copyWith(
+        loading: true, activeSource: 'vault', error: null, selectedId: null);
     try {
       List<KGNode> nodes = [];
       List<KGEdge> edges = [];
