@@ -190,18 +190,19 @@ flutter run -d windows
 
 ---
 
-## 🐳 Docker Containerization
+## 🐳 Docker Containerization & Docker Hub Deployment
 
-Cyborg can be containerized for consistent deployment across different environments. The Docker setup provides a production-ready backend service with persistent storage and health monitoring.
+Cyborg can be containerized for consistent deployment across different environments. The Docker setup provides a production-ready backend service with persistent storage and health monitoring, with full support for building, pushing, and deploying images to Docker Hub.
 
-#### Prerequisites
+### 📋 Prerequisites
 
 - Docker Desktop (Windows/Mac) or Docker Engine (Linux)
 - Docker Compose v2.0+
+- Docker Hub account (for pushing images)
 
-#### Quick Start with Docker
+### 🚀 Quick Start with Docker
 
-##### Option 1: Build and Run with Docker Compose (Recommended)
+#### Option 1: Build and Run with Docker Compose (Recommended for Local Development)
 
 ```bash
 # Copy the environment file and configure it
@@ -215,7 +216,7 @@ docker-compose up --build
 docker-compose up -d --build
 ```
 
-##### Option 2: Manual Docker Commands
+#### Option 2: Manual Docker Commands
 
 ```bash
 # Build the image
@@ -232,9 +233,77 @@ docker run -d \
   cyborg-backend:latest
 ```
 
-#### Configuration Options
+### 🐳 Docker Hub Management
 
-##### Environment Variables
+Cyborg includes an automated script (`docker-hub.sh`) to streamline the process of building, tagging, pushing, and deploying images to Docker Hub.
+
+#### Using the Docker Hub Script
+
+```bash
+# Make the script executable (if not already)
+chmod +x docker-hub.sh
+
+# View help
+./docker-hub.sh help
+
+# Log in to Docker Hub
+./docker-hub.sh login
+
+# Build image with specific tag
+./docker-hub.sh build v1.0.0
+
+# Push image to Docker Hub
+./docker-hub.sh push v1.0.0
+
+# Complete workflow: build and push
+./docker-hub.sh all v1.0.0
+
+# Deploy from Docker Hub (pull and run)
+./docker-hub.sh deploy v1.0.0
+```
+
+#### Manual Docker Hub Workflow
+
+If you prefer manual commands:
+
+```bash
+# 1. Log in to Docker Hub
+docker login
+
+# 2. Build the image with your Docker Hub username
+docker build -t your-username/cyborg-agi-backend:latest .
+
+# 3. Tag the image (if needed)
+docker tag your-username/cyborg-agi-backend:latest your-username/cyborg-agi-backend:v1.0.0
+
+# 4. Push to Docker Hub
+docker push your-username/cyborg-agi-backend:latest
+docker push your-username/cyborg-agi-backend:v1.0.0
+
+# 5. Verify on Docker Hub
+# Visit: https://hub.docker.com/r/your-username/cyborg-agi-backend
+```
+
+#### Pulling and Running from Docker Hub
+
+```bash
+# Pull the image
+docker pull your-username/cyborg-agi-backend:latest
+
+# Run the container
+docker run -d \
+  --name cyborg-backend \
+  --restart unless-stopped \
+  -p 8765:8765 \
+  --env-file .env \
+  -v cyborg-data:/app/data \
+  -v cyborg-models:/app/models \
+  your-username/cyborg-agi-backend:latest
+```
+
+### ⚙️ Configuration Options
+
+#### Environment Variables
 
 Create a `.env` file in the project root by copying `.env.example`:
 
@@ -264,14 +333,14 @@ ENABLE_WORLD_MONITOR=true
 OFFLINE_MODE=false
 ```
 
-##### Volume Mounts
+#### Volume Mounts
 
 The Docker setup includes persistent volumes for:
 - **Data Storage**: `cyborg-data` volume stores database and application data
 - **Models**: `cyborg-models` volume stores LLM models
 - **Configuration**: `cyborg-config` volume stores Firebase and other configs
 
-#### Accessing the Application
+### 🌐 Accessing the Application
 
 Once running, the backend API is available at:
 - **API Endpoint**: `http://localhost:8765`
@@ -279,7 +348,7 @@ Once running, the backend API is available at:
 - **API Documentation**: `http://localhost:8765/api/docs`
 - **ReDoc**: `http://localhost:8765/api/redoc`
 
-#### Advanced Docker Commands
+### 🔧 Advanced Docker Commands
 
 ```bash
 # View running containers
@@ -304,7 +373,7 @@ docker exec -it cyborg-backend bash
 docker inspect --format='{{.State.Health.Status}}' cyborg-backend
 ```
 
-#### GPU Support (NVIDIA)
+### 🎮 GPU Support (NVIDIA)
 
 For GPU acceleration with CUDA support, uncomment the GPU section in `docker-compose.yml`:
 
@@ -325,7 +394,7 @@ docker-compose up --build
 
 Note: Requires NVIDIA Docker runtime and compatible GPU drivers.
 
-#### Resource Management
+### 📊 Resource Management
 
 The default configuration limits resources:
 - **CPU**: 4 cores max, 2 cores reserved
@@ -340,16 +409,17 @@ deploy:
       memory: 8G     # Increase memory limit
 ```
 
-#### Security Considerations
+### 🔒 Security Considerations
 
 - Container runs as non-root user (`cyborg`, UID 1000)
 - Sensitive data should be passed via environment variables, not baked into image
 - Enable Docker secrets for production deployments
 - Never commit `.env` file to version control
+- Use specific version tags in production instead of `latest`
 
-#### Troubleshooting
+### 🔍 Troubleshooting
 
-##### Build Failures
+#### Build Failures
 ```bash
 # Clear Docker cache
 docker builder prune -a
@@ -358,13 +428,13 @@ docker builder prune -a
 docker-compose build --no-cache --pull
 ```
 
-##### Permission Issues
+#### Permission Issues
 ```bash
 # Fix volume permissions
 docker run --rm -v cyborg-data:/data alpine chown -R 1000:1000 /data
 ```
 
-##### Health Check Failing
+#### Health Check Failing
 ```bash
 # Check container logs
 docker-compose logs cyborg-backend
@@ -374,6 +444,26 @@ docker-compose ps
 
 # Test health endpoint manually
 curl http://localhost:8765/api/v1/health
+```
+
+#### Docker Hub Authentication Issues
+```bash
+# Log out and log back in
+docker logout
+docker login
+
+# Or use access token
+docker login -u your-username -p your-access-token
+```
+
+#### Image Not Found on Docker Hub
+```bash
+# Verify image name and tag
+docker images | grep cyborg
+
+# Check Docker Hub repository visibility
+# Private repos require authentication
+docker login
 ```
 
 ---
