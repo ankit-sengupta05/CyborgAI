@@ -8,9 +8,10 @@
     <img src="https://img.shields.io/badge/Architecture-Flutter_%7C_FastAPI-FF0266?style=for-the-badge" alt="Engine" />
     <img src="https://img.shields.io/badge/Platform-Windows_Optimized-0078D4?style=for-the-badge&logo=windows" alt="Platform" />
     <img src="https://img.shields.io/badge/Status-V1.0_Stable-success?style=for-the-badge" alt="Status" />
+    <img src="https://img.shields.io/badge/Gemma_4-Multimodal_Ready-FF6B6B?style=for-the-badge&logo=google" alt="Gemma 4" />
   </p>
 
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=24&pause=1000&color=8A2BE2&center=true&vCenter=true&width=600&lines=World+Monitor+Intelligence;Integrated+Device+Explorer;Autonomous+GitHub+Sync;Jarvis+Voice+System;Windows+Stability+Hardened" alt="Typing SVG" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=24&pause=1000&color=8A2BE2&center=true&vCenter=true&width=600&lines=World+Monitor+Intelligence;Integrated+Device+Explorer;Autonomous+GitHub+Sync;Jarvis+Voice+System;Windows+Stability+Hardened;Gemma+4+Health+%26+Education" alt="Typing SVG" />
 </div>
 
 ---
@@ -101,6 +102,59 @@ Cyborg enforces a **Local-First, Privacy-Preserving** sync strategy.
 -   **Structure Mirroring**: Uses `.gitkeep` sentinel files to ensure empty directory structures are preserved on remote repos.
 -   **Strict Isolation**: Personal knowledge data is decoupled from the application source code via `.gitignore`, preventing accidental leaks.
 -   **Resilient Sync**: Background worker with queue-based retry logic and 403-permission remediation.
+
+---
+
+## 🧠 Gemma 4 Multimodal Extension: Health & Education Tracks
+
+Cyborg now includes **Gemma 4-powered multimodal capabilities** for specialized health and education applications, optimized for offline-first deployment on edge devices.
+
+### 🏥 Health Track: MedGemma 4B
+
+*   **🫁 Chest X-Ray Analysis**: Automated radiological assessment with vision encoder integration
+*   **📋 EHR Function Calling**: FHIR-compatible schema with safety guardrails and medical disclaimers
+*   **🔒 Privacy-First**: All inference runs locally; no patient data leaves the device
+*   **⚡ Edge Optimized**: Quantized GGUF format for Raspberry Pi 5 and Jetson Nano
+
+### 🎓 Education Track: Adaptive Tutor
+
+*   **📝 Homework Grader**: OCR-powered evaluation with rubric-based scoring
+*   **🌍 Multi-Language Support**: English, Spanish, and Hindi with cultural relevance
+*   **📊 Progress Tracking**: Learning path optimization and analytics dashboard
+*   **🎯 Adaptive Quizzes**: Dynamically generated assessments based on student performance
+
+### 🚀 Quick Start
+
+```bash
+# Run Health Demo (Port 7860)
+python assets/demos/health_demo.py
+
+# Run Education Demo (Port 7861)
+python assets/demos/education_demo.py
+
+# Deploy to Edge Device (Raspberry Pi / Jetson / Android)
+bash scripts/deploy_gemma4_edge.sh
+```
+
+### 📚 Documentation
+
+See [`GEMMA4_QUICKSTART.md`](GEMMA4_QUICKSTART.md) for complete architecture diagrams, API references, and benchmark results.
+
+### 📦 Module Structure
+
+```
+lib/
+├── health/
+│   └── medgemma/
+│       ├── inference.py      # X-ray analysis pipeline
+│       ├── prompts.py        # Medical templates & disclaimers
+│       └── ehr_functions.py  # FHIR function calling
+└── education/
+    └── adaptive_tutor/
+        ├── grader.py         # Homework evaluation
+        ├── quiz_generator.py # Adaptive assessments
+        └── progress_tracker.py # Learning analytics
+```
 
 ---
 
@@ -492,9 +546,3 @@ flutter run -d windows
     <a href="https://github.com/ankit/Cyborg"><img src="https://img.shields.io/github/stars/ankit/Cyborg?style=social" alt="Stars" /></a>
   </p>
 </div>
-#   t e s t 2  
- #   t e s t 2  
- #   t e s t 2  
- #   t e s t 2  
- #   t e s t 2  
- 
