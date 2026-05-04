@@ -7,6 +7,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/services/api_service.dart';
+import 'package:go_router/go_router.dart';
 
 // ── Models ────────────────────────────────────────────────────────────────────
 class KGNode {
