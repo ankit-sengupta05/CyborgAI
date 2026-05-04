@@ -435,21 +435,24 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
                                 style:
                                     TextStyle(color: AppColors.textSecondary))
                           ]))
-                            : Stack(children: [
-                                _GraphCanvas(
-                                    nodes: s.nodes,
-                                    edges: s.edges,
-                                    search: s.search,
-                                    hiddenCommunities: s.hiddenCommunities,
-                                    onNodeTap: n.select,
-                                    selectedId: s.selectedId,
-                                    showLabels: s.showLabels),
-                                if (selected != null)
-                                  _FloatingNodeInfo(
-                                    node: selected,
-                                    onClose: () => n.select(null),
-                                  ),
-                              ])),
+                            : Container(
+                                color: const Color(0xFFF9FAFB), // Mirofish light background
+                                child: Stack(children: [
+                                  _GraphCanvas(
+                                      nodes: s.nodes,
+                                      edges: s.edges,
+                                      search: s.search,
+                                      hiddenCommunities: s.hiddenCommunities,
+                                      onNodeTap: n.select,
+                                      selectedId: s.selectedId,
+                                      showLabels: s.showLabels),
+                                  if (selected != null)
+                                    _FloatingNodeInfo(
+                                      node: selected,
+                                      onClose: () => n.select(null),
+                                    ),
+                                ]),
+                              )),
         Container(
             width: 220,
             decoration: const BoxDecoration(
@@ -983,11 +986,11 @@ class _ObsidianPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (!scale.isFinite || scale < 0.01) return;
 
-    // Mirofish Background: Dotted grid
-    final gridPaint = Paint()..color = AppColors.border.withOpacity(0.4);
-    for (double x = (pan.dx % (30 * scale)); x < size.width; x += 30 * scale) {
-      for (double y = (pan.dy % (30 * scale)); y < size.height; y += 30 * scale) {
-        canvas.drawCircle(Offset(x, y), 0.8, gridPaint);
+    // Mirofish Background: Dotted grid on light background
+    final gridPaint = Paint()..color = const Color(0xFFD1D5DB);
+    for (double x = (pan.dx % (32 * scale)); x < size.width; x += 32 * scale) {
+      for (double y = (pan.dy % (32 * scale)); y < size.height; y += 32 * scale) {
+        canvas.drawCircle(Offset(x, y), 1.0, gridPaint);
       }
     }
 
@@ -1127,7 +1130,7 @@ class _ObsidianPainter extends CustomPainter {
   bool shouldRepaint(covariant _ObsidianPainter oldDelegate) => true;
 }
 
-// ── Floating Info Tab (Mirofish-style) ────────────────────────────────────────
+// ── Floating Info Tab (Mirofish-style Reskinned) ──────────────────────────────
 class _FloatingNodeInfo extends StatelessWidget {
   final KGNode node;
   final VoidCallback onClose;
@@ -1135,85 +1138,102 @@ class _FloatingNodeInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = AppColors.communityColors[node.community % AppColors.communityColors.length];
+    
     return Positioned(
-      top: 20,
-      right: 20,
+      top: 60,
+      right: 240, // Offset from community sidebar
       child: Material(
-        elevation: 8,
-        color: Colors.transparent,
+        elevation: 12,
+        borderRadius: BorderRadius.circular(10),
         child: Container(
-          width: 320,
+          width: 300,
           decoration: BoxDecoration(
-            color: AppColors.surface.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
+              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10)),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  color: AppColors.accent.withOpacity(0.1),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.hub_outlined, color: AppColors.accent, size: 18),
-                      const SizedBox(width: 8),
-                      const Text('NODE INTELLIGENCE',
-                          style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-                      const Spacer(),
-                      MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: onClose,
-                          child: const Icon(Icons.close, size: 18, color: AppColors.textMuted),
-                        ),
-                      ),
-                    ],
-                  ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
                 ),
-                // Content
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(node.label, style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      _InfoRow(label: 'Type', value: node.contentType),
-                      _InfoRow(label: 'Cluster', value: '#${node.community}'),
-                      _InfoRow(label: 'Degree', value: '${node.degree} connections'),
-                      const SizedBox(height: 16),
-                      if (node.source != null) ...[
-                        const Text('SOURCE PATH', style: TextStyle(color: AppColors.textMuted, fontSize: 9, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Text(node.source!, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontStyle: FontStyle.italic)),
+                child: Row(
+                  children: [
+                    const Text('Node Details', style: TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
+                      child: Text(node.contentType.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 18, color: Color(0xFF9CA3AF)),
+                      onPressed: onClose,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
+              // Body
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Properties', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    _MiroRow(label: 'Name', value: node.label),
+                    _MiroRow(label: 'Cluster', value: '#${node.community}'),
+                    _MiroRow(label: 'Degree', value: '${node.degree} connections'),
+                    const SizedBox(height: 16),
+                    const Text('Connected', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4), border: Border.all(color: color.withOpacity(0.3))),
+                          child: Text('Cluster ${node.community}', style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w500)),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: Colors.grey.withOpacity(0.1), borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.grey.withOpacity(0.3))),
+                          child: const Text('Entity', style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.w500)),
+                        ),
                       ],
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.accent.withOpacity(0.15),
-                            foregroundColor: AppColors.accent,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          onPressed: () => context.push('/vault'),
-                          child: const Text('Open in Vault', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 36,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                         ),
+                        onPressed: () => context.push('/vault'),
+                        child: const Text('Open in Vault', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1221,17 +1241,17 @@ class _FloatingNodeInfo extends StatelessWidget {
   }
 }
 
-class _InfoRow extends StatelessWidget {
+class _MiroRow extends StatelessWidget {
   final String label, value;
-  const _InfoRow({required this.label, required this.value});
+  const _MiroRow({required this.label, required this.value});
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 6),
+    padding: const EdgeInsets.only(bottom: 8),
     child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
-        Text(value, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
+        SizedBox(width: 80, child: Text(label, style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11))),
+        Expanded(child: Text(value, style: const TextStyle(color: Colors.black87, fontSize: 11, fontWeight: FontWeight.w500))),
       ],
     ),
   );
