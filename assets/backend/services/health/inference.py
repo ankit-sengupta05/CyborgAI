@@ -20,8 +20,20 @@ class MedGemmaPipeline:
 
     _instance = None
 
-    def __init__(self, model_path: str = "assets/models/medgemma-4b-Q4_K_M.gguf", device: str = "cuda"):
-        self.model_path = model_path
+    def __init__(self, model_path: str = None, device: str = "cuda"):
+        # Default to models directory if not provided
+        if model_path is None:
+            models_dir = os.path.join(os.getcwd(), "assets", "models")
+            # Search for medgemma GGUF
+            import glob
+            matches = glob.glob(os.path.join(models_dir, "**", "*medgemma*.gguf"), recursive=True)
+            if matches:
+                self.model_path = matches[0]
+            else:
+                self.model_path = os.path.join(models_dir, "medgemma-2-9b-q4", "MedGemma-2-9b-it-Q4_K_M.gguf")
+        else:
+            self.model_path = model_path
+        
         self.device = device if torch.cuda.is_available() else "cpu"
         self.tokenizer = None
         self.vision_encoder = None

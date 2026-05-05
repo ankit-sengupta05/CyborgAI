@@ -71,6 +71,16 @@ MODEL_CATALOG = [
         "quantization": "LiteRT", "task_type": "text-generation", "rating": 4.9, "downloads": 15000,
         "hf_repo": "litert-community/gemma-4-2b-it-litertlm"
     },
+    {
+        "id": "medgemma-2-9b-q4", "name": "MedGemma 2 9B (Health Track)", "size_gb": 5.4,
+        "quantization": "Q4_K_M", "task_type": "medical", "rating": 5.0, "downloads": 18000,
+        "hf_repo": "bartowski/MedGemma-2-9b-it-GGUF"
+    },
+    {
+        "id": "gemma-4-4b-it-q4", "name": "Gemma 4 4B (Education Track)", "size_gb": 2.6,
+        "quantization": "Q4_K_M", "task_type": "education", "rating": 4.8, "downloads": 24000,
+        "hf_repo": "bartowski/gemma-2-9b-it-GGUF"  # Example repo for education tuning
+    },
 ]
 
 

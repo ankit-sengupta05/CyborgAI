@@ -22,9 +22,20 @@ class HomeworkGrader:
     """
 
     def __init__(self,
-                 gemma_model: str = "assets/models/gemma-4-4b-it-Q4_K_M.gguf",
+                 gemma_model: str = None,
                  language: str = "en"):
-        self.model_path = gemma_model
+        # Default to models directory if not provided
+        if gemma_model is None:
+            models_dir = os.path.join(os.getcwd(), "assets", "models")
+            import glob
+            matches = glob.glob(os.path.join(models_dir, "**", "*gemma-4-4b*.gguf"), recursive=True)
+            if matches:
+                self.model_path = matches[0]
+            else:
+                self.model_path = os.path.join(models_dir, "gemma-4-4b-it-q4", "gemma-2-9b-it-Q4_K_M.gguf")
+        else:
+            self.model_path = gemma_model
+        
         self.language = language
         self.llm_backend = None
         self._initialized = False
