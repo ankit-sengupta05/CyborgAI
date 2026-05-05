@@ -1337,8 +1337,9 @@ class _FloatingNodeInfo extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _MiroRow extends StatelessWidget {
