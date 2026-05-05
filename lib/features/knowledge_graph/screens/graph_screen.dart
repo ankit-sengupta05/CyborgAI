@@ -443,7 +443,9 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
       }),
       const Divider(height: 1),
       Expanded(
-          child: Row(children: [
+        child: Stack(
+          children: [
+            Row(children: [
         Expanded(
             child: !s.initialized
                 ? const Center(
@@ -487,13 +489,6 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
                                     linkThickness: s.linkThickness,
                                     showArrows: s.showArrows,
                                   ),
-                                  if (selected != null)
-                                      _FloatingNodeInfo(
-                                        node: selected,
-                                        onClose: () {
-                                          ref.read(graphProvider.notifier).select(null);
-                                        },
-                                      ),
                                 ]),
                               )),
         Container(
@@ -556,6 +551,16 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
               ),
             )),
       ])),
+                if (selected != null)
+                  _FloatingNodeInfo(
+                    node: selected,
+                    onClose: () {
+                      ref.read(graphProvider.notifier).select(null);
+                    },
+                  ),
+              ],
+            ),
+          ),
     ]);
   }
 
