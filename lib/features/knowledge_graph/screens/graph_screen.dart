@@ -547,10 +547,12 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
                         child: Text('Click a node or cluster to inspect',
                             style: TextStyle(
                                 color: AppColors.textMuted, fontSize: 11))),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            )),
-      ])),
                 if (selected != null)
                   _FloatingNodeInfo(
                     node: selected,
