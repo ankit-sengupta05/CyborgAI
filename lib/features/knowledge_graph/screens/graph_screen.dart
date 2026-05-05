@@ -486,10 +486,12 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
                                     showArrows: s.showArrows,
                                   ),
                                   if (selected != null)
-                                    _FloatingNodeInfo(
-                                      node: selected,
-                                      onClose: () => n.select(null),
-                                    ),
+                                      _FloatingNodeInfo(
+                                        node: selected,
+                                        onClose: () {
+                                          ref.read(graphProvider.notifier).select(null);
+                                        },
+                                      ),
                                 ]),
                               )),
         Container(
@@ -1250,13 +1252,12 @@ class _FloatingNodeInfo extends StatelessWidget {
                       child: Text(node.contentType.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
                     ),
                     const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: onClose,
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        child: const Icon(Icons.close, size: 20, color: Color(0xFF9CA3AF)),
-                      ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 22, color: Color(0xFF9CA3AF)),
+                      onPressed: onClose,
+                      splashRadius: 20,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                     ),
                   ],
                 ),
