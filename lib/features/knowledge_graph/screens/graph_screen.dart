@@ -470,28 +470,27 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
                                 color: Theme.of(context).brightness == Brightness.dark
                                     ? AppColors.backgroundMain
                                     : const Color(0xFFF9FAFB),
-                                child: Stack(children: [
-                                  _GraphCanvas(
-                                    nodes: s.nodes,
-                                    edges: s.edges,
-                                    search: s.search,
-                                    hiddenCommunities: s.hiddenCommunities,
-                                    onNodeTap: n.select,
-                                    selectedId: s.selectedId,
-                                    showLabels: s.showLabels,
-                                    repelForce: s.repelForce,
-                                    centerForce: s.centerForce,
-                                    nodeSize: s.nodeSize,
-                                    linkThickness: s.linkThickness,
-                                    showArrows: s.showArrows,
-                                  ),
-                                  if (selected != null)
-                                    _FloatingNodeInfo(
-                                      node: selected,
-                                      onClose: () => n.select(null),
+                                  Stack(children: [
+                                    _GraphCanvas(
+                                      nodes: s.nodes,
+                                      edges: s.edges,
+                                      search: s.search,
+                                      hiddenCommunities: s.hiddenCommunities,
+                                      onNodeTap: n.select,
+                                      selectedId: s.selectedId,
+                                      showLabels: s.showLabels,
+                                      repelForce: s.repelForce,
+                                      centerForce: s.centerForce,
+                                      nodeSize: s.nodeSize,
+                                      linkThickness: s.linkThickness,
+                                      showArrows: s.showArrows,
                                     ),
-                                  _GraphControls(state: s, notifier: n),
-                                ]),
+                                    if (selected != null)
+                                      _FloatingNodeInfo(
+                                        node: selected,
+                                        onClose: () => n.select(null),
+                                      ),
+                                  ]),
                               )),
         Container(
             width: 220,
@@ -499,19 +498,35 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
                 color: AppColors.surface,
                 border: Border(left: BorderSide(color: AppColors.border))),
             child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Padding(
-                  padding: EdgeInsets.fromLTRB(12, 12, 12, 4),
-                  child: Text('COMMUNITIES',
-                      style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1))),
-              Expanded(
-                  child: ListView(
-                      padding: EdgeInsets.zero,
-                      children: _communityItems(s, n))),
+              ExpansionTile(
+                initiallyExpanded: true,
+                title: const Text('COMMUNITIES',
+                    style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1)),
+                children: [
+                  SizedBox(
+                    height: 250,
+                    child: ListView(
+                        padding: EdgeInsets.zero,
+                        children: _communityItems(s, n)),
+                  ),
+                ],
+              ),
+              const Divider(height: 1),
+              ExpansionTile(
+                title: const Text('GRAPH SETTINGS',
+                    style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1)),
+                children: [
+                  _GraphSidebarControls(state: s, notifier: n),
+                ],
+              ),
               const Divider(height: 1),
               if (selected != null)
                 SizedBox(
@@ -803,6 +818,11 @@ class _GraphCanvasState extends State<_GraphCanvas>
     if (old.selectedId != widget.selectedId && widget.selectedId != null) {
       _centerOnNode(widget.selectedId!);
       _settled = false;
+      if (!_ticker.isAnimating) _ticker.repeat();
+    }
+    if (old.repelForce != widget.repelForce || old.centerForce != widget.centerForce) {
+      _settled = false;
+      _ticks = 0; // Reset cooling to wake up simulation
       if (!_ticker.isAnimating) _ticker.repeat();
     }
   }
@@ -1313,95 +1333,77 @@ class _MiroRow extends StatelessWidget {
 }
 
 // ── Obsidian-style Graph Controls ───────────────────────────────────────────
-class _GraphControls extends StatelessWidget {
+class _GraphSidebarControls extends StatelessWidget {
   final GraphState state;
   final GraphNotifier notifier;
 
-  const _GraphControls({required this.state, required this.notifier});
+  const _GraphSidebarControls({required this.state, required this.notifier});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final panelColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white70 : Colors.black87;
 
-    return Positioned(
-      top: 10,
-      right: 10,
-      child: Container(
-        width: 260,
-        height: MediaQuery.of(context).size.height - 150,
-        decoration: BoxDecoration(
-          color: panelColor.withOpacity(0.9),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.border.withOpacity(0.5)),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10),
-          ],
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _SectionHeader(title: 'Filters', isDark: isDark),
-              _ToggleRow(label: 'Tags', value: false, onChanged: (v) {}, isDark: isDark),
-              _ToggleRow(label: 'Attachments', value: false, onChanged: (v) {}, isDark: isDark),
-              _ToggleRow(label: 'Existing files only', value: false, onChanged: (v) {}, isDark: isDark),
-              _ToggleRow(label: 'Orphans', value: false, onChanged: (v) {}, isDark: isDark),
-              const SizedBox(height: 16),
-              _SectionHeader(title: 'Display', isDark: isDark),
-              _ToggleRow(label: 'Arrows', value: state.showArrows, onChanged: (v) => notifier.toggleArrows(), isDark: isDark),
-              const SizedBox(height: 12),
-              _SliderRow(
-                label: 'Node size',
-                value: state.nodeSize,
-                min: 0.1,
-                max: 3.0,
-                onChanged: notifier.setNodeSize,
-                isDark: isDark,
-              ),
-              _SliderRow(
-                label: 'Link thickness',
-                value: state.linkThickness,
-                min: 0.1,
-                max: 5.0,
-                onChanged: notifier.setLinkThickness,
-                isDark: isDark,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                  ),
-                  onPressed: () => notifier.load(source: state.activeSource),
-                  child: const Text('Animate', style: TextStyle(color: Colors.white, fontSize: 12)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _SectionHeader(title: 'Forces', isDark: isDark),
-              _SliderRow(
-                label: 'Center force',
-                value: state.centerForce,
-                min: 0.0,
-                max: 0.2,
-                onChanged: notifier.setCenterForce,
-                isDark: isDark,
-              ),
-              _SliderRow(
-                label: 'Repel force',
-                value: state.repelForce,
-                min: -20000.0,
-                max: -100.0,
-                onChanged: notifier.setRepelForce,
-                isDark: isDark,
-              ),
-            ],
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionHeader(title: 'Filters', isDark: isDark),
+          _ToggleRow(label: 'Tags', value: false, onChanged: (v) {}, isDark: isDark),
+          _ToggleRow(label: 'Attachments', value: false, onChanged: (v) {}, isDark: isDark),
+          _ToggleRow(label: 'Existing files', value: false, onChanged: (v) {}, isDark: isDark),
+          _ToggleRow(label: 'Orphans', value: false, onChanged: (v) {}, isDark: isDark),
+          const SizedBox(height: 16),
+          _SectionHeader(title: 'Display', isDark: isDark),
+          _ToggleRow(label: 'Arrows', value: state.showArrows, onChanged: (v) => notifier.toggleArrows(), isDark: isDark),
+          _SliderRow(
+            label: 'Node size',
+            value: state.nodeSize,
+            min: 0.1,
+            max: 3.0,
+            onChanged: notifier.setNodeSize,
+            isDark: isDark,
           ),
-        ),
+          _SliderRow(
+            label: 'Link thickness',
+            value: state.linkThickness,
+            min: 0.1,
+            max: 5.0,
+            onChanged: notifier.setLinkThickness,
+            isDark: isDark,
+          ),
+          const SizedBox(height: 16),
+          _SectionHeader(title: 'Forces', isDark: isDark),
+          _SliderRow(
+            label: 'Center force',
+            value: state.centerForce,
+            min: 0.0,
+            max: 0.2,
+            onChanged: notifier.setCenterForce,
+            isDark: isDark,
+          ),
+          _SliderRow(
+            label: 'Repel force',
+            value: state.repelForce,
+            min: -20000.0,
+            max: -100.0,
+            onChanged: notifier.setRepelForce,
+            isDark: isDark,
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              ),
+              onPressed: () => notifier.load(source: state.activeSource),
+              child: const Text('Animate', style: TextStyle(color: Colors.white, fontSize: 11)),
+            ),
+          ),
+        ],
       ),
     );
   }
