@@ -1223,6 +1223,9 @@ class _FloatingNodeInfo extends StatelessWidget {
       left: 80,
       child: GestureDetector(
         onTap: () {}, // Absorb taps
+        onScaleStart: (_) {}, // Absorb scale/pan start
+        onScaleUpdate: (_) {}, // Absorb scale/pan update
+        onScaleEnd: (_) {}, // Absorb scale/pan end
         behavior: HitTestBehavior.opaque,
         child: Material(
           elevation: 12,
