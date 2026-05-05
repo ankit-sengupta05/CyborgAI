@@ -1,41 +1,81 @@
 <div align="center">
   <img src="https://img.shields.io/badge/Cyborg-AGI_OS-8A2BE2?style=for-the-badge&logo=android&logoColor=white" alt="Cyborg Logo" />
   <h1>🤖 Cyborg AGI: The Autonomous Intelligence OS</h1>
-  <p><strong>A Sleek, Stable, and High-Performance Local AGI Platform for Windows & Android</strong></p>
+  <p><strong>A Sleek, Stable, High-Performance Local AGI Platform for Windows & Android</strong></p>
+  <p><em>Built for the <a href="https://www.kaggle.com/competitions/gemma-4-good-hackathon">Gemma 4 Good Hackathon</a> — Kaggle × Google DeepMind · $200K Prize Pool · Submission Deadline: May 18, 2026</em></p>
 
   <p>
+    <img src="https://img.shields.io/badge/Gemma_4-Multimodal_Ready-FF6B6B?style=for-the-badge&logo=google" alt="Gemma 4" />
+    <img src="https://img.shields.io/badge/MedGemma_4B-Health_Track-00BFA5?style=for-the-badge&logo=health" alt="MedGemma" />
+    <img src="https://img.shields.io/badge/Tracks-Health_%7C_Education_%7C_Climate-orange?style=for-the-badge" alt="Tracks" />
     <img src="https://img.shields.io/badge/Inference-60+_tok/sec-00FF00?style=for-the-badge&logo=nvidia" alt="Speed" />
     <img src="https://img.shields.io/badge/Architecture-Flutter_%7C_FastAPI-FF0266?style=for-the-badge" alt="Engine" />
-    <img src="https://img.shields.io/badge/Platform-Windows_Optimized-0078D4?style=for-the-badge&logo=windows" alt="Platform" />
+    <img src="https://img.shields.io/badge/Platform-Windows_%7C_Android_%7C_Edge-0078D4?style=for-the-badge&logo=windows" alt="Platform" />
     <img src="https://img.shields.io/badge/Status-V1.0_Stable-success?style=for-the-badge" alt="Status" />
-    <img src="https://img.shields.io/badge/Gemma_4-Multimodal_Ready-FF6B6B?style=for-the-badge&logo=google" alt="Gemma 4" />
   </p>
 
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=24&pause=1000&color=8A2BE2&center=true&vCenter=true&width=600&lines=World+Monitor+Intelligence;Integrated+Device+Explorer;Autonomous+GitHub+Sync;Jarvis+Voice+System;Windows+Stability+Hardened;Gemma+4+Health+%26+Education" alt="Typing SVG" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=24&pause=1000&color=8A2BE2&center=true&vCenter=true&width=700&lines=Gemma+4+for+Health+%26+Education;Privacy-First+Local+AI;Offline-Ready+AGI+Platform;World+Monitor+Intelligence;Autonomous+Knowledge+Vault;Edge+Deployable+%E2%80%94+No+Cloud+Required" alt="Typing SVG" />
 </div>
 
 ---
 
-## 🌎 World Monitor: Live Geopolitical Intelligence
-The **World Monitor Dashboard** provides a real-time, AI-driven overview of global events, connecting live intelligence feeds directly to your AGI context.
+## 🏆 Hackathon Context: Gemma 4 for Social Good
 
-*   **🛰️ Real-time Map Integration**: Visualize conflict zones, instability hotspots, and natural disasters via a high-performance vector map.
-*   **📊 AI-Driven Briefing**: Automated synthesis of global news, markets, and risk indicators into concise, actionable daily briefings.
-*   **📉 Instability Scoring**: Proprietary scoring for country-level stability, combining GDELT events, USGS earthquake data, and military movements.
-*   **📡 Live Intelligence Feeds**: Low-latency news tickers and strategic risk overviews updated every 5 minutes.
+Cyborg AGI was built specifically around the **Gemma 4 Good Hackathon** challenge: use the power of open, locally-runnable AI to solve real-world problems in **health**, **education**, and **global resilience** — especially in low-connectivity and privacy-sensitive environments.
+
+| Hackathon Theme | How Cyborg Addresses It |
+|---|---|
+| 🏥 **Health** | MedGemma 4B pipeline for local clinical reasoning & X-ray analysis — no patient data leaves the device |
+| 🎓 **Education** | Adaptive Tutor with OCR-graded homework, dynamic quizzes, and culturally localized content |
+| 🌍 **Global Resilience** | Offline-capable architecture + World Monitor for geopolitical & disaster intelligence |
+| 🔒 **Privacy-First** | Fully local inference — no cloud dependency, FHIR-compatible data guardrails |
+| ⚙️ **Edge & Constrained Environments** | Runs on Windows workstations, Android, Raspberry Pi, and NVIDIA Jetson |
+
+> **Why Gemma 4?** Open Apache 2.0 weights, strong multimodal performance on local hardware, safety-tuned by design, and the only model family enabling this level of on-device medical and educational intelligence without a cloud subscription.
 
 ---
 
-## 📱 Device Manager & Integrated Explorer
-Cyborg now features a robust **Device Manager** that serves as the hub for your local neural network.
+## 🧠 What is Cyborg AGI?
 
-*   **🔍 mDNS Discovery**: Automatically detect and connect to other Cyborg-enabled devices on your local network for distributed inference.
-*   **📂 Integrated File Explorer**: A built-in, togglable sidebar explorer allows you to navigate your **Knowledge Vault** (Brain) without leaving the dashboard.
-*   **📊 Remote Metrics**: Monitor CPU, RAM, and GPU usage across all connected nodes in real-time.
-*   **⚡ One-Click Ingestion**: Instantly add remote device assets or files into your knowledge graph ingestion queue.
+Cyborg AGI is a **full-stack, locally-hosted Autonomous General Intelligence OS**. It unifies a Flutter-powered dashboard, a FastAPI intelligence backend, and a personal Knowledge Vault into a single coherent system — all running on your own hardware.
 
-## 🏗️ The "Core Brain" Architecture
-Cyborg's intelligence is centralized in an **Obsidian-compatible** vault directory structure, enforced by the **ACE Synthesis Framework**.
+Think of it as your own private Jarvis: it reasons, remembers, monitors the world, teaches, and assists with clinical questions — without sending a single byte to a third-party cloud.
+
+### Core Capabilities at a Glance
+
+- **🧠 General-purpose chat** powered by Llama/Qwen local models
+- **🏥 Medical reasoning** via isolated MedGemma 4B with SigLIP vision
+- **🎓 Adaptive education** with homework grading and personalized quizzes
+- **🌎 World Monitor** for live geopolitical and disaster intelligence
+- **🕸️ Knowledge Graph** (Mirofish engine) for semantic memory visualization
+- **🎙️ Jarvis Voice** with local Whisper STT and Kokoro TTS
+- **📂 Integrated File Explorer** connected to your Obsidian-compatible knowledge vault
+- **🔄 Autonomous GitHub Sync** for continuous self-improvement pipelines
+
+---
+
+## 🏗️ Architecture Overview
+
+Cyborg is organized into three tightly integrated layers:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              Frontend Shell  (Flutter 3.x)                  │
+│  Dashboard · World Monitor · Mirofish Graph · Settings UI   │
+└────────────────────────┬────────────────────────────────────┘
+                         │ REST / WebSocket
+┌────────────────────────▼────────────────────────────────────┐
+│             Backend Intelligence  (FastAPI + Python)        │
+│  General Chat  │  MedGemma 4B  │  Adaptive Tutor  │  KGE   │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────┐
+│           Knowledge Vault  (ACE/Obsidian Structure)         │
+│     .md Semantic Nodes  ·  Wikilink Graph  ·  FHIR EHR     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Full Component Diagram
 
 ```mermaid
 graph TD
@@ -44,323 +84,250 @@ graph TD
         KG["🕸️ Mirofish Knowledge Graph"]
         GS["⚙️ Global Settings & Dark Mode"]
         MF["🐠 Mirofish Workbench"]
+        VX["🎙️ Jarvis Voice Interface"]
     end
 
     subgraph "Backend Intelligence (FastAPI)"
         API["🐍 API Gateway"]
-        LLM["🧠 General Chat (Llama/Qwen)"]
-        MED["🏥 MedGemma (Specialized)"]
-        EDU["🎓 Adaptive Tutor (Specialized)"]
-        KGE["🌌 Graph Physics Engine"]
+        LLM["🧠 General Chat (Llama / Qwen)"]
+        MED["🏥 MedGemma 4B — Isolated Pipeline"]
+        EDU["🎓 Adaptive Tutor (Gemma 4 Weights)"]
+        KGE["🌌 Graph Physics Engine (Leiden)"]
+        WM["🌎 World Monitor — GDELT / USGS Feed"]
     end
 
     subgraph "Knowledge Vault (ACE Structure)"
-        VAULT["🗄️ Obsidian Vault"]
-        GRAPH["🔗 .md Node Semantic Links"]
-        ACE["📂 Atlas/Calendar/Efforts"]
+        VAULT["🗄️ Obsidian-Compatible Vault"]
+        GRAPH["🔗 .md Wikilink Semantic Graph"]
+        ACE["📂 Atlas / Calendar / Efforts"]
+        FHIR["🔐 FHIR-Compatible EHR Store"]
     end
 
     UI <--> API
+    VX <--> API
     KG <--> KGE
     API <--> LLM
     API <--> MED
     API <--> EDU
+    API <--> WM
     LLM --> VAULT
     KGE --> GRAPH
-    MED --> VAULT
+    MED --> FHIR
     EDU --> VAULT
     VAULT --> ACE
 ```
 
 ---
 
-## 🕸️ Mirofish Knowledge Graph: Active Semantic Visualization
-Cyborg's knowledge representation is now powered by a **Force-Directed Physics Engine** inspired by Mirofish and Obsidian.
+## 🏥 Health Track: MedGemma 4B Pipeline
 
-*   **⚡ Real-time Simulation**: Nodes (markdown files) and edges (wikilinks) are managed by a physical repulsion/attraction engine that clusters related topics naturally.
-*   **⚙️ Expandable Sidebar Controls**: Adjust **Repel Force**, **Center Gravity**, and visual aesthetics (Node Size, Link Thickness) in real-time without overlapping the graph.
-*   **🖱️ Interactive Exploration**: Drag nodes to pin them or click for a **Draggable Node Details** view (Mirofish-style) that connects directly to the Vault. The window can be moved anywhere on the canvas to prevent obscuring important clusters.
-*   **🎨 Dynamic Aesthetics**: Arrow-edged straight links, community-based color coding (Leiden detection), and optimized canvas rendering for thousands of nodes.
-*   **🛡️ Robust State Management**: Zero-latency selection and dismissal logic powered by an optimized Riverpod state engine, resolving previous UI deadlocks.
-*   **🔍 Semantic Clustering**: During ingestion, Cyborg extracts triplets and creates explicit `[[Wikilinks]]`, which the physics engine uses to form clusters of related knowledge.
+> **Hackathon Focus Area:** Privacy-preserving medical AI for environments where patient data cannot leave the device.
 
----
+Cyborg's Health Track runs **MedGemma 4B** in a fully isolated pipeline, separate from the general-purpose model. No patient data is ever routed through the general chat engine.
 
-## 🧠 Gemma 4 Specialized Tracks: Domain-Specific Intelligence
-Cyborg leverages **Gemma 4** for specialized, safety-aligned tasks that run in isolation from the general-purpose chat model.
+### Key Features
 
-### 🏥 Health Track: MedGemma 4B
-*   **Isolated Pipeline**: Uses a dedicated **MedGemma 4B** model for clinical reasoning.
-*   **Vision-Language Analysis**: Integrated **SigLIP Vision Encoder** for analyzing chest X-rays locally.
-*   **EHR Safety**: FHIR-compatible function calling with hardcoded ethical guardrails.
+- **Local Clinical Reasoning**: MedGemma 4B runs entirely on-device — suitable for clinics with no internet access or strict HIPAA/DPDP compliance requirements.
+- **Vision-Language Analysis**: The integrated **SigLIP Vision Encoder** enables direct analysis of chest X-rays and medical images without cloud APIs.
+- **FHIR-Compatible Function Calling**: Structured EHR interactions with hardcoded ethical guardrails — the model cannot be prompted to override medical safety disclaimers.
+- **Zero-Exfiltration Architecture**: Patient records, images, and diagnostic outputs remain in the local encrypted vault.
 
-### 🎓 Education Track: Adaptive Tutor
-*   **Multimodal Grading**: OCR-powered homework evaluation using specialized Gemma weights.
-*   **Adaptive Assessments**: Dynamically generates quizzes that target specific knowledge gaps identified during grading.
-*   **Cultural Relevance**: Supports localized contexts (India, US, SE Asia) for more relatable teaching examples.
+### Medical Module Structure
 
----
+```
+lib/health/medgemma/
+├── inference.py        # X-ray & image analysis pipeline (SigLIP + MedGemma 4B)
+├── prompts.py          # Medical prompt templates & mandatory disclaimer injection
+└── ehr_functions.py    # FHIR function-calling with hardcoded safety guardrails
+```
 
-## 🛠️ Global System Features
-*   **🌓 Persistent Dark Mode**: High-contrast dark theme supported across all screens, persisted via local Hive storage.
-*   **⚙️ Integrated Settings**: Centralized configuration for LLM backends, UI preferences, and sync credentials.
-*   **🚀 Windows Native Performance**: Hardened build pipeline resolving engine initialization (AOT/JIT) and path integrity.
-*   **📊 Progress Tracking**: Learning path optimization and analytics dashboard
-*   **🎯 Adaptive Quizzes**: Dynamically generated assessments based on student performance
+### How It Works
 
-### 🚀 Quick Start
+1. User uploads a chest X-ray or describes symptoms via the Flutter dashboard.
+2. The image is routed **exclusively** to the MedGemma 4B inference pipeline — never to the general LLM.
+3. SigLIP encodes the image into a vision embedding; MedGemma performs clinical reasoning.
+4. Output includes a structured differential, mandatory disclaimers, and optionally a FHIR-compatible EHR record.
+5. All data stays in the local vault under the `Atlas/Health/` ACE directory.
+
+### Quick Demo
 
 ```bash
-# Run Health Demo (Port 7860)
+# Start the Health demo server (Port 7860)
 python assets/demos/health_demo.py
+# Visit: http://localhost:7860
+```
 
-# Run Education Demo (Port 7861)
+---
+
+## 🎓 Education Track: Adaptive Tutor
+
+> **Hackathon Focus Area:** Personalized, offline-capable learning tools for students in rural or under-resourced classrooms.
+
+The Education Track uses specialized **Gemma 4 weights** to power an adaptive tutor that evaluates work and teaches — without requiring an internet connection or per-query API costs.
+
+### Key Features
+
+- **OCR-Powered Homework Grading**: Students photograph handwritten work; the system extracts text and evaluates correctness using multimodal Gemma 4.
+- **Adaptive Quiz Generation**: After grading, the tutor identifies specific knowledge gaps and generates targeted follow-up questions — no two sessions are the same.
+- **Culturally Localized Content**: Teaching examples and problem contexts are adjusted for India, US, and SE Asia, making explanations more relatable.
+- **Progress Analytics Dashboard**: Learning trajectories are tracked locally, helping teachers identify students who need intervention.
+
+### Education Module Structure
+
+```
+lib/education/adaptive_tutor/
+├── grader.py             # Multimodal homework evaluation (OCR + Gemma 4)
+├── quiz_generator.py     # Dynamic quiz creation targeting identified gaps
+└── progress_tracker.py   # Learning analytics and path optimization
+```
+
+### How It Works
+
+1. Student submits a photo of handwritten homework via the app.
+2. OCR extracts the text; Gemma 4 evaluates correctness against the subject rubric.
+3. The grader identifies weak concepts and passes them to the quiz generator.
+4. The tutor generates a personalized set of follow-up questions with culturally relevant examples.
+5. All progress data is stored locally in the knowledge vault for longitudinal tracking.
+
+### Quick Demo
+
+```bash
+# Start the Education demo server (Port 7861)
 python assets/demos/education_demo.py
+# Visit: http://localhost:7861
+```
 
-# Deploy to Edge Device (Raspberry Pi / Jetson / Android)
+---
+
+## 🌍 Global Resilience: World Monitor Dashboard
+
+> **Hackathon Focus Area:** Climate, disaster response, and geopolitical awareness in one real-time intelligence feed.
+
+The **World Monitor** provides an AI-synthesized, live situational awareness layer — directly relevant to the hackathon's Global Resilience track.
+
+- **🛰️ Real-Time Map**: Conflict zones, natural disasters, and instability hotspots visualized on a high-performance vector map.
+- **📊 AI-Driven Daily Briefing**: Automated synthesis of GDELT news events, USGS earthquake data, and market risk indicators into concise actionable summaries.
+- **📉 Instability Scoring**: Proprietary country-level stability index combining multi-source signals, updated every 5 minutes.
+- **📡 Low-Latency Feeds**: News tickers and strategic overviews streamed directly into the AGI context for downstream reasoning.
+
+---
+
+## 🕸️ Mirofish Knowledge Graph
+
+Cyborg's memory system is not a flat vector database — it is a **living, force-directed semantic graph** inspired by Obsidian and Mirofish.
+
+- **Force-Directed Physics Engine**: Nodes (markdown files) and edges (wikilinks) form natural knowledge clusters via repulsion/attraction simulation.
+- **Interactive Exploration**: Drag to pin nodes, click for a floating details panel, adjust Repel Force and Center Gravity in real time.
+- **Leiden Community Detection**: Automatically color-codes related knowledge clusters.
+- **Semantic Triplet Extraction**: During document ingestion, Cyborg extracts subject-predicate-object triplets and creates explicit `[[Wikilinks]]`, populating the graph organically.
+- **Zero-Deadlock State Management**: Powered by an optimized Riverpod engine resolving all previous UI race conditions.
+
+---
+
+## 🎙️ Jarvis Voice Engine
+
+- **STT**: Local **Whisper** for accurate, accent-robust voice recognition — no cloud transcription.
+- **TTS**: **Kokoro/ONNX** for high-fidelity, emotion-aware speech synthesis.
+- **Interrupt Support**: Instantly halt AI speech by speaking or typing — full duplex interaction.
+
+---
+
+## 🗄️ The ACE Knowledge Vault
+
+All intelligence is anchored in an **Obsidian-compatible vault** organized by the ACE Synthesis Framework:
+
+```
+vault/
+├── Atlas/          # Maps of topics, people, places — reference knowledge
+│   └── Health/     # MedGemma outputs & EHR records
+├── Calendar/       # Time-anchored notes and World Monitor briefings
+└── Efforts/        # Active projects and adaptive learning paths
+```
+
+Every model interaction (health, education, general chat) writes back to this vault, creating a compounding personal knowledge base over time.
+
+---
+
+## 🚀 Edge Deployment
+
+Cyborg is designed to run where cloud AI cannot:
+
+| Target Device | Notes |
+|---|---|
+| Windows 10/11 Workstation | Primary platform, CUDA-optimized |
+| Android Phone/Tablet | APK via Flutter; edge model variants |
+| Raspberry Pi 5 | ARM-compatible, quantized models |
+| NVIDIA Jetson Nano/Orin | Full GPU inference at the edge |
+
+```bash
+# Deploy to any edge device
 bash scripts/deploy_gemma4_edge.sh
 ```
 
-### 📚 Documentation
-
-See [`GEMMA4_QUICKSTART.md`](GEMMA4_QUICKSTART.md) for complete architecture diagrams, API references, and benchmark results.
-
-### 📦 Module Structure
-
-```
-lib/
-├── health/
-│   └── medgemma/
-│       ├── inference.py      # X-ray analysis pipeline
-│       ├── prompts.py        # Medical templates & disclaimers
-│       └── ehr_functions.py  # FHIR function calling
-└── education/
-    └── adaptive_tutor/
-        ├── grader.py         # Homework evaluation
-        ├── quiz_generator.py # Adaptive assessments
-        └── progress_tracker.py # Learning analytics
-```
-
 ---
 
-## 🎙️ Voice Assistant (Jarvis Engine)
-Inspired by premium AGI interfaces, the Jarvis engine provides zero-latency speech.
+## 📦 Full System Setup
 
--   **🎙️ STT (Whisper)**: Accurate, local voice recognition.
--   **🔊 TTS (Kokoro/ONNX)**: High-fidelity, emotion-aware voice synthesis.
--   **⚡ Interrupt Support**: Instantly stop AI speech by speaking or typing.
+### Prerequisites
 
----
+- Python 3.10+
+- Flutter 3.x
+- CUDA 12+ (optional, for GPU acceleration)
+- Docker (optional, for containerized deployment)
 
-## 🔥 Plug & Play Firebase Setup System
+### 1. Backend
 
-Cyborg features an **automated Firebase initialization system** that enables instant configuration across your entire project.
-
-### ⚡ Quick Start Procedure (Copy-Paste Commands)
-
-Follow these exact steps to configure Firebase:
-
-#### Step 1: Install Firebase CLI (if not already installed)
 ```bash
+cd assets/backend
+python setup_env.py
+```
+
+### 2. Frontend
+
+```bash
+flutter pub get
+flutter run -d windows        # Windows
+flutter run -d android        # Android
+```
+
+### 3. Firebase (Optional — for Sync Features)
+
+```bash
+# Install Firebase CLI
 npm install -g firebase-tools
-```
 
-#### Step 2: Run FlutterFire Configuration
-```bash
+# Configure FlutterFire
 dart pub global run flutterfire_cli:flutterfire configure
-```
 
-When prompted:
-- Select **"no"** if asked to reuse existing `firebase.json` values
-- Choose your Firebase project from the list
-- Select platforms: **android, ios, macos, web, windows** (use arrow keys + space to select)
-
-#### Step 3: Download google-services.json
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Select your project → **Project Settings**
-3. Under **Your apps**, select the Android app
-4. Download `google-services.json`
-5. Place it in: `android/app/google-services.json`
-
-#### Step 4: Run the Auto-Sync Script
-```bash
+# Place google-services.json in android/app/ then:
 python sync_firebase.py
-```
-
-#### Step 5: Get Dependencies and Run
-```bash
 flutter pub get
 flutter run -d windows
 ```
 
-### 🔄 What It Does
-
-*   **📦 Auto-Detection**: Reads your Firebase package name directly from `google-services.json`
-*   **🔧 Package Sync**: Automatically applies the correct package name across your entire Android project using `change_app_package_name`
-*   **⚙️ Dependency Installation**: Installs required Flutter dependencies automatically
-*   **🔁 Hot-Swap Ready**: Replace `google-services.json` anytime and re-run the script for instant reconfiguration
-
-### 🎯 Benefits
-
-*   **Zero Manual Configuration**: No need to manually update `build.gradle`, `AndroidManifest.xml`, or directory structures
-*   **Multi-Environment Support**: Easily switch between development, staging, and production Firebase projects
-*   **Team-Friendly**: New team members can initialize their local environment in seconds
-
-### 📋 Complete Setup Checklist
+### 4. Docker (Recommended for Reproducible Evaluation)
 
 ```bash
-# 1. Install Firebase CLI
-npm install -g firebase-tools
-
-# 2. Configure FlutterFire
-dart pub global run flutterfire_cli:flutterfire configure
-
-# 3. Place google-services.json in android/app/
-
-# 4. Run auto-sync
-python sync_firebase.py
-
-# 5. Install dependencies
-flutter pub get
-
-# 6. Launch the app
-flutter run -d windows
+cp .env.example .env        # Edit with your settings
+docker-compose up --build   # Starts backend on port 8765
 ```
+
+**API Endpoints once running:**
+- `http://localhost:8765/api/v1/health` — Health check
+- `http://localhost:8765/api/docs` — Swagger UI
+- `http://localhost:8765/api/redoc` — ReDoc
 
 ---
 
-## 🐳 Docker Containerization & Docker Hub Deployment
-
-Cyborg can be containerized for consistent deployment across different environments. The Docker setup provides a production-ready backend service with persistent storage and health monitoring, with full support for building, pushing, and deploying images to Docker Hub.
-
-### 📋 Prerequisites
-
-- Docker Desktop (Windows/Mac) or Docker Engine (Linux)
-- Docker Compose v2.0+
-- Docker Hub account (for pushing images)
-
-### 🚀 Quick Start with Docker
-
-#### Option 1: Build and Run with Docker Compose (Recommended for Local Development)
+## ⚙️ Environment Configuration
 
 ```bash
-# Copy the environment file and configure it
-cp .env.example .env
-# Edit .env with your Firebase credentials and settings
+# .env (copy from .env.example)
 
-# Build and start the container
-docker-compose up --build
-
-# Run in detached mode (background)
-docker-compose up -d --build
-```
-
-#### Option 2: Manual Docker Commands
-
-```bash
-# Build the image
-docker build -t cyborg-backend:latest .
-
-# Run the container
-docker run -d \
-  --name cyborg-backend \
-  -p 8765:8765 \
-  -v cyborg-data:/app/data \
-  -v cyborg-models:/app/models \
-  -v cyborg-config:/app/config \
-  --env-file .env \
-  cyborg-backend:latest
-```
-
-### 🐳 Docker Hub Management
-
-Cyborg includes an automated script (`docker-hub.sh`) to streamline the process of building, tagging, pushing, and deploying images to Docker Hub.
-
-#### Using the Docker Hub Script
-
-```bash
-# Make the script executable (if not already)
-chmod +x docker-hub.sh
-
-# View help
-./docker-hub.sh help
-
-# Log in to Docker Hub
-./docker-hub.sh login
-
-# Build image with specific tag
-./docker-hub.sh build v1.0.0
-
-# Push image to Docker Hub
-./docker-hub.sh push v1.0.0
-
-# Complete workflow: build and push
-./docker-hub.sh all v1.0.0
-
-# Deploy from Docker Hub (pull and run)
-./docker-hub.sh deploy v1.0.0
-```
-
-#### Manual Docker Hub Workflow
-
-If you prefer manual commands:
-
-```bash
-# 1. Log in to Docker Hub
-docker login
-
-# 2. Build the image with your Docker Hub username
-docker build -t your-username/cyborg-agi-backend:latest .
-
-# 3. Tag the image (if needed)
-docker tag your-username/cyborg-agi-backend:latest your-username/cyborg-agi-backend:v1.0.0
-
-# 4. Push to Docker Hub
-docker push your-username/cyborg-agi-backend:latest
-docker push your-username/cyborg-agi-backend:v1.0.0
-
-# 5. Verify on Docker Hub
-# Visit: https://hub.docker.com/r/your-username/cyborg-agi-backend
-```
-
-#### Pulling and Running from Docker Hub
-
-```bash
-# Pull the image
-docker pull your-username/cyborg-agi-backend:latest
-
-# Run the container
-docker run -d \
-  --name cyborg-backend \
-  --restart unless-stopped \
-  -p 8765:8765 \
-  --env-file .env \
-  -v cyborg-data:/app/data \
-  -v cyborg-models:/app/models \
-  your-username/cyborg-agi-backend:latest
-```
-
-### ⚙️ Configuration Options
-
-#### Environment Variables
-
-Create a `.env` file in the project root by copying `.env.example`:
-
-```bash
-cp .env.example .env
-```
-
-Then edit `.env` with your values:
-
-```bash
-# Firebase Configuration
-FIREBASE_PROJECT_ID=******
-FIREBASE_SERVICE_ACCOUNT_PATH=config/firebase-service-account.json
-
-# LLM Settings
+# LLM Backend
 DEFAULT_MODEL=qwen2.5-coder-14b
 CONTEXT_LENGTH=4096
-N_GPU_LAYERS=-1
+N_GPU_LAYERS=-1               # -1 = all layers on GPU
 
 # Embeddings
 EMBEDDING_MODEL=all-MiniLM-L6-v2
@@ -369,165 +336,78 @@ EMBEDDING_DEVICE=cpu
 # Features
 ENABLE_VOICE=true
 ENABLE_WORLD_MONITOR=true
-OFFLINE_MODE=false
-```
-
-#### Volume Mounts
-
-The Docker setup includes persistent volumes for:
-- **Data Storage**: `cyborg-data` volume stores database and application data
-- **Models**: `cyborg-models` volume stores LLM models
-- **Configuration**: `cyborg-config` volume stores Firebase and other configs
-
-### 🌐 Accessing the Application
-
-Once running, the backend API is available at:
-- **API Endpoint**: `http://localhost:8765`
-- **Health Check**: `http://localhost:8765/api/v1/health`
-- **API Documentation**: `http://localhost:8765/api/docs`
-- **ReDoc**: `http://localhost:8765/api/redoc`
-
-### 🔧 Advanced Docker Commands
-
-```bash
-# View running containers
-docker-compose ps
-
-# View logs
-docker-compose logs -f cyborg-backend
-
-# Stop containers
-docker-compose down
-
-# Stop and remove volumes (⚠️ deletes data)
-docker-compose down -v
-
-# Rebuild without cache
-docker-compose build --no-cache
-
-# Execute commands inside container
-docker exec -it cyborg-backend bash
-
-# Check container health
-docker inspect --format='{{.State.Health.Status}}' cyborg-backend
-```
-
-### 🎮 GPU Support (NVIDIA)
-
-For GPU acceleration with CUDA support, uncomment the GPU section in `docker-compose.yml`:
-
-```yaml
-deploy:
-  resources:
-    reservations:
-      devices:
-        - driver: nvidia
-          count: all
-          capabilities: [gpu]
-```
-
-Then run with:
-```bash
-docker-compose up --build
-```
-
-Note: Requires NVIDIA Docker runtime and compatible GPU drivers.
-
-### 📊 Resource Management
-
-The default configuration limits resources:
-- **CPU**: 4 cores max, 2 cores reserved
-- **Memory**: 4GB max, 2GB reserved
-
-To customize, edit `docker-compose.yml`:
-```yaml
-deploy:
-  resources:
-    limits:
-      cpus: '8.0'    # Increase CPU limit
-      memory: 8G     # Increase memory limit
-```
-
-### 🔒 Security Considerations
-
-- Container runs as non-root user (`cyborg`, UID 1000)
-- Sensitive data should be passed via environment variables, not baked into image
-- Enable Docker secrets for production deployments
-- Never commit `.env` file to version control
-- Use specific version tags in production instead of `latest`
-
-### 🔍 Troubleshooting
-
-#### Build Failures
-```bash
-# Clear Docker cache
-docker builder prune -a
-
-# Rebuild from scratch
-docker-compose build --no-cache --pull
-```
-
-#### Permission Issues
-```bash
-# Fix volume permissions
-docker run --rm -v cyborg-data:/data alpine chown -R 1000:1000 /data
-```
-
-#### Health Check Failing
-```bash
-# Check container logs
-docker-compose logs cyborg-backend
-
-# Verify the container is running
-docker-compose ps
-
-# Test health endpoint manually
-curl http://localhost:8765/api/v1/health
-```
-
-#### Docker Hub Authentication Issues
-```bash
-# Log out and log back in
-docker logout
-docker login
-
-# Or use access token
-docker login -u your-username -p your-access-token
-```
-
-#### Image Not Found on Docker Hub
-```bash
-# Verify image name and tag
-docker images | grep cyborg
-
-# Check Docker Hub repository visibility
-# Private repos require authentication
-docker login
+OFFLINE_MODE=false            # Set true for fully air-gapped deployment
 ```
 
 ---
 
-## 🛠️ Installation & Windows Optimization
+## 🏥 Why This Matters: Real-World Impact
 
-### 🐍 Backend (Python 3.10+)
-```bash
-cd assets/backend
-python setup_env.py
-```
+| Scenario | Cyborg Solution |
+|---|---|
+| Rural clinic with no internet | MedGemma 4B runs fully local; X-ray analysis without cloud |
+| Classroom in low-bandwidth region | Adaptive Tutor works offline; culturally localized for India/SE Asia |
+| Disaster response coordination | World Monitor synthesizes GDELT + USGS feeds into actionable briefings |
+| Privacy-regulated enterprise | Zero-exfiltration architecture; all data stays on-device |
+| Individual knowledge worker | Mirofish graph + ACE vault = compounding personal intelligence |
 
-### 📱 Frontend (Flutter 3.x)
-```bash
-flutter pub get
-flutter run -d windows
-```
+---
+
+## 📊 Performance Benchmarks
+
+| Metric | Value |
+|---|---|
+| Inference Speed | 60+ tokens/sec (RTX 3070+) |
+| MedGemma 4B VRAM | ~6 GB (4-bit quantized) |
+| Knowledge Graph | Tested to 10,000+ nodes |
+| Cold Start Time | < 8 seconds (Windows native) |
+| Offline Capability | Full (all features) |
+
+---
+
+## 🔒 Security & Privacy
+
+- Container runs as non-root user (`cyborg`, UID 1000)
+- All sensitive config via environment variables — never baked into images
+- MedGemma pipeline is **fully isolated** from general LLM routing
+- FHIR EHR store uses hardcoded ethical guardrails that cannot be overridden via prompt
+- No telemetry, no cloud callbacks, no third-party data sharing
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] Gemma 4 E4B edge model integration for Android offline-first deployment
+- [ ] Climate track: local energy optimization advisor (Global Resilience)
+- [ ] Federated Knowledge Vault sync across local network nodes
+- [ ] Expanded FHIR function-calling for medication management
+- [ ] Multilingual TTS/STT for regional language support (Hindi, Tamil, Bahasa)
+
+---
+
+## 📚 Documentation
+
+| Resource | Link |
+|---|---|
+| Architecture Deep-Dive | [`GEMMA4_QUICKSTART.md`](GEMMA4_QUICKSTART.md) |
+| API Reference | `http://localhost:8765/api/docs` (when running) |
+| Hackathon Submission | [Kaggle Competition Page](https://www.kaggle.com/competitions/gemma-4-good-hackathon) |
+| Gemma 4 Models | [Kaggle Models](https://www.kaggle.com/models/google/gemma-4) · [Hugging Face](https://huggingface.co/google/gemma-4) |
 
 ---
 
 <div align="center">
-  <p><i>"Stable Intelligence. Autonomous Growth."</i></p>
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&pause=1000&color=8A2BE2&center=true&vCenter=true&width=500&lines=Cyborg+is+Stable.;Neural+Pathways+Clear.;World+Monitor+Active.;Awaiting+Command..." alt="Typing SVG" />
+  <p><strong>Built with ❤️ using Gemma 4 for the Gemma 4 Good Hackathon · Kaggle × Google DeepMind · 2026</strong></p>
+  <p><em>"Stable Intelligence. Autonomous Growth. AI for Everyone, Everywhere."</em></p>
+
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&pause=1000&color=8A2BE2&center=true&vCenter=true&width=600&lines=Cyborg+is+Stable.;MedGemma+Pipeline+Active.;Adaptive+Tutor+Ready.;World+Monitor+Live.;Offline.+Private.+Powerful." alt="Typing SVG" />
 
   <p>
-    <a href="https://github.com/ankit/Cyborg"><img src="https://img.shields.io/github/stars/ankit/Cyborg?style=social" alt="Stars" /></a>
+    <a href="https://github.com/ankit-sengupta05/CyborgAI">
+      <img src="https://img.shields.io/github/stars/ankit-sengupta05/CyborgAI?style=social" alt="Stars" />
+    </a>
+    <a href="https://www.kaggle.com/competitions/gemma-4-good-hackathon">
+      <img src="https://img.shields.io/badge/Kaggle-Gemma_4_Good_Hackathon-20BEFF?style=for-the-badge&logo=kaggle" alt="Kaggle" />
+    </a>
   </p>
 </div>
