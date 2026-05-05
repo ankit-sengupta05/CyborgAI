@@ -470,7 +470,9 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
                                 color: Theme.of(context).brightness == Brightness.dark
                                     ? AppColors.backgroundMain
                                     : const Color(0xFFF9FAFB),
-                                child: Stack(children: [
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
                                   _GraphCanvas(
                                     nodes: s.nodes,
                                     edges: s.edges,
@@ -1218,7 +1220,7 @@ class _FloatingNodeInfo extends StatelessWidget {
     
     return Positioned(
       top: 60,
-      right: 260, // Clear of the 250px sidebar
+      left: 80, // Positioned on the left to avoid sidebar interference
       child: Material(
         elevation: 12,
         borderRadius: BorderRadius.circular(10),
@@ -1252,12 +1254,9 @@ class _FloatingNodeInfo extends StatelessWidget {
                       child: Text(node.contentType.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
                     ),
                     const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 22, color: Color(0xFF9CA3AF)),
+                    CloseButton(
+                      color: const Color(0xFF9CA3AF),
                       onPressed: onClose,
-                      splashRadius: 20,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                     ),
                   ],
                 ),
