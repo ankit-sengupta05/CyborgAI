@@ -34,105 +34,76 @@ Cyborg now features a robust **Device Manager** that serves as the hub for your 
 *   **📊 Remote Metrics**: Monitor CPU, RAM, and GPU usage across all connected nodes in real-time.
 *   **⚡ One-Click Ingestion**: Instantly add remote device assets or files into your knowledge graph ingestion queue.
 
----
-
 ## 🏗️ The "Core Brain" Architecture
 Cyborg's intelligence is centralized in an **Obsidian-compatible** vault directory structure, enforced by the **ACE Synthesis Framework**.
 
 ```mermaid
 graph TD
-    subgraph "Frontend (Flutter Core)"
-        UI["📱 World Monitor UI"]
-        DE["📂 Device Explorer"]
-        GT["🌳 GSD Progress Tree"]
-        MF["🐠 MiroFish Workbench"]
+    subgraph "Frontend (Flutter Shell)"
+        UI["📱 Dashboard / World Monitor"]
+        KG["🕸️ Mirofish Knowledge Graph"]
+        GS["⚙️ Global Settings & Dark Mode"]
+        MF["🐠 Mirofish Workbench"]
     end
 
-    subgraph "Backend Engine (FastAPI)"
+    subgraph "Backend Intelligence (FastAPI)"
         API["🐍 API Gateway"]
-        SYNC["🔗 GitHub Sync Engine"]
-        VAULT["🗄️ Vault Service"]
-        LLM["🧠 Llama-cpp-python"]
-        INTEL["📡 Intel Service"]
+        LLM["🧠 General Chat (Llama/Qwen)"]
+        MED["🏥 MedGemma (Specialized)"]
+        EDU["🎓 Adaptive Tutor (Specialized)"]
+        KGE["🌌 Graph Physics Engine"]
     end
 
-    subgraph "Storage (Knowledge Vault - Vectorless RAG)"
-        ACE["📂 ACE/Atlas/Calendar/Efforts"]
-        GRAPH["🌌 Obsidian-style Knowledge Graph"]
-        KEEP[".gitkeep Sentinels"]
-        IGNORE[".gitignore Isolation"]
+    subgraph "Knowledge Vault (ACE Structure)"
+        VAULT["🗄️ Obsidian Vault"]
+        GRAPH["🔗 .md Node Semantic Links"]
+        ACE["📂 Atlas/Calendar/Efforts"]
     end
 
-    UI <-->|WebSockets| API
-    API <--> SYNC
-    API <--> VAULT
-    API <--> INTEL
+    UI <--> API
+    KG <--> KGE
+    API <--> LLM
+    API <--> MED
+    API <--> EDU
+    LLM --> VAULT
+    KGE --> GRAPH
+    MED --> VAULT
+    EDU --> VAULT
     VAULT --> ACE
-    VAULT --> GRAPH
-    SYNC --> GITHUB[(Private GitHub Repo)]
 ```
 
 ---
 
-## 🌌 Vectorless RAG & Native Vault Knowledge Graph
-Cyborg pioneers a fully offline, **Vectorless RAG (Retrieval-Augmented Generation)** methodology to manage long-term memory and knowledge graphs.
+## 🕸️ Mirofish Knowledge Graph: Active Semantic Visualization
+Cyborg's knowledge representation is now powered by a **Force-Directed Physics Engine** inspired by Mirofish and Obsidian.
 
-*   **🗄️ No Vector Database Needed**: Information ingested into Cyborg is contextually chunked and natively written into the local Vault as pure `.md` files.
-*   **🔗 Auto-Wikilinking**: Instead of abstract vector embeddings, an LLM extracts triplet relationships and creates explicit `[[Wikilinks]]` to your previous notes and concepts, naturally binding your knowledge together.
-*   **🕸️ Active Physics Engine**: A real-time, force-directed graph UI (similar to Obsidian) clusters your `.md` files via **Leiden/Louvain community detection**, scaling nodes based on their degree of connectedness.
-*   **📥 Multi-modal TrOCR Ingestion**: Drop `.pdf`, `.docx`, `.mp4` (Whisper transcription), and images straight into the system. Cyborg uses HuggingFace Transformers (TrOCR) locally to extract even handwritten text directly into your graph.
-*   **💬 Chat Persistence**: All your chat sessions and memories are automatically serialized into markdown files within the `Archive` folder, bridging the gap between conversational memory and your structured knowledge graph.
-
----
-
-## 📡 API Reference: The Cyborg Nexus
-
-### 🌍 Intelligence & World Monitor
-| Endpoint | Type | Description |
-|:---|:---|:---|
-| `/api/v1/intel/news` | `GET` | Fetches consolidated GDELT/USGS intelligence feeds |
-| `/api/v1/intel/scores` | `GET` | Returns country-level instability and risk indices |
-
-### 🗄️ Knowledge Vault & Sync
-| Endpoint | Type | Description |
-|:---|:---|:---|
-| `/api/v1/vault/notes` | `GET` | Lists all files in the **Brain** (ACE Structure) |
-| `/api/v1/vault/note/{path}` | `PUT` | Updates/Creates a note with automatic backlink updates |
-| `/api/v1/github/sync` | `POST` | Triggers a queue-based sync with retry logic |
-
-### 💬 Chat & Inference
-| Endpoint | Type | Description |
-|:---|:---|:---|
-| `/api/v1/chat/stream` | `WS` | Real-time token streaming with GPU offload detection |
-| `/api/v1/models/load` | `POST` | Dynamically swaps LLM (Qwen 2.5 / Llama 3) |
+*   **⚡ Real-time Simulation**: Nodes (markdown files) and edges (wikilinks) are managed by a physical repulsion/attraction engine that clusters related topics naturally.
+*   **⚙️ Expandable Sidebar Controls**: Adjust **Repel Force**, **Center Gravity**, and visual aesthetics (Node Size, Link Thickness) in real-time without overlapping the graph.
+*   **🖱️ Interactive Exploration**: Drag nodes to pin them or click for a **Floating Node Details** view (Mirofish-style) that connects directly to the Vault.
+*   **🎨 Dynamic Aesthetics**: Arrow-edged straight links, community-based color coding (Leiden detection), and optimized canvas rendering for thousands of nodes.
+*   **🔍 Semantic Clustering**: During ingestion, Cyborg extracts triplets and creates explicit `[[Wikilinks]]`, which the physics engine uses to form clusters of related knowledge.
 
 ---
 
-## 🔗 GitHub Synchronization Engine
-Cyborg enforces a **Local-First, Privacy-Preserving** sync strategy.
-
--   **ACE Framework**: Automated directory enforcement (`Atlas`, `Calendar`, `Efforts`).
--   **Structure Mirroring**: Uses `.gitkeep` sentinel files to ensure empty directory structures are preserved on remote repos.
--   **Strict Isolation**: Personal knowledge data is decoupled from the application source code via `.gitignore`, preventing accidental leaks.
--   **Resilient Sync**: Background worker with queue-based retry logic and 403-permission remediation.
-
----
-
-## 🧠 Gemma 4 Multimodal Extension: Health & Education Tracks
-
-Cyborg now includes **Gemma 4-powered multimodal capabilities** for specialized health and education applications, optimized for offline-first deployment on edge devices.
+## 🧠 Gemma 4 Specialized Tracks: Domain-Specific Intelligence
+Cyborg leverages **Gemma 4** for specialized, safety-aligned tasks that run in isolation from the general-purpose chat model.
 
 ### 🏥 Health Track: MedGemma 4B
-
-*   **🫁 Chest X-Ray Analysis**: Automated radiological assessment with vision encoder integration
-*   **📋 EHR Function Calling**: FHIR-compatible schema with safety guardrails and medical disclaimers
-*   **🔒 Privacy-First**: All inference runs locally; no patient data leaves the device
-*   **⚡ Edge Optimized**: Quantized GGUF format for Raspberry Pi 5 and Jetson Nano
+*   **Isolated Pipeline**: Uses a dedicated **MedGemma 4B** model for clinical reasoning.
+*   **Vision-Language Analysis**: Integrated **SigLIP Vision Encoder** for analyzing chest X-rays locally.
+*   **EHR Safety**: FHIR-compatible function calling with hardcoded ethical guardrails.
 
 ### 🎓 Education Track: Adaptive Tutor
+*   **Multimodal Grading**: OCR-powered homework evaluation using specialized Gemma weights.
+*   **Adaptive Assessments**: Dynamically generates quizzes that target specific knowledge gaps identified during grading.
+*   **Cultural Relevance**: Supports localized contexts (India, US, SE Asia) for more relatable teaching examples.
 
-*   **📝 Homework Grader**: OCR-powered evaluation with rubric-based scoring
-*   **🌍 Multi-Language Support**: English, Spanish, and Hindi with cultural relevance
+---
+
+## 🛠️ Global System Features
+*   **🌓 Persistent Dark Mode**: High-contrast dark theme supported across all screens, persisted via local Hive storage.
+*   **⚙️ Integrated Settings**: Centralized configuration for LLM backends, UI preferences, and sync credentials.
+*   **🚀 Windows Native Performance**: Hardened build pipeline resolving engine initialization (AOT/JIT) and path integrity.
 *   **📊 Progress Tracking**: Learning path optimization and analytics dashboard
 *   **🎯 Adaptive Quizzes**: Dynamically generated assessments based on student performance
 
