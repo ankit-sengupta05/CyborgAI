@@ -1250,12 +1250,12 @@ class _FloatingNodeInfo extends StatelessWidget {
                       child: Text(node.contentType.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
                     ),
                     const SizedBox(width: 8),
-                    InkWell(
+                    GestureDetector(
                       onTap: onClose,
-                      borderRadius: BorderRadius.circular(20),
-                      child: const Padding(
-                        padding: EdgeInsets.all(4),
-                        child: Icon(Icons.close, size: 20, color: Color(0xFF9CA3AF)),
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        child: const Icon(Icons.close, size: 20, color: Color(0xFF9CA3AF)),
                       ),
                     ),
                   ],
