@@ -2,7 +2,7 @@
   <img src="https://img.shields.io/badge/Cyborg-AGI_OS-8A2BE2?style=for-the-badge&logo=android&logoColor=white" alt="Cyborg Logo" />
   <h1>🤖 Cyborg AGI: The Autonomous Intelligence OS</h1>
   <p><strong>A Sleek, Stable, High-Performance Local AGI Platform for Windows & Android</strong></p>
-  <p><em>Built for the <a href="https://www.kaggle.com/competitions/gemma-4-good-hackathon">Gemma 4 Good Hackathon</a> — Kaggle × Google DeepMind · $200K Prize Pool · Submission Deadline: May 18, 2026</em></p>
+  <p><em>Built for the <a href="https://www.kaggle.com/competitions/gemma-4-good-hackathon">Gemma 4 Good Hackathon</a> — Kaggle × Google DeepMind </em></p>
 
   <p>
     <img src="https://img.shields.io/badge/Gemma_4-Multimodal_Ready-FF6B6B?style=for-the-badge&logo=google" alt="Gemma 4" />
