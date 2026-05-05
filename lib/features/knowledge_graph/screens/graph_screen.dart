@@ -1216,7 +1216,7 @@ class _FloatingNodeInfo extends StatelessWidget {
     
     return Positioned(
       top: 60,
-      right: 240, // Offset from community sidebar
+      right: 260, // Clear of the 250px sidebar
       child: Material(
         elevation: 12,
         borderRadius: BorderRadius.circular(10),
@@ -1250,11 +1250,13 @@ class _FloatingNodeInfo extends StatelessWidget {
                       child: Text(node.contentType.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
                     ),
                     const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 18, color: Color(0xFF9CA3AF)),
-                      onPressed: onClose,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                    InkWell(
+                      onTap: onClose,
+                      borderRadius: BorderRadius.circular(20),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(Icons.close, size: 20, color: Color(0xFF9CA3AF)),
+                      ),
                     ),
                   ],
                 ),
