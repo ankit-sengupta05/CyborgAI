@@ -1286,8 +1286,6 @@ class _FloatingNodeInfo extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Body ... (rest of the children will be here)
-              // Body
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -1353,7 +1351,11 @@ class _MiroRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(width: 80, child: Text(label, style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11))),
-        Expanded(child: Text(value, style: const TextStyle(color: Colors.black87, fontSize: 11, fontWeight: FontWeight.w500))),
+        Expanded(child: Text(value, style: TextStyle(
+          color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87, 
+          fontSize: 11, 
+          fontWeight: FontWeight.w500
+        ))),
       ],
     ),
   );
