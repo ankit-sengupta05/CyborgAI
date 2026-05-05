@@ -470,88 +470,87 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
                                 color: Theme.of(context).brightness == Brightness.dark
                                     ? AppColors.backgroundMain
                                     : const Color(0xFFF9FAFB),
-                                  Stack(children: [
-                                    _GraphCanvas(
-                                      nodes: s.nodes,
-                                      edges: s.edges,
-                                      search: s.search,
-                                      hiddenCommunities: s.hiddenCommunities,
-                                      onNodeTap: n.select,
-                                      selectedId: s.selectedId,
-                                      showLabels: s.showLabels,
-                                      repelForce: s.repelForce,
-                                      centerForce: s.centerForce,
-                                      nodeSize: s.nodeSize,
-                                      linkThickness: s.linkThickness,
-                                      showArrows: s.showArrows,
+                                child: Stack(children: [
+                                  _GraphCanvas(
+                                    nodes: s.nodes,
+                                    edges: s.edges,
+                                    search: s.search,
+                                    hiddenCommunities: s.hiddenCommunities,
+                                    onNodeTap: n.select,
+                                    selectedId: s.selectedId,
+                                    showLabels: s.showLabels,
+                                    repelForce: s.repelForce,
+                                    centerForce: s.centerForce,
+                                    nodeSize: s.nodeSize,
+                                    linkThickness: s.linkThickness,
+                                    showArrows: s.showArrows,
+                                  ),
+                                  if (selected != null)
+                                    _FloatingNodeInfo(
+                                      node: selected,
+                                      onClose: () => n.select(null),
                                     ),
-                                    if (selected != null)
-                                      _FloatingNodeInfo(
-                                        node: selected,
-                                        onClose: () => n.select(null),
-                                      ),
-                                  ]),
+                                ]),
                               )),
         Container(
-            width: 220,
+            width: 250,
             decoration: const BoxDecoration(
                 color: AppColors.surface,
                 border: Border(left: BorderSide(color: AppColors.border))),
-            child:
-              ExpansionTile(
-                initiallyExpanded: true,
-                title: const Text('COMMUNITIES',
-                    style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1)),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(
-                    height: 250,
-                    child: ListView(
-                        padding: EdgeInsets.zero,
-                        children: _communityItems(s, n)),
-                  ),
-                ],
-              ),
-              const Divider(height: 1),
-              ExpansionTile(
-                title: const Text('GRAPH SETTINGS',
-                    style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1)),
-                children: [
-                  _GraphSidebarControls(state: s, notifier: n),
-                ],
-              ),
-              const Divider(height: 1),
-              if (selected != null)
-                SizedBox(
-                    height: 180,
-                    child:
-                        SingleChildScrollView(child: _NodeInfo(node: selected)))
-              else if (s.selectedCommunity != null)
-                SizedBox(
-                    height: 180,
-                    child: SingleChildScrollView(
-                        child: _CommunityInfo(
-                            community: s.communities.firstWhere(
-                                (c) => c.id == s.selectedCommunity,
-                                orElse: () => KGCommunity(
-                                    id: s.selectedCommunity!,
-                                    nodeCount: 0,
-                                    name: 'Cluster ${s.selectedCommunity}',
-                                    summary: 'Loading...')))))
-              else
-                const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: Text('Click a node or cluster to inspect',
+                  ExpansionTile(
+                    initiallyExpanded: true,
+                    title: const Text('COMMUNITIES',
                         style: TextStyle(
-                            color: AppColors.textMuted, fontSize: 11))),
-            ])),
+                            color: AppColors.textMuted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1)),
+                    children: [
+                      SizedBox(
+                        height: 250,
+                        child: ListView(
+                            padding: EdgeInsets.zero,
+                            children: _communityItems(s, n)),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 1),
+                  ExpansionTile(
+                    title: const Text('GRAPH SETTINGS',
+                        style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1)),
+                    children: [
+                      _GraphSidebarControls(state: s, notifier: n),
+                    ],
+                  ),
+                  const Divider(height: 1),
+                  if (selected != null)
+                    _NodeInfo(node: selected)
+                  else if (s.selectedCommunity != null)
+                    _CommunityInfo(
+                        community: s.communities.firstWhere(
+                            (c) => c.id == s.selectedCommunity,
+                            orElse: () => KGCommunity(
+                                id: s.selectedCommunity!,
+                                nodeCount: 0,
+                                name: 'Cluster ${s.selectedCommunity}',
+                                summary: 'Loading...')))
+                  else
+                    const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Text('Click a node or cluster to inspect',
+                            style: TextStyle(
+                                color: AppColors.textMuted, fontSize: 11))),
+                ],
+              ),
+            )),
       ])),
     ]);
   }
