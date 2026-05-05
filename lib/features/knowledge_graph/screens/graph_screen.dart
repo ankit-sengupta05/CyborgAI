@@ -132,18 +132,21 @@ class GraphState {
     double? nodeSize,
     double? linkThickness,
     bool? showArrows,
+    bool clearSelectedId = false,
+    bool clearSelectedCommunity = false,
+    bool clearError = false,
   }) =>
       GraphState(
         nodes: nodes ?? this.nodes,
         edges: edges ?? this.edges,
         communities: communities ?? this.communities,
         loading: loading ?? this.loading,
-        selectedId: selectedId ?? this.selectedId,
-        selectedCommunity: selectedCommunity ?? this.selectedCommunity,
+        selectedId: clearSelectedId ? null : (selectedId ?? this.selectedId),
+        selectedCommunity: clearSelectedCommunity ? null : (selectedCommunity ?? this.selectedCommunity),
         search: search ?? this.search,
         hiddenCommunities: hiddenCommunities ?? this.hiddenCommunities,
         activeSource: activeSource ?? this.activeSource,
-        error: error,
+        error: clearError ? null : (error ?? this.error),
         initialized: initialized ?? this.initialized,
         showLabels: showLabels ?? this.showLabels,
         repelForce: repelForce ?? this.repelForce,
@@ -169,7 +172,11 @@ class GraphNotifier extends StateNotifier<GraphState> {
 
   Future<void> load({String source = 'vault'}) async {
     state = state.copyWith(
-        loading: true, activeSource: 'vault', error: null, selectedId: null);
+        loading: true, 
+        activeSource: 'vault', 
+        clearError: true, 
+        clearSelectedId: true,
+        clearSelectedCommunity: true);
     try {
       List<KGNode> nodes = [];
       List<KGEdge> edges = [];
@@ -247,9 +254,16 @@ class GraphNotifier extends StateNotifier<GraphState> {
   }
 
   void select(String? id) =>
-      state = state.copyWith(selectedId: id, selectedCommunity: null);
+      state = state.copyWith(
+        selectedId: id, 
+        clearSelectedId: id == null,
+        clearSelectedCommunity: true);
+
   void selectCommunity(int? id) =>
-      state = state.copyWith(selectedCommunity: id, selectedId: null);
+      state = state.copyWith(
+        selectedCommunity: id, 
+        clearSelectedCommunity: id == null,
+        clearSelectedId: true);
   void setSearch(String q) => state = state.copyWith(search: q);
   void toggleCommunity(int id) {
     final h = List<int>.from(state.hiddenCommunities);
@@ -553,17 +567,17 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
                   ),
                 ],
               ),
-                if (selected != null)
-                  _FloatingNodeInfo(
-                    node: selected,
-                    onClose: () {
-                      ref.read(graphProvider.notifier).select(null);
-                    },
-                  ),
-              ],
-            ),
+              if (selected != null)
+                _FloatingNodeInfo(
+                  node: selected,
+                  onClose: () {
+                    ref.read(graphProvider.notifier).select(null);
+                  },
+                ),
+            ],
           ),
-    ]);
+        ),
+      ]);
   }
 
   List<Widget> _communityItems(GraphState s, GraphNotifier n) {
@@ -1215,23 +1229,28 @@ class _ObsidianPainter extends CustomPainter {
   bool shouldRepaint(CustomPainter oldDelegate) => true;
 }
 
-// ── Floating Info Tab (Mirofish-style Reskinned) ──────────────────────────────
-class _FloatingNodeInfo extends StatelessWidget {
+class _FloatingNodeInfo extends StatefulWidget {
   final KGNode node;
   final VoidCallback onClose;
   const _FloatingNodeInfo({required this.node, required this.onClose});
 
   @override
+  State<_FloatingNodeInfo> createState() => _FloatingNodeInfoState();
+}
+
+class _FloatingNodeInfoState extends State<_FloatingNodeInfo> {
+  Offset _pos = const Offset(80, 60);
+
+  @override
   Widget build(BuildContext context) {
+    final node = widget.node;
     final color = AppColors.communityColors[node.community % AppColors.communityColors.length];
     
     return Positioned(
-      top: 60,
-      left: 80,
+      top: _pos.dy,
+      left: _pos.dx,
       child: GestureDetector(
-        onScaleStart: (_) {}, // Absorb scale/pan start
-        onScaleUpdate: (_) {}, // Absorb scale/pan update
-        onScaleEnd: (_) {}, // Absorb scale/pan end
+        onPanUpdate: (d) => setState(() => _pos += d.delta),
         behavior: HitTestBehavior.opaque,
         child: Material(
           elevation: 12,
@@ -1258,7 +1277,7 @@ class _FloatingNodeInfo extends StatelessWidget {
               children: [
                 // Header
                 Container(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+                  padding: const EdgeInsets.fromLTRB(16, 4, 4, 4),
                   decoration: BoxDecoration(
                     border: Border(
                       bottom: BorderSide(
@@ -1270,6 +1289,8 @@ class _FloatingNodeInfo extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
+                      const Icon(Icons.drag_indicator, size: 14, color: Color(0xFF9CA3AF)),
+                      const SizedBox(width: 8),
                       Text(
                         'Node Details', 
                         style: TextStyle(
@@ -1284,74 +1305,68 @@ class _FloatingNodeInfo extends StatelessWidget {
                         decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
                         child: Text(node.contentType.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
                       ),
-                      const SizedBox(width: 4),
-                      GestureDetector(
-                        onTap: onClose,
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          alignment: Alignment.center,
-                          child: const Icon(Icons.close, size: 20, color: Color(0xFF9CA3AF)),
+                      IconButton(
+                        onPressed: widget.onClose,
+                        tooltip: 'Close',
+                        icon: const Icon(Icons.close, size: 20, color: Color(0xFF9CA3AF)),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Properties', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      _MiroRow(label: 'Name', value: node.label),
+                      _MiroRow(label: 'Cluster', value: '#${node.community}'),
+                      _MiroRow(label: 'Degree', value: '${node.degree} connections'),
+                      const SizedBox(height: 16),
+                      const Text('Connected', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4), border: Border.all(color: color.withOpacity(0.3))),
+                            child: Text('Cluster ${node.community}', style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w500)),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(color: Colors.grey.withOpacity(0.1), borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.grey.withOpacity(0.3))),
+                            child: const Text('Entity', style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.w500)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 36,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accent,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                          ),
+                          onPressed: () => context.push('/vault'),
+                          child: const Text('Open in Vault', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                         ),
                       ),
                     ],
                   ),
                 ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Properties', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    _MiroRow(label: 'Name', value: node.label),
-                    _MiroRow(label: 'Cluster', value: '#${node.community}'),
-                    _MiroRow(label: 'Degree', value: '${node.degree} connections'),
-                    const SizedBox(height: 16),
-                    const Text('Connected', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4), border: Border.all(color: color.withOpacity(0.3))),
-                          child: Text('Cluster ${node.community}', style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w500)),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: Colors.grey.withOpacity(0.1), borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.grey.withOpacity(0.3))),
-                          child: const Text('Entity', style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.w500)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 36,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accent,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                        ),
-                        onPressed: () => context.push('/vault'),
-                        child: const Text('Open in Vault', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class _MiroRow extends StatelessWidget {

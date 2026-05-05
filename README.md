@@ -79,8 +79,9 @@ Cyborg's knowledge representation is now powered by a **Force-Directed Physics E
 
 *   **⚡ Real-time Simulation**: Nodes (markdown files) and edges (wikilinks) are managed by a physical repulsion/attraction engine that clusters related topics naturally.
 *   **⚙️ Expandable Sidebar Controls**: Adjust **Repel Force**, **Center Gravity**, and visual aesthetics (Node Size, Link Thickness) in real-time without overlapping the graph.
-*   **🖱️ Interactive Exploration**: Drag nodes to pin them or click for a **Floating Node Details** view (Mirofish-style) that connects directly to the Vault.
+*   **🖱️ Interactive Exploration**: Drag nodes to pin them or click for a **Draggable Node Details** view (Mirofish-style) that connects directly to the Vault. The window can be moved anywhere on the canvas to prevent obscuring important clusters.
 *   **🎨 Dynamic Aesthetics**: Arrow-edged straight links, community-based color coding (Leiden detection), and optimized canvas rendering for thousands of nodes.
+*   **🛡️ Robust State Management**: Zero-latency selection and dismissal logic powered by an optimized Riverpod state engine, resolving previous UI deadlocks.
 *   **🔍 Semantic Clustering**: During ingestion, Cyborg extracts triplets and creates explicit `[[Wikilinks]]`, which the physics engine uses to form clusters of related knowledge.
 
 ---
