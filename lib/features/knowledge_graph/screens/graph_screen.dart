@@ -1229,7 +1229,6 @@ class _FloatingNodeInfo extends StatelessWidget {
       top: 60,
       left: 80,
       child: GestureDetector(
-        onTap: () {}, // Absorb taps
         onScaleStart: (_) {}, // Absorb scale/pan start
         onScaleUpdate: (_) {}, // Absorb scale/pan update
         onScaleEnd: (_) {}, // Absorb scale/pan end
@@ -1286,12 +1285,15 @@ class _FloatingNodeInfo extends StatelessWidget {
                         child: Text(node.contentType.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
                       ),
                       const SizedBox(width: 4),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 20),
-                        color: const Color(0xFF9CA3AF),
-                        onPressed: onClose,
-                        splashRadius: 20,
-                        constraints: const BoxConstraints(),
+                      GestureDetector(
+                        onTap: onClose,
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.close, size: 20, color: Color(0xFF9CA3AF)),
+                        ),
                       ),
                     ],
                   ),
