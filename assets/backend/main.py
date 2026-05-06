@@ -41,6 +41,7 @@ from api.routes import (
     ingest as ingest_router,
     voice,
     health_edu as health_edu_router,
+    skills as skills_router,
 )
 from api.middleware.auth import FirebaseAuthMiddleware
 from services.database import init_db
@@ -54,6 +55,9 @@ from services.gsd_engine import GSDEngine
 from services.voice_service import VoiceService
 from services.github_service import GitHubService
 from services.ingestion_service import IngestionService
+from services.rag_service import RAGService
+from services.chat_sync_service import ChatSyncService
+from services.skills_service import SkillsService
 
 # Suppress pynvml deprecation warning from torch/cuda
 warnings.filterwarnings("ignore", category=FutureWarning, module="torch.cuda")
@@ -94,6 +98,24 @@ async def lifespan(app: FastAPI):
     app.state.graph_service = graph_svc
     log.info("[WAIT] Knowledge graph initializing in background...")
 
+    # RAG service (Active Retrieval-Augmented Generation)
+    rag_svc = RAGService(graph_svc, embedding_svc, vault_svc, llm_svc)
+    await rag_svc.initialize()
+    app.state.rag_service = rag_svc
+    log.info("[OK] RAG service ready")
+
+    # Chat Sync service (auto-ingest chat to KG)
+    chat_sync_svc = ChatSyncService(graph_svc, llm_svc, vault_svc)
+    await chat_sync_svc.start()
+    app.state.chat_sync_service = chat_sync_svc
+    log.info("[OK] Chat sync service ready")
+
+    # Skills service (dynamic skill creation & execution)
+    skills_svc = SkillsService(llm_svc)
+    await skills_svc.initialize()
+    app.state.skills_service = skills_svc
+    log.info("[OK] Skills service ready")
+
     # GitHub service (Sync & Integration)
     github_svc = GitHubService()
     await github_svc.initialize(vault_svc)
@@ -127,11 +149,24 @@ async def lifespan(app: FastAPI):
     app.state.ingestion_service = ingestion_service
     log.info("[OK] Ingestion service ready")
 
+    # Inject app.state into cross-window tools so they can access services
+    from agents.tools.window_tools import set_app_state as set_window_state
+    from agents.tools.rag_tools import set_app_state as set_rag_state
+    set_window_state(app.state)
+    set_rag_state(app.state)
+
     log.info("[OK] All services ready", host=settings.host, port=settings.port)
     yield
 
-    # Cleanup
+    # Cleanup — sync chat before shutdown
     log.info("[STOP] Shutting down...")
+
+    # Sync all pending chats to KG before shutdown
+    if hasattr(app.state, "chat_sync_service"):
+        log.info("[SYNC] Syncing pending chats to Knowledge Graph...")
+        await app.state.chat_sync_service.stop()
+        log.info("[OK] Chat sync complete")
+
     await world_svc.close()
     await llm_svc.cleanup()
     if hasattr(app.state, "voice_service"):
@@ -185,11 +220,14 @@ def create_app() -> FastAPI:
     app.include_router(ingest_router.router,       prefix="/api/v1/ingest",       tags=["Ingest"])
     app.include_router(voice.router,               prefix="/api/v1/voice",        tags=["Voice"])
     app.include_router(health_edu_router.router,   prefix="/api/v1",              tags=["Health & Education"])
+    app.include_router(skills_router.router,       prefix="/api/v1/skills",       tags=["Skills"])
 
     @app.get("/api/v1/health")
     async def health():
         llm_svc = app.state.llm_service
         voice_svc = app.state.voice_service
+        rag_svc = app.state.rag_service
+        chat_sync = app.state.chat_sync_service
 
         status_msg = "online"
         if not llm_svc.is_ready or not voice_svc.is_ready:
@@ -201,10 +239,15 @@ def create_app() -> FastAPI:
             "llm_ready": llm_svc.is_ready,
             "cuda_active": llm_svc.cuda_active,
             "voice_ready": voice_svc.is_ready,
+            "rag_ready": rag_svc.is_ready,
+            "chat_sync": chat_sync.get_sync_status(),
+            "skills_count": len(app.state.skills_service.get_all_skills()),
             "offline_mode": settings.offline_mode,
             "details": {
                 "llm": "Ready" if llm_svc.is_ready else "Initializing models...",
-                "voice": "Ready" if voice_svc.is_ready else "Loading Whisper/Kokoro..."
+                "voice": "Ready" if voice_svc.is_ready else "Loading Whisper/Kokoro...",
+                "rag": "Ready" if rag_svc.is_ready else "Initializing RAG...",
+                "chat_sync": "Running" if chat_sync._running else "Stopped",
             }
         }
 
@@ -215,6 +258,13 @@ def create_app() -> FastAPI:
             status_code=500,
             content={"error": "Internal server error", "detail": str(exc)},
         )
+
+    # Serve static frontend (for Hugging Face Spaces / Web deployment)
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    if os.path.exists(static_dir):
+        from fastapi.staticfiles import StaticFiles
+        app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+        log.info(f"[OK] Serving static web frontend from {static_dir}")
 
     return app
 

@@ -44,6 +44,8 @@ log = structlog.get_logger(__name__)
 class LLMService:
     def __init__(self):
         self._llm = None
+        self._tokenizer = None
+        self._model_type: Optional[str] = None  # 'gguf' or 'transformers'
         self._client = None
         self._current_model: Optional[str] = None
         self._current_model_path: Optional[str] = None
@@ -239,7 +241,8 @@ class LLMService:
 
     async def load_model(
         self, model_path: str, n_ctx: int = 4096, n_gpu_layers: int = -1,
-        n_threads: Optional[int] = None, n_batch: int = 512
+        n_threads: Optional[int] = None, n_batch: int = 512,
+        quantization: int = 0  # 0=None, 4=4bit, 8=8bit
     ):
         async with self._lock:
             # Explicitly unload previous model to free VRAM
@@ -247,9 +250,69 @@ class LLMService:
                 log.info(f"Unloading previous model: {self._current_model}")
                 del self._llm
                 self._llm = None
+                self._tokenizer = None
                 self._is_ready = False
 
-            log.info(f"Loading model: {model_path}")
+            log.info(f"Loading model: {model_path} (quant={quantization}bit)")
+            
+            # Detect model type
+            p = Path(model_path)
+            if p.is_dir() or (p.suffix not in ['.gguf', '.litertlm', '.tflite', '.task']):
+                self._model_type = 'transformers'
+                await self._load_transformers_model(model_path, quantization)
+            else:
+                self._model_type = 'gguf'
+                await self._load_gguf_model(model_path, n_ctx, n_gpu_layers, n_threads, n_batch)
+
+    async def _load_transformers_model(self, model_path: str, quantization: int):
+        try:
+            import torch
+            from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+            
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            log.info(f"Loading transformers model on {device}")
+            
+            bnb_config = None
+            if quantization == 4:
+                bnb_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_compute_dtype=torch.float16,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_use_double_quant=True,
+                )
+            elif quantization == 8:
+                bnb_config = BitsAndBytesConfig(load_in_8bit=True)
+
+            def load():
+                tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+                model = AutoModelForCausalLM.from_pretrained(
+                    model_path,
+                    quantization_config=bnb_config,
+                    device_map="auto" if device == "cuda" else None,
+                    torch_dtype=torch.float16 if device == "cuda" else torch.float32,
+                    trust_remote_code=True
+                )
+                if device == "cpu":
+                    model = model.to("cpu")
+                return model, tokenizer
+
+            self._llm, self._tokenizer = await asyncio.get_event_loop().run_in_executor(
+                None, load
+            )
+            self._current_model = Path(model_path).name
+            self._current_model_path = model_path
+            self._is_ready = True
+            log.info(f"Transformers model loaded: {self._current_model}")
+        except Exception as e:
+            log.error(f"Failed to load transformers model: {e}")
+            self._llm = None
+            self._tokenizer = None
+            raise
+
+    async def _load_gguf_model(
+        self, model_path: str, n_ctx: int = 4096, n_gpu_layers: int = -1,
+        n_threads: Optional[int] = None, n_batch: int = 512
+    ):
             try:
                 import llama_cpp
                 from llama_cpp import Llama
@@ -345,8 +408,12 @@ class LLMService:
         use_direct = self._llm is not None and (not model or model == self._current_model)
 
         if use_direct:
-            async for tok in self._stream_direct(messages, temperature, max_tokens):
-                yield tok
+            if self._model_type == 'gguf':
+                async for tok in self._stream_direct_gguf(messages, temperature, max_tokens):
+                    yield tok
+            else:
+                async for tok in self._stream_direct_transformers(messages, temperature, max_tokens):
+                    yield tok
         elif self._client:
             async for tok in self._stream_via_server(messages, model, temperature, max_tokens):
                 yield tok
@@ -392,7 +459,47 @@ class LLMService:
         except Exception as e:
             yield f"\n\n❌ Stream error: {e}"
 
-    async def _stream_direct(self, messages, temperature, max_tokens) -> AsyncIterator[str]:
+    async def _stream_direct_transformers(self, messages, temperature, max_tokens) -> AsyncIterator[str]:
+        """HF Transformers direct inference."""
+        from transformers import TextIteratorStreamer
+        import torch
+        
+        # Build prompt from messages
+        prompt = ""
+        for m in messages:
+            role = m["role"]
+            content = m["content"]
+            if role == "system":
+                prompt += f"<|im_start|>system\n{content}<|im_end|>\n"
+            elif role == "user":
+                prompt += f"<|im_start|>user\n{content}<|im_end|>\n"
+            elif role == "assistant":
+                prompt += f"<|im_start|>assistant\n{content}<|im_end|>\n"
+        prompt += "<|im_start|>assistant\n"
+
+        inputs = self._tokenizer(prompt, return_tensors="pt").to(self._llm.device)
+        streamer = TextIteratorStreamer(self._tokenizer, skip_prompt=True, skip_special_tokens=True)
+        
+        def generate():
+            with torch.no_grad():
+                self._llm.generate(
+                    **inputs,
+                    streamer=streamer,
+                    max_new_tokens=max_tokens,
+                    temperature=temperature,
+                    do_sample=temperature > 0,
+                    pad_token_id=self._tokenizer.eos_token_id
+                )
+
+        loop = asyncio.get_event_loop()
+        loop.run_in_executor(None, generate)
+
+        for text in streamer:
+            if self._interrupt_chat:
+                break
+            yield text
+
+    async def _stream_direct_gguf(self, messages, temperature, max_tokens) -> AsyncIterator[str]:
         """llama-cpp-python direct inference — runs in thread pool."""
         loop = asyncio.get_event_loop()
         queue: asyncio.Queue = asyncio.Queue()

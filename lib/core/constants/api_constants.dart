@@ -1,6 +1,30 @@
+import 'package:flutter/foundation.dart';
+
 class ApiConstants {
-  static String baseUrl = 'http://127.0.0.1:8765/api/v1/';
-  static String wsBaseUrl = 'ws://127.0.0.1:8765/api/v1/';
+  static String? _baseUrlOverride;
+  static String? _wsBaseUrlOverride;
+
+  static String get baseUrl {
+    if (_baseUrlOverride != null) return _baseUrlOverride!;
+    if (kIsWeb) return '${Uri.base.origin}/api/v1/';
+    return 'http://127.0.0.1:8765/api/v1/';
+  }
+
+  static set baseUrl(String value) => _baseUrlOverride = value;
+
+  static String get wsBaseUrl {
+    if (_wsBaseUrlOverride != null) return _wsBaseUrlOverride!;
+    if (kIsWeb) {
+      final uri = Uri.base;
+      final protocol = uri.scheme == 'https' ? 'wss' : 'ws';
+      // In web, port might be empty
+      final portPart = uri.hasPort ? ':${uri.port}' : '';
+      return '$protocol://${uri.host}$portPart/api/v1/';
+    }
+    return 'ws://127.0.0.1:8765/api/v1/';
+  }
+
+  static set wsBaseUrl(String value) => _wsBaseUrlOverride = value;
 
   // Chat
   static const String chatStream = 'chat/stream';
@@ -74,4 +98,17 @@ class ApiConstants {
   static const String educationProgress = 'education/progress';
   static const String educationTrackSubmission = 'education/track-submission';
   static const String educationDemoConfig = 'education/demo-config';
+
+  // Skills
+  static const String skillsBase = 'skills';
+  static const String skillsList = 'skills/';
+  static const String skillsExecute = 'skills/execute';
+  static const String skillsCreate = 'skills/create';
+
+  // Chat Sync
+  static const String chatSyncStatus = 'chat/sync/status';
+  static const String chatSyncNow = 'chat/sync/now';
+
+  // Health check
+  static const String health = 'health';
 }

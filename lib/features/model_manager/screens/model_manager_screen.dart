@@ -1,7 +1,11 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
-import 'dart:io';
+import 'package:dio/dio.dart' as hf_dio;
+import 'dart:io' if (dart.library.html) 'package:cyborg/core/services/io_stubs.dart';
 import 'dart:convert';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/theme/app_theme.dart';
@@ -348,7 +352,7 @@ class ModelManagerNotifier extends StateNotifier<ModelManagerState> {
     state = state.copyWith(availableModels: updated);
 
     try {
-      if (Platform.isAndroid || Platform.isIOS) {
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
         // Direct download to mobile device bypassing the Windows backend
         final catalogEntry =
             _catalog.firstWhere((e) => e['id'] == id, orElse: () => {});
@@ -440,7 +444,7 @@ class ModelManagerNotifier extends StateNotifier<ModelManagerState> {
     state = state.copyWith(downloadedModels: loadingModels);
 
     try {
-      if (Platform.isAndroid || Platform.isIOS) {
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
         if (model.path != null) {
           await ref.read(inferenceBackendProvider).loadModel(model.path!);
         }
@@ -528,7 +532,7 @@ class ModelManagerNotifier extends StateNotifier<ModelManagerState> {
 
   Future<void> unloadModel(String id) async {
     try {
-      if (Platform.isAndroid || Platform.isIOS) {
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
         await ref.read(inferenceBackendProvider).stop();
       } else {
         await _dio.post('${ApiConstants.modelsUnload}/$id');
@@ -602,11 +606,16 @@ final modelManagerProvider =
   return ModelManagerNotifier(ref);
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// UI LAYER — LM Studio-style redesign
+// ═══════════════════════════════════════════════════════════════════════════
+
 class ModelManagerScreen extends ConsumerStatefulWidget {
   const ModelManagerScreen({super.key});
 
   @override
-  ConsumerState<ModelManagerScreen> createState() => _ModelManagerScreenState();
+  ConsumerState<ModelManagerScreen> createState() =>
+      _ModelManagerScreenState();
 }
 
 class _ModelManagerScreenState extends ConsumerState<ModelManagerScreen>
@@ -617,9 +626,6 @@ class _ModelManagerScreenState extends ConsumerState<ModelManagerScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _tabController.addListener(() {
-      ref.read(modelManagerProvider.notifier).setTab(_tabController.index);
-    });
   }
 
   @override
@@ -632,192 +638,283 @@ class _ModelManagerScreenState extends ConsumerState<ModelManagerScreen>
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Header with tabs
+        // ── Top bar ────────────────────────────────────────────
         Container(
-          color: AppColors.surface,
-          child: Column(
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: const BoxDecoration(
+            color: AppColors.backgroundSidebar,
+            border: Border(
+                bottom: BorderSide(color: AppColors.border, width: 1)),
+          ),
+          child: Row(
             children: [
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                child: Row(
-                  children: [
-                    const Icon(Icons.memory_outlined,
-                        color: AppColors.accent, size: 18),
-                    const SizedBox(width: 8),
-                    const Text('Model Manager',
-                        style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600)),
-                  ],
-                ),
+              const Icon(Icons.memory_outlined,
+                  color: AppColors.accent, size: 17),
+              const SizedBox(width: 8),
+              const Text('Models',
+                  style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600)),
+              const Spacer(),
+              _HdrBtn(
+                icon: Icons.search,
+                label: 'Browse HuggingFace',
+                onTap: () => _showHFDialog(context),
               ),
-              TabBar(
-                controller: _tabController,
-                labelColor: AppColors.accent,
-                unselectedLabelColor: AppColors.textSecondary,
-                indicatorColor: AppColors.accent,
-                indicatorWeight: 2,
-                labelStyle:
-                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                tabs: const [
-                  Tab(text: 'Browse'),
-                  Tab(text: 'Downloaded'),
-                  Tab(text: 'Server'),
-                ],
+              const SizedBox(width: 8),
+              _HdrBtn(
+                icon: Icons.folder_open_outlined,
+                label: 'Load File',
+                onTap: () => _pickFile(context),
               ),
             ],
           ),
         ),
-        const Divider(height: 1),
+        // ── Tab bar ────────────────────────────────────────────
+        Container(
+          color: AppColors.backgroundSidebar,
+          child: TabBar(
+            controller: _tabController,
+            labelColor: AppColors.accent,
+            unselectedLabelColor: AppColors.textTertiary,
+            indicatorColor: AppColors.accent,
+            indicatorWeight: 2,
+            indicatorSize: TabBarIndicatorSize.tab,
+            labelStyle: const TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w600),
+            unselectedLabelStyle: const TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w400),
+            tabs: const [
+              Tab(text: 'My Models'),
+              Tab(text: 'Server'),
+              Tab(text: 'Settings'),
+            ],
+          ),
+        ),
+        const Divider(height: 1, color: AppColors.border),
         Expanded(
           child: TabBarView(
             controller: _tabController,
             children: const [
-              _BrowseTab(),
-              _DownloadedTab(),
+              _MyModelsTab(),
               _ServerTab(),
+              _SettingsTab(),
             ],
           ),
         ),
       ],
     );
   }
-}
 
-class _BrowseTab extends ConsumerStatefulWidget {
-  const _BrowseTab();
-
-  @override
-  ConsumerState<_BrowseTab> createState() => _BrowseTabState();
-}
-
-class _BrowseTabState extends ConsumerState<_BrowseTab> {
-  final _searchController = TextEditingController();
-  final _repoController = TextEditingController();
-  String _selectedFilter = 'All';
-  static const _filters = ['All', 'Code', 'Text', 'Vision', 'Reasoning'];
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _repoController.dispose();
-    super.dispose();
+  void _showHFDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (_) => const _HFSearchDialog(),
+    );
   }
+
+  Future<void> _pickFile(BuildContext context) async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.any);
+    if (result?.files.single.path == null) return;
+    final path = result!.files.single.path!;
+    final ext = path.toLowerCase();
+    if (ext.endsWith('.gguf') ||
+        ext.endsWith('.bin') ||
+        ext.endsWith('.tflite') ||
+        ext.endsWith('.task') ||
+        ext.endsWith('.litertlm')) {
+      try {
+        await ref
+            .read(modelManagerProvider.notifier)
+            .loadCustomModel(path);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: const Row(children: [
+              Icon(Icons.check_circle,
+                  color: AppColors.accentGreen, size: 16),
+              SizedBox(width: 8),
+              Text('Model loaded'),
+            ]),
+            backgroundColor: AppColors.backgroundSurface,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8)),
+          ));
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('Failed: $e'),
+              backgroundColor: AppColors.accentRed));
+        }
+      }
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content:
+                Text('Select a valid model file (.gguf, .bin, etc)')));
+      }
+    }
+  }
+}
+
+// ─── Header Button ────────────────────────────────────────────────────────────
+
+class _HdrBtn extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _HdrBtn(
+      {required this.icon, required this.label, required this.onTap});
+
+  @override
+  State<_HdrBtn> createState() => _HdrBtnState();
+}
+
+class _HdrBtnState extends State<_HdrBtn> {
+  bool _h = false;
 
   @override
   Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _h = true),
+      onExit: (_) => setState(() => _h = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: _h
+                ? AppColors.backgroundSurface
+                : AppColors.backgroundInput.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(7),
+            border: Border.all(color: AppColors.border, width: 1),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(widget.icon,
+                  size: 14, color: AppColors.textSecondary),
+              const SizedBox(width: 6),
+              Text(widget.label,
+                  style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── My Models Tab ────────────────────────────────────────────────────────────
+
+class _MyModelsTab extends ConsumerWidget {
+  const _MyModelsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(modelManagerProvider);
     final notifier = ref.read(modelManagerProvider.notifier);
 
-    final filtered = state.availableModels.where((m) {
-      final matchesSearch = state.searchQuery.isEmpty ||
-          m.name.toLowerCase().contains(state.searchQuery.toLowerCase());
-      final matchesFilter = _selectedFilter == 'All' ||
-          m.taskType.toLowerCase().contains(_selectedFilter.toLowerCase());
-      return matchesSearch && matchesFilter;
-    }).toList();
+    if (state.downloadedModels.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.backgroundSurface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Icon(Icons.inbox_outlined,
+                  size: 30, color: AppColors.textTertiary),
+            ),
+            const SizedBox(height: 16),
+            const Text('No models loaded',
+                style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500)),
+            const SizedBox(height: 6),
+            const Text(
+                'Browse HuggingFace or load a local .gguf file',
+                style: TextStyle(
+                    color: AppColors.textTertiary, fontSize: 12)),
+          ],
+        ),
+      );
+    }
+
+    final loaded = state.downloadedModels
+        .where((m) => m.isLoaded)
+        .firstOrNull;
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
+        if (loaded != null)
+          _LoadedBanner(
+              model: loaded,
+              onUnload: () => notifier.unloadModel(loaded.id)),
+        // Column headers
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+          decoration: const BoxDecoration(
+              border: Border(
+                  bottom:
+                      BorderSide(color: AppColors.border, width: 1))),
+          child: Row(
             children: [
-              TextField(
-                controller: _searchController,
-                onChanged: notifier.setSearch,
-                style:
-                    const TextStyle(color: AppColors.textPrimary, fontSize: 13),
-                decoration: const InputDecoration(
-                  hintText: 'Search models...',
-                  prefixIcon: Icon(Icons.search, size: 16),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: _filters.map((f) {
-                    final isSelected = _selectedFilter == f;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(f),
-                        selected: isSelected,
-                        onSelected: (_) => setState(() => _selectedFilter = f),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 10),
-              // Manual Download Section
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Download from Hugging Face',
-                        style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _repoController,
-                            onSubmitted: (val) {
-                              if (val.isNotEmpty) {
-                                notifier.downloadModel(val);
-                                _repoController.clear();
-                              }
-                            },
-                            style: const TextStyle(
-                                color: AppColors.textPrimary, fontSize: 12),
-                            decoration: const InputDecoration(
-                              hintText: 'user/repo-id',
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 10),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: () {
-                            if (_repoController.text.isNotEmpty) {
-                              notifier.downloadModel(_repoController.text);
-                              _repoController.clear();
-                            }
-                          },
-                          child:
-                              const Text('Go', style: TextStyle(fontSize: 11)),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              const Expanded(
+                  child: Text('Model',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textTertiary,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5))),
+              SizedBox(
+                  width: 80,
+                  child: Text('Quant',
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textTertiary,
+                          fontWeight: FontWeight.w600))),
+              SizedBox(
+                  width: 70,
+                  child: Text('Size',
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textTertiary,
+                          fontWeight: FontWeight.w600))),
+              const SizedBox(width: 90),
             ],
           ),
         ),
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: filtered.length,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            itemCount: state.downloadedModels.length,
+            separatorBuilder: (_, __) => const Divider(
+                height: 1,
+                color: AppColors.border,
+                indent: 16,
+                endIndent: 16),
             itemBuilder: (context, i) {
-              return _ModelCard(
-                model: filtered[i],
-                onDownload: () => notifier.downloadModel(filtered[i].id),
+              final m = state.downloadedModels[i];
+              return _ModelRow(
+                model: m,
+                onLoad: () => notifier.loadModel(m.id),
+                onUnload: () => notifier.unloadModel(m.id),
               );
             },
           ),
@@ -827,431 +924,220 @@ class _BrowseTabState extends ConsumerState<_BrowseTab> {
   }
 }
 
-class _ModelCard extends StatelessWidget {
+class _LoadedBanner extends StatelessWidget {
   final ModelInfo model;
-  final VoidCallback onDownload;
-
-  const _ModelCard({required this.model, required this.onDownload});
-
-  static const _taskColors = {
-    'code': AppColors.accentGreen,
-    'vision': AppColors.accentPurple,
-    'reasoning': AppColors.accentOrange,
-  };
+  final VoidCallback onUnload;
+  const _LoadedBanner(
+      {required this.model, required this.onUnload});
 
   @override
   Widget build(BuildContext context) {
-    final taskColor = _taskColors[model.taskType] ?? AppColors.accent;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.accentGreen.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+            color: AppColors.accentGreen.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.play_circle_filled,
+              color: AppColors.accentGreen, size: 16),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text('Active: ${model.name}',
+                style: const TextStyle(
+                    color: AppColors.accentGreen,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600)),
+          ),
+          TextButton(
+            onPressed: onUnload,
+            child: const Text('Eject',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary)),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+class _ModelRow extends StatefulWidget {
+  final ModelInfo model;
+  final VoidCallback onLoad;
+  final VoidCallback onUnload;
+  const _ModelRow(
+      {required this.model,
+      required this.onLoad,
+      required this.onUnload});
+
+  @override
+  State<_ModelRow> createState() => _ModelRowState();
+}
+
+class _ModelRowState extends State<_ModelRow> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = widget.model;
+    final isLoaded = m.isLoaded;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        color: isLoaded
+            ? AppColors.accentGreen.withOpacity(0.04)
+            : _hovered
+                ? AppColors.backgroundSurface
+                : Colors.transparent,
+        child: Row(
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: taskColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    model.taskType == 'code'
-                        ? Icons.code
-                        : model.taskType == 'vision'
-                            ? Icons.visibility
-                            : Icons.smart_toy,
-                    color: taskColor,
-                    size: 18,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(model.name,
-                          style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          _Chip('${model.sizeGb.toStringAsFixed(1)} GB'),
-                          const SizedBox(width: 6),
-                          _Chip(model.quantization),
-                          const SizedBox(width: 6),
-                          _Chip(model.taskType, color: taskColor),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                _buildDownloadButton(),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(Icons.star, size: 14, color: AppColors.accentYellow),
-                const SizedBox(width: 4),
-                Text('${model.rating}',
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12)),
-                const SizedBox(width: 12),
-                const Icon(Icons.download_outlined,
-                    size: 14, color: AppColors.textMuted),
-                const SizedBox(width: 4),
-                Text(_formatDownloads(model.downloads),
-                    style: const TextStyle(
-                        color: AppColors.textMuted, fontSize: 12)),
-              ],
-            ),
-            if (model.downloadStatus == DownloadStatus.downloading) ...[
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(3),
-                child: LinearProgressIndicator(
-                  value: model.downloadProgress,
-                  minHeight: 4,
-                  backgroundColor: AppColors.surfaceVariant,
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(AppColors.accent),
-                ),
+            // Icon
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: (isLoaded
+                        ? AppColors.accentGreen
+                        : AppColors.textTertiary)
+                    .withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
               ),
-            ],
+              child: Icon(
+                isLoaded
+                    ? Icons.play_circle_filled
+                    : Icons.smart_toy_outlined,
+                color: isLoaded
+                    ? AppColors.accentGreen
+                    : AppColors.textTertiary,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Name + source
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(m.name,
+                      style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500),
+                      overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 2),
+                  Text(m.source,
+                      style: const TextStyle(
+                          color: AppColors.textTertiary,
+                          fontSize: 11)),
+                ],
+              ),
+            ),
+            // Quant chip
+            SizedBox(
+              width: 80,
+              child: _Chip(m.quantization,
+                  color: AppColors.accentBlue),
+            ),
+            // Size
+            SizedBox(
+              width: 70,
+              child: m.sizeGb > 0
+                  ? Text(
+                      '${m.sizeGb.toStringAsFixed(1)} GB',
+                      style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12))
+                  : const SizedBox.shrink(),
+            ),
+            // Actions (shown on hover or when loaded)
+            SizedBox(
+              width: 90,
+              child: m.isLoading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.accent))
+                  : (_hovered || isLoaded)
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (!isLoaded)
+                              _ActionBtn(
+                                  icon: Icons.play_arrow,
+                                  label: 'Load',
+                                  color: AppColors.accent,
+                                  onTap: widget.onLoad)
+                            else
+                              _ActionBtn(
+                                  icon: Icons.eject,
+                                  label: 'Eject',
+                                  color: AppColors.textSecondary,
+                                  onTap: widget.onUnload),
+                          ],
+                        )
+                      : const SizedBox.shrink(),
+            ),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildDownloadButton() {
-    switch (model.downloadStatus) {
-      case DownloadStatus.notDownloaded:
-        return ElevatedButton.icon(
-          icon: const Icon(Icons.download, size: 14),
-          label: const Text('Download', style: TextStyle(fontSize: 12)),
-          onPressed: onDownload,
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          ),
-        );
-      case DownloadStatus.downloading:
-        return const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        );
-      case DownloadStatus.downloaded:
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.accentGreen.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.accentGreen.withOpacity(0.3)),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.check_circle_outline,
-                  size: 14, color: AppColors.accentGreen),
-              SizedBox(width: 4),
-              Text('Downloaded',
-                  style: TextStyle(color: AppColors.accentGreen, fontSize: 11)),
-            ],
-          ),
-        );
-    }
-  }
-
-  String _formatDownloads(int count) {
-    if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}k';
-    return '$count';
-  }
 }
 
-class _Chip extends StatelessWidget {
+class _ActionBtn extends StatelessWidget {
+  final IconData icon;
   final String label;
-  final Color? color;
-  const _Chip(this.label, {this.color});
+  final Color color;
+  final VoidCallback onTap;
+  const _ActionBtn(
+      {required this.icon,
+      required this.label,
+      required this.color,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: (color ?? AppColors.textMuted).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10,
-          color: color ?? AppColors.textMuted,
-          fontWeight: FontWeight.w500,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 11,
+                    color: color,
+                    fontWeight: FontWeight.w600)),
+          ],
         ),
       ),
     );
   }
 }
 
-class _DownloadedTab extends ConsumerWidget {
-  const _DownloadedTab();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(modelManagerProvider);
-    final notifier = ref.read(modelManagerProvider.notifier);
-    final loadedModel = state.downloadedModels.firstWhere((m) => m.isLoaded,
-        orElse: () => const ModelInfo(
-            id: '', name: '', sizeGb: 0, quantization: '', taskType: ''));
-
-    return Column(
-      children: [
-        if (loadedModel.id.isNotEmpty)
-          Container(
-            margin: const EdgeInsets.all(12),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.accentGreen.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.accentGreen.withOpacity(0.3)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.check_circle,
-                    color: AppColors.accentGreen, size: 18),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Loaded: ${loadedModel.name}',
-                    style: const TextStyle(
-                      color: AppColors.accentGreen,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => notifier.unloadModel(loadedModel.id),
-                  child: const Text('Unload', style: TextStyle(fontSize: 12)),
-                ),
-              ],
-            ),
-          ),
-        Expanded(
-          child: state.downloadedModels.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.inbox_outlined,
-                          size: 48, color: AppColors.textMuted),
-                      const SizedBox(height: 12),
-                      const Text('No models downloaded',
-                          style: TextStyle(color: AppColors.textSecondary)),
-                      const SizedBox(height: 6),
-                      const Text(
-                          'Browse the catalog to download models or load manually',
-                          style: TextStyle(
-                              color: AppColors.textMuted, fontSize: 12)),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.folder_open, size: 16),
-                        label: const Text('Load from folder'),
-                        onPressed: () async {
-                          final result = await FilePicker.platform.pickFiles(
-                            type: FileType.any,
-                          );
-                          if (result != null &&
-                              result.files.single.path != null) {
-                            final path = result.files.single.path!;
-                            final ext = path.toLowerCase();
-                            if (ext.endsWith('.gguf') ||
-                                ext.endsWith('.litertlm') ||
-                                ext.endsWith('.tflite') ||
-                                ext.endsWith('.task') ||
-                                ext.endsWith('.bin')) {
-                              try {
-                                await ref
-                                    .read(modelManagerProvider.notifier)
-                                    .loadCustomModel(path);
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                        content: Text('Failed to load: $e'),
-                                        backgroundColor: AppColors.accentRed),
-                                  );
-                                }
-                              }
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text(
-                                        'Please select a valid model file (.gguf, .litertlm, etc)')),
-                              );
-                            }
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                )
-              : Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          OutlinedButton.icon(
-                            icon: const Icon(Icons.folder_open, size: 14),
-                            label: const Text('Load Model from folder',
-                                style: TextStyle(fontSize: 12)),
-                            onPressed: () async {
-                              final result =
-                                  await FilePicker.platform.pickFiles(
-                                type: FileType.any,
-                              );
-                              if (result != null &&
-                                  result.files.single.path != null) {
-                                final path = result.files.single.path!;
-                                final ext = path.toLowerCase();
-                                if (ext.endsWith('.gguf') ||
-                                    ext.endsWith('.litertlm') ||
-                                    ext.endsWith('.tflite') ||
-                                    ext.endsWith('.task') ||
-                                    ext.endsWith('.bin')) {
-                                  try {
-                                    await ref
-                                        .read(modelManagerProvider.notifier)
-                                        .loadCustomModel(path);
-                                  } catch (e) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                            content: Text('Failed to load: $e'),
-                                            backgroundColor:
-                                                AppColors.accentRed),
-                                      );
-                                    }
-                                  }
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            'Please select a valid model file (.gguf, .litertlm, etc)')),
-                                  );
-                                }
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        itemCount: state.downloadedModels.length,
-                        itemBuilder: (context, i) {
-                          final model = state.downloadedModels[i];
-                          return ListTile(
-                            tileColor: model.isLoaded
-                                ? AppColors.accentGreen.withOpacity(0.05)
-                                : null,
-                            leading: Icon(
-                              model.isLoaded
-                                  ? Icons.play_circle_filled
-                                  : Icons.smart_toy_outlined,
-                              color: model.isLoaded
-                                  ? AppColors.accentGreen
-                                  : AppColors.textSecondary,
-                              size: 22,
-                            ),
-                            title: Text(model.name,
-                                style: const TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontSize: 13)),
-                            subtitle: Text(
-                              '${model.sizeGb.toStringAsFixed(1)} GB • ${model.quantization}',
-                              style: const TextStyle(
-                                  color: AppColors.textMuted, fontSize: 11),
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.folder_open_outlined,
-                                      size: 18, color: AppColors.textSecondary),
-                                  tooltip: 'Locate in File Explorer',
-                                  onPressed: () {
-                                    if (model.path != null) {
-                                      if (Platform.isWindows) {
-                                        Process.run('explorer.exe',
-                                            ['/select,', model.path!]);
-                                      } else {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          const SnackBar(
-                                              content: Text(
-                                                  'File exploring is only supported on Windows.')),
-                                        );
-                                      }
-                                    } else {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                            content:
-                                                Text('Model path is unknown.')),
-                                      );
-                                    }
-                                  },
-                                ),
-                                if (model.isLoaded)
-                                  IconButton(
-                                    icon: const Icon(Icons.stop_circle_outlined,
-                                        size: 18),
-                                    onPressed: () =>
-                                        notifier.unloadModel(model.id),
-                                  )
-                                else if (model.isLoading)
-                                  const Padding(
-                                    padding: EdgeInsets.all(12),
-                                    child: SizedBox(
-                                      width: 14,
-                                      height: 14,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: AppColors.accent),
-                                    ),
-                                  )
-                                else
-                                  IconButton(
-                                    icon:
-                                        const Icon(Icons.play_arrow, size: 18),
-                                    onPressed: () =>
-                                        notifier.loadModel(model.id),
-                                  ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-      ],
-    );
-  }
-}
+// ─── Server Tab ───────────────────────────────────────────────────────────────
 
 class _ServerTab extends ConsumerStatefulWidget {
   const _ServerTab();
@@ -1261,21 +1147,21 @@ class _ServerTab extends ConsumerStatefulWidget {
 }
 
 class _ServerTabState extends ConsumerState<_ServerTab> {
-  late TextEditingController _urlController;
+  final _urlCtrl = TextEditingController();
+  final _portCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    final state = ref.read(modelManagerProvider);
-    _urlController = TextEditingController(
-        text: state.serverUrl.contains(':')
-            ? 'http://${state.serverUrl}/v1'
-            : 'http://localhost:1234/v1');
+    final s = ref.read(modelManagerProvider);
+    _urlCtrl.text = s.serverUrl;
+    _portCtrl.text = s.serverPort.toString();
   }
 
   @override
   void dispose() {
-    _urlController.dispose();
+    _urlCtrl.dispose();
+    _portCtrl.dispose();
     super.dispose();
   }
 
@@ -1287,244 +1173,296 @@ class _ServerTabState extends ConsumerState<_ServerTab> {
     final isStarting = state.serverStatus == ServerStatus.starting;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Status card
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundSurface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                _StatusDot(
+                    running: isRunning, starting: isStarting),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isRunning
-                              ? AppColors.accentGreen
-                              : isStarting
-                                  ? AppColors.accentYellow
-                                  : AppColors.accentRed,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
                       Text(
                         isRunning
                             ? 'Server Running'
                             : isStarting
-                                ? 'Starting...'
+                                ? 'Starting…'
                                 : 'Server Stopped',
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: TextStyle(
+                            color: isRunning
+                                ? AppColors.accentGreen
+                                : isStarting
+                                    ? AppColors.accentYellow
+                                    : AppColors.textSecondary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  if (isRunning) ...[
-                    _ServerInfoRow('Endpoint',
-                        '${state.serverUrl}:${state.serverPort}/v1'),
-                    _ServerInfoRow('API Format', 'OpenAI Compatible'),
-                    _ServerInfoRow('Protocol', 'HTTP/WebSocket'),
-                  ],
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      if (!isRunning)
-                        ElevatedButton.icon(
-                          icon: const Icon(Icons.play_arrow, size: 16),
-                          label: const Text('Start Server'),
-                          onPressed: isStarting ? null : notifier.startServer,
-                        )
-                      else
-                        OutlinedButton.icon(
-                          icon: const Icon(Icons.stop, size: 16),
-                          label: const Text('Stop Server'),
-                          onPressed: notifier.stopServer,
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // External Server card
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Link External Server (LM Studio / Ollama)',
-                      style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5)),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _urlController,
-                          style: const TextStyle(
-                              color: AppColors.textPrimary, fontSize: 13),
-                          decoration: const InputDecoration(
-                            hintText: 'http://localhost:1234/v1',
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 12),
-                          ),
-                          onFieldSubmitted: (val) {
-                            if (val.isNotEmpty) {
-                              notifier.updateExternalServer(val);
-                            }
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      ElevatedButton(
-                        onPressed: isStarting
-                            ? null
-                            : () {
-                                if (_urlController.text.isNotEmpty) {
-                                  notifier.updateExternalServer(
-                                      _urlController.text);
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                        ),
-                        child: Text(isStarting ? '...' : 'Connect'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Connect to LM Studio, Ollama, or any OpenAI-compatible API.',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Config card
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Local Server Configuration',
-                      style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5)),
-                  const SizedBox(height: 14),
-                  // Model selection
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Model to Host',
-                            style: TextStyle(
-                                color: AppColors.textSecondary, fontSize: 13)),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.border),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: state.selectedModelForHosting ??
-                                  (state.downloadedModels.isNotEmpty
-                                      ? state.downloadedModels.first.path
-                                      : null),
-                              isExpanded: true,
-                              dropdownColor: AppColors.surface,
-                              style: const TextStyle(
-                                  color: AppColors.textPrimary, fontSize: 13),
-                              hint: const Text('Select a model...',
-                                  style: TextStyle(color: AppColors.textMuted)),
-                              onChanged: isRunning || isStarting
-                                  ? null
-                                  : (val) {
-                                      notifier.setHostingModel(val);
-                                    },
-                              items: state.downloadedModels.map((m) {
-                                return DropdownMenuItem(
-                                  value: m.path,
-                                  child: Text(m.name,
-                                      overflow: TextOverflow.ellipsis),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const _ServerInfoRow('Host', '127.0.0.1'),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Port',
-                            style: TextStyle(
-                                color: AppColors.textSecondary, fontSize: 13)),
-                        SizedBox(
-                          width: 80,
-                          child: TextFormField(
-                            initialValue: state.serverPort.toString(),
-                            enabled: !isRunning && !isStarting,
-                            keyboardType: TextInputType.number,
+                      if (isRunning)
+                        Text(
+                            '${state.serverUrl}:${state.serverPort}',
                             style: const TextStyle(
-                                color: AppColors.textPrimary, fontSize: 13),
-                            decoration: const InputDecoration(
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 8),
-                            ),
-                            onChanged: (val) {
-                              final p = int.tryParse(val);
-                              if (p != null) {
-                                notifier.setServerPort(p);
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
+                                color: AppColors.textTertiary,
+                                fontSize: 12,
+                                fontFamily: 'monospace')),
+                    ],
                   ),
-                  _ConfigInputRow('Context Length', state.nCtx.toString(),
-                      (val) => notifier.setNCtx(int.tryParse(val) ?? 4096)),
-                  _ConfigInputRow(
-                      'GPU Layers (-1=Auto)',
-                      state.nGpuLayers.toString(),
-                      (val) => notifier.setNGpuLayers(int.tryParse(val) ?? -1)),
-                  _ConfigInputRow('Threads (0=Auto)', state.nThreads.toString(),
-                      (val) => notifier.setNThreads(int.tryParse(val) ?? 0)),
-                  _ConfigInputRow('Batch Size', state.nBatch.toString(),
-                      (val) => notifier.setNBatch(int.tryParse(val) ?? 512)),
-                ],
-              ),
+                ),
+                if (!isRunning)
+                  ElevatedButton(
+                    onPressed:
+                        isStarting ? null : notifier.startServer,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accentGreen,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(7)),
+                    ),
+                    child: Text(
+                        isStarting ? 'Starting…' : 'Start Server'),
+                  )
+                else
+                  OutlinedButton(
+                    onPressed: notifier.stopServer,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.accentRed,
+                      side: const BorderSide(
+                          color: AppColors.accentRed),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(7)),
+                    ),
+                    child: const Text('Stop'),
+                  ),
+              ],
             ),
+          ),
+          const SizedBox(height: 24),
+          _SectionLabel('CONFIGURATION'),
+          const SizedBox(height: 10),
+          _CfgRow(
+              label: 'Host URL',
+              child: _inputField(
+                  ctrl: _urlCtrl,
+                  hint: 'http://127.0.0.1',
+                  onSubmit: notifier.updateExternalServer)),
+          const SizedBox(height: 8),
+          _CfgRow(
+              label: 'Port',
+              child: SizedBox(
+                  width: 120,
+                  child: _inputField(
+                      ctrl: _portCtrl,
+                      hint: '1234',
+                      onSubmit: (v) {
+                        final p = int.tryParse(v);
+                        if (p != null) notifier.setServerPort(p);
+                      }))),
+          const SizedBox(height: 24),
+          _SectionLabel('MODEL FOR HOSTING'),
+          const SizedBox(height: 10),
+          if (state.downloadedModels.isEmpty)
+            const Text('No downloaded models.',
+                style: TextStyle(
+                    color: AppColors.textTertiary, fontSize: 12))
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: state.downloadedModels.map((m) {
+                final sel = state.selectedModelForHosting == m.path;
+                return GestureDetector(
+                  onTap: () => notifier.setHostingModel(m.path),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 120),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: sel
+                          ? AppColors.accent.withOpacity(0.12)
+                          : AppColors.backgroundSurface,
+                      borderRadius: BorderRadius.circular(7),
+                      border: Border.all(
+                          color: sel
+                              ? AppColors.accent
+                              : AppColors.border,
+                          width: 1),
+                    ),
+                    child: Text(m.name,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: sel
+                                ? AppColors.accent
+                                : AppColors.textSecondary,
+                            fontWeight: sel
+                                ? FontWeight.w600
+                                : FontWeight.w400)),
+                  ),
+                );
+              }).toList(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _inputField(
+      {required TextEditingController ctrl,
+      required String hint,
+      required void Function(String) onSubmit}) {
+    return TextField(
+      controller: ctrl,
+      style: const TextStyle(
+          color: AppColors.textPrimary, fontSize: 13),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(
+            color: AppColors.textTertiary, fontSize: 13),
+        filled: true,
+        fillColor: AppColors.backgroundInput,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(7),
+            borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(7),
+            borderSide: const BorderSide(
+                color: AppColors.accent, width: 1.5)),
+      ),
+      onSubmitted: onSubmit,
+    );
+  }
+}
+
+class _StatusDot extends StatelessWidget {
+  final bool running;
+  final bool starting;
+  const _StatusDot({required this.running, required this.starting});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = running
+        ? AppColors.accentGreen
+        : starting
+            ? AppColors.accentYellow
+            : AppColors.textTertiary;
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: running
+            ? [
+                BoxShadow(
+                    color: color.withOpacity(0.6), blurRadius: 8)
+              ]
+            : null,
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(text,
+        style: const TextStyle(
+            color: AppColors.textTertiary,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.2));
+  }
+}
+
+class _CfgRow extends StatelessWidget {
+  final String label;
+  final Widget child;
+  const _CfgRow({required this.label, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+            width: 110,
+            child: Text(label,
+                style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13))),
+        const SizedBox(width: 12),
+        Expanded(child: child),
+      ],
+    );
+  }
+}
+
+// ─── Settings Tab ─────────────────────────────────────────────────────────────
+
+class _SettingsTab extends ConsumerWidget {
+  const _SettingsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(modelManagerProvider);
+    final notifier = ref.read(modelManagerProvider.notifier);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionLabel('INFERENCE PARAMETERS'),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _ParamCard(
+                  label: 'Context (n_ctx)',
+                  value: state.nCtx.toString(),
+                  onChanged: (v) {
+                    final i = int.tryParse(v);
+                    if (i != null) notifier.setNCtx(i);
+                  }),
+              _ParamCard(
+                  label: 'GPU Layers',
+                  hint: '-1 = all',
+                  value: state.nGpuLayers.toString(),
+                  onChanged: (v) {
+                    final i = int.tryParse(v);
+                    if (i != null) notifier.setNGpuLayers(i);
+                  }),
+              _ParamCard(
+                  label: 'Threads',
+                  hint: '0 = auto',
+                  value: state.nThreads.toString(),
+                  onChanged: (v) {
+                    final i = int.tryParse(v);
+                    if (i != null) notifier.setNThreads(i);
+                  }),
+              _ParamCard(
+                  label: 'Batch Size',
+                  value: state.nBatch.toString(),
+                  onChanged: (v) {
+                    final i = int.tryParse(v);
+                    if (i != null) notifier.setNBatch(i);
+                  }),
+            ],
           ),
         ],
       ),
@@ -1532,36 +1470,61 @@ class _ServerTabState extends ConsumerState<_ServerTab> {
   }
 }
 
-class _ConfigInputRow extends StatelessWidget {
+class _ParamCard extends StatelessWidget {
   final String label;
   final String value;
-  final Function(String) onChanged;
-  const _ConfigInputRow(this.label, this.value, this.onChanged);
+  final String? hint;
+  final void Function(String) onChanged;
+  const _ParamCard(
+      {required this.label,
+      required this.value,
+      this.hint,
+      required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Container(
+      width: 180,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundSurface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
               style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 13)),
-          SizedBox(
-            width: 80,
-            child: TextFormField(
-              initialValue: value,
-              keyboardType: TextInputType.number,
-              style:
-                  const TextStyle(color: AppColors.textPrimary, fontSize: 13),
-              decoration: const InputDecoration(
-                isDense: true,
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              ),
-              onChanged: onChanged,
+                  color: AppColors.textTertiary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600)),
+          if (hint != null)
+            Text(hint!,
+                style: const TextStyle(
+                    color: AppColors.textTertiary, fontSize: 10)),
+          const SizedBox(height: 6),
+          TextField(
+            controller: TextEditingController(text: value),
+            style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 13,
+                fontFamily: 'monospace'),
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: AppColors.backgroundInput,
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 8, vertical: 6),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(5),
+                  borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(5),
+                  borderSide: const BorderSide(
+                      color: AppColors.accent, width: 1.5)),
             ),
+            onSubmitted: onChanged,
           ),
         ],
       ),
@@ -1569,30 +1532,706 @@ class _ConfigInputRow extends StatelessWidget {
   }
 }
 
-class _ServerInfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-  const _ServerInfoRow(this.label, this.value);
+// ─── HuggingFace Search Dialog ────────────────────────────────────────────────
+
+class _HFSearchDialog extends StatefulWidget {
+  const _HFSearchDialog();
+
+  @override
+  State<_HFSearchDialog> createState() => _HFSearchDialogState();
+}
+
+class _HFSearchDialogState extends State<_HFSearchDialog> {
+  final _ctrl = TextEditingController();
+  final _dio = hf_dio.Dio();
+  List<Map<String, dynamic>> _results = [];
+  Map<String, dynamic>? _selected;
+  bool _loading = false;
+  bool _loadingDetail = false;
+  String? _error;
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _search('gguf llm');
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    _debounce?.cancel();
+    _dio.close();
+    super.dispose();
+  }
+
+  void _onChanged(String v) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 450), () {
+      _search(v.isEmpty ? 'gguf llm' : v);
+    });
+  }
+
+  Future<void> _search(String query) async {
+    if (!mounted) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final res = await _dio.get(
+        'https://huggingface.co/api/models',
+        queryParameters: {
+          'search': query,
+          'filter': 'gguf',
+          'sort': 'downloads',
+          'direction': -1,
+          'limit': 30,
+        },
+        options: hf_dio.Options(
+            headers: {'Accept': 'application/json'}),
+      );
+      if (!mounted) return;
+      final data = res.data as List;
+      setState(() {
+        _results = data
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Search failed. Check connection.';
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _selectModel(Map<String, dynamic> model) async {
+    setState(() {
+      _selected = model;
+      _loadingDetail = true;
+    });
+    try {
+      final id = model['id'] as String? ?? '';
+      final res = await _dio.get(
+          'https://huggingface.co/api/models/$id');
+      if (!mounted) return;
+      setState(() {
+        _selected =
+            Map<String, dynamic>.from(res.data as Map);
+        _loadingDetail = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingDetail = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: 860,
+          height: MediaQuery.of(context).size.height * 0.82,
+          decoration: BoxDecoration(
+            color: AppColors.backgroundSidebar,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 40)
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Column(
+              children: [
+                _buildHeader(),
+                const Divider(
+                    height: 1, color: AppColors.border),
+                Expanded(child: _buildBody()),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+          horizontal: 16, vertical: 10),
+      color: AppColors.backgroundSidebar,
       child: Row(
         children: [
-          SizedBox(
-            width: 130,
-            child: Text(label,
-                style:
-                    const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+                color: AppColors.accent.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(6)),
+            child: const Icon(Icons.search,
+                color: AppColors.accent, size: 16),
           ),
-          Text(value,
+          const SizedBox(width: 10),
+          const Text('Browse HuggingFace',
+              style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: TextField(
+              controller: _ctrl,
+              onChanged: _onChanged,
+              autofocus: true,
               style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
-                  fontFamily: 'JetBrainsMono')),
+                  color: AppColors.textPrimary, fontSize: 13),
+              decoration: InputDecoration(
+                hintText:
+                    'Search models (mistral, llama, gemma, phi…)',
+                hintStyle: const TextStyle(
+                    color: AppColors.textTertiary,
+                    fontSize: 13),
+                filled: true,
+                fillColor: AppColors.backgroundInput,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 8),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(7),
+                    borderSide: BorderSide.none),
+                prefixIcon: const Icon(Icons.search,
+                    color: AppColors.textTertiary, size: 16),
+                suffixIcon: _loading
+                    ? const Padding(
+                        padding: EdgeInsets.all(10),
+                        child: SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.accent)))
+                    : null,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: const Icon(Icons.close,
+                color: AppColors.textTertiary, size: 20),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBody() {
+    return Row(
+      children: [
+        Container(
+          width: 300,
+          decoration: const BoxDecoration(
+              border: Border(
+                  right: BorderSide(
+                      color: AppColors.border, width: 1))),
+          child: _buildList(),
+        ),
+        Expanded(child: _buildDetail()),
+      ],
+    );
+  }
+
+  Widget _buildList() {
+    if (_error != null) {
+      return Center(
+          child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(_error!,
+                  style: const TextStyle(
+                      color: AppColors.accentRed,
+                      fontSize: 13))));
+    }
+    if (_loading && _results.isEmpty) {
+      return const Center(
+          child: CircularProgressIndicator(
+              color: AppColors.accent, strokeWidth: 2));
+    }
+    if (_results.isEmpty) {
+      return const Center(
+          child: Text('No results',
+              style: TextStyle(
+                  color: AppColors.textTertiary)));
+    }
+
+    return ListView.builder(
+      itemCount: _results.length,
+      itemBuilder: (_, i) {
+        final m = _results[i];
+        final id = m['id'] as String? ?? '';
+        final dl = m['downloads'] as int? ?? 0;
+        final likes = m['likes'] as int? ?? 0;
+        final isSelected = _selected?['id'] == id;
+
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: () => _selectModel(m),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 100),
+              color: isSelected
+                  ? AppColors.accent.withOpacity(0.1)
+                  : Colors.transparent,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.backgroundSurface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: isSelected
+                              ? AppColors.accent.withOpacity(0.4)
+                              : AppColors.border),
+                    ),
+                    child: Icon(Icons.smart_toy_outlined,
+                        size: 15,
+                        color: isSelected
+                            ? AppColors.accent
+                            : AppColors.textTertiary),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          id.contains('/')
+                              ? id.split('/').last
+                              : id,
+                          style: TextStyle(
+                              color: isSelected
+                                  ? AppColors.accent
+                                  : AppColors.textPrimary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          id.contains('/')
+                              ? id.split('/').first
+                              : 'HuggingFace',
+                          style: const TextStyle(
+                              color: AppColors.textTertiary,
+                              fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.end,
+                    children: [
+                      Row(children: [
+                        const Icon(Icons.download_outlined,
+                            size: 11,
+                            color: AppColors.textTertiary),
+                        const SizedBox(width: 2),
+                        Text(_fmt(dl),
+                            style: const TextStyle(
+                                color: AppColors.textTertiary,
+                                fontSize: 10)),
+                      ]),
+                      Row(children: [
+                        const Icon(Icons.favorite_outline,
+                            size: 11,
+                            color: AppColors.textTertiary),
+                        const SizedBox(width: 2),
+                        Text(_fmt(likes),
+                            style: const TextStyle(
+                                color: AppColors.textTertiary,
+                                fontSize: 10)),
+                      ]),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetail() {
+    if (_selected == null) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.arrow_back_ios,
+                color: AppColors.textTertiary, size: 24),
+            SizedBox(height: 12),
+            Text('Select a model to view details',
+                style: TextStyle(
+                    color: AppColors.textTertiary,
+                    fontSize: 13)),
+          ],
+        ),
+      );
+    }
+    if (_loadingDetail) {
+      return const Center(
+          child: CircularProgressIndicator(
+              color: AppColors.accent, strokeWidth: 2));
+    }
+
+    final m = _selected!;
+    final id = m['id'] as String? ?? '';
+    final dl = m['downloads'] as int? ?? 0;
+    final likes = m['likes'] as int? ?? 0;
+    final tags = List<String>.from(m['tags'] ?? []);
+    final lastMod = m['lastModified'] as String? ?? '';
+    final siblings = (m['siblings'] as List? ?? [])
+        .map((s) => Map<String, dynamic>.from(s as Map))
+        .where((s) => (s['rfilename'] as String? ?? '')
+            .toLowerCase()
+            .endsWith('.gguf'))
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Model header
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      id.contains('/')
+                          ? id.split('/').last
+                          : id,
+                      style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(
+                          text:
+                              'https://huggingface.co/$id'));
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(const SnackBar(
+                              content: Text(
+                                  'URL copied to clipboard'),
+                              behavior:
+                                  SnackBarBehavior.floating));
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.backgroundSurface,
+                        borderRadius:
+                            BorderRadius.circular(7),
+                        border: Border.all(
+                            color: AppColors.border),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.open_in_new,
+                              size: 13,
+                              color: AppColors.textTertiary),
+                          SizedBox(width: 5),
+                          Text('Copy URL',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color:
+                                      AppColors.textTertiary)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                id.contains('/')
+                    ? id.split('/').first
+                    : 'HuggingFace',
+                style: const TextStyle(
+                    color: AppColors.accent, fontSize: 12),
+              ),
+              const SizedBox(height: 10),
+              Row(children: [
+                _StatPill(
+                    icon: Icons.download_outlined,
+                    label: _fmt(dl)),
+                const SizedBox(width: 8),
+                _StatPill(
+                    icon: Icons.favorite_outline,
+                    label: _fmt(likes)),
+                if (lastMod.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  _StatPill(
+                      icon: Icons.schedule,
+                      label: _fmtDate(lastMod)),
+                ],
+              ]),
+              if (tags.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: tags
+                      .take(8)
+                      .map((t) => _Chip(t))
+                      .toList(),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const Divider(height: 1, color: AppColors.border),
+        // GGUF files list
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              if (siblings.isNotEmpty) ...[
+                const Row(children: [
+                  Icon(Icons.download_outlined,
+                      size: 14,
+                      color: AppColors.textSecondary),
+                  SizedBox(width: 6),
+                  Text('GGUF Files',
+                      style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600)),
+                ]),
+                const SizedBox(height: 10),
+                ...siblings.map((f) =>
+                    _GGUFRow(modelId: id, file: f)),
+                const SizedBox(height: 20),
+              ],
+            ],
+          ),
+        ),
+        // CTA
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+              color: AppColors.backgroundSidebar,
+              border: Border(
+                  top: BorderSide(
+                      color: AppColors.border, width: 1))),
+          child: Consumer(builder: (ctx, ref, _) {
+            return SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.download, size: 16),
+                label: const Text('Add to Cyborg',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600)),
+                onPressed: () {
+                  ref
+                      .read(modelManagerProvider.notifier)
+                      .downloadModel(id);
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(SnackBar(
+                    content: Text(
+                        'Queued: ${id.split('/').last}'),
+                    backgroundColor:
+                        AppColors.backgroundSurface,
+                    behavior: SnackBarBehavior.floating,
+                  ));
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  String _fmt(int n) {
+    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
+    return '$n';
+  }
+
+  String _fmtDate(String iso) {
+    try {
+      final d = DateTime.parse(iso);
+      final diff = DateTime.now().difference(d).inDays;
+      if (diff == 0) return 'Today';
+      if (diff < 7) return '$diff days ago';
+      if (diff < 30) return '${diff ~/ 7}w ago';
+      return '${diff ~/ 30}mo ago';
+    } catch (_) {
+      return '';
+    }
+  }
+}
+
+class _GGUFRow extends StatefulWidget {
+  final String modelId;
+  final Map<String, dynamic> file;
+  const _GGUFRow({required this.modelId, required this.file});
+
+  @override
+  State<_GGUFRow> createState() => _GGUFRowState();
+}
+
+class _GGUFRowState extends State<_GGUFRow> {
+  bool _h = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = widget.file['rfilename'] as String? ?? '';
+    final size = widget.file['size'] as int? ?? 0;
+    final sizeStr =
+        size > 0 ? '${(size / 1e9).toStringAsFixed(2)} GB' : '';
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _h = true),
+      onExit: (_) => setState(() => _h = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(
+            horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: _h
+              ? AppColors.backgroundSurface
+              : AppColors.backgroundInput.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(7),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name,
+                      style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 12,
+                          fontFamily: 'monospace')),
+                  if (sizeStr.isNotEmpty)
+                    Text(sizeStr,
+                        style: const TextStyle(
+                            color: AppColors.textTertiary,
+                            fontSize: 11)),
+                ],
+              ),
+            ),
+            Consumer(builder: (ctx, ref, _) {
+              return GestureDetector(
+                onTap: () {
+                  ref
+                      .read(modelManagerProvider.notifier)
+                      .downloadModel(widget.modelId);
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(ctx)
+                      .showSnackBar(const SnackBar(
+                    content: Text('Download queued'),
+                    behavior: SnackBarBehavior.floating,
+                  ));
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text('Download',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600)),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Shared tiny widgets ──────────────────────────────────────────────────────
+
+class _Chip extends StatelessWidget {
+  final String label;
+  final Color? color;
+  const _Chip(this.label, {this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? AppColors.textTertiary;
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: c.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: c.withOpacity(0.2), width: 0.5),
+      ),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 10,
+              color: c,
+              fontWeight: FontWeight.w500)),
+    );
+  }
+}
+
+class _StatPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _StatPill({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: AppColors.textTertiary),
+        const SizedBox(width: 4),
+        Text(label,
+            style: const TextStyle(
+                color: AppColors.textTertiary, fontSize: 12)),
+      ],
     );
   }
 }

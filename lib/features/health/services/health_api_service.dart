@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:io' if (dart.library.html) 'package:cyborg/core/services/io_stubs.dart';
 import 'package:dio/dio.dart';
 import '../../../core/services/api_service.dart';
 

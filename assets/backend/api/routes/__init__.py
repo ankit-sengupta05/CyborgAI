@@ -13,6 +13,7 @@ from . import (
     ingest,
     voice,
     health_edu,
+    skills,
 )
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "ingest",
     "voice",
     "health_edu",
+    "skills",
 ]

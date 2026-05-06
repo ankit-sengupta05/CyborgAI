@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     debug: bool = False
     host: str = "127.0.0.1"
     port: int = 8765
-    allowed_origins: list[str] = ["http://localhost:*", "http://127.0.0.1:*"]
+    allowed_origins: list[str] = ["*"]  # Allow all for web/HF Space context
 
     # Paths (relative to backend root for portability)
     base_dir: Path = Path(__file__).parent.parent.absolute()

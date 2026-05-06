@@ -103,28 +103,10 @@ class IngestionService:
             log.error(f"Ingestion failed for {path.name}: {e}")
 
     async def _process_image(self, path: Path) -> str:
-        log.info(f"Running TrOCR on image: {path.name}")
-        try:
-            from transformers import TrOCRProcessor, VisionEncoderDecoderModel
-            from PIL import Image
-            import torch
-
-            # Load model lazily to avoid startup overhead
-            if not hasattr(self, "trocr_processor"):
-                log.info("Loading TrOCR model...")
-                self.trocr_processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten")
-                self.trocr_model = VisionEncoderDecoderModel.from_pretrained("microsoft/trocr-base-handwritten")
-
-            image = Image.open(str(path)).convert("RGB")
-            pixel_values = self.trocr_processor(images=image, return_tensors="pt").pixel_values
-
-            generated_ids = self.trocr_model.generate(pixel_values)
-            generated_text = self.trocr_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
-
-            return f"Extracted Text (TrOCR):\n{generated_text}"
-        except Exception as e:
-            log.error(f"TrOCR extraction failed: {e}")
-            return f"[Image OCR Failed: {str(e)}]"
+        log.info(f"Running OCR on image: {path.name}")
+        from services.utils.text_extractor import extract_text
+        result = await extract_text(path)
+        return result if result else f"[Image OCR: no text detected in {path.name}]"
 
     async def _process_audio(self, path: Path) -> str:
         # Use existing VoiceService (Whisper)
@@ -168,30 +150,9 @@ class IngestionService:
             return f"[Video Transcription Failed: {str(e)}]"
 
     async def _process_document(self, path: Path) -> str:
-        ext = path.suffix.lower()
-        if ext == ".txt":
-            return path.read_text(encoding="utf-8", errors="ignore")
-        elif ext == ".docx":
-            import docx
-            doc = docx.Document(path)
-            return "\n".join([p.text for p in doc.paragraphs])
-        elif ext == ".pdf":
-            from PyPDF2 import PdfReader
-            reader = PdfReader(path)
-            text = ""
-            for page in reader.pages:
-                text += page.extract_text() + "\n"
-            return text
-        elif ext == ".pptx":
-            from pptx import Presentation
-            prs = Presentation(str(path))
-            text_runs = []
-            for slide in prs.slides:
-                for shape in slide.shapes:
-                    if hasattr(shape, "text"):
-                        text_runs.append(shape.text)
-            return "\n".join(text_runs)
-        return f"[Document content for {path.name}]"
+        from services.utils.text_extractor import extract_text
+        result = await extract_text(path)
+        return result if result else f"[Could not extract text from {path.name}]"
 
     async def cleanup(self):
         self._is_running = False

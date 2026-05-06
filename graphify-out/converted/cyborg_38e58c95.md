@@ -1,0 +1,4855 @@
+<!-- converted from cyborg.docx -->
+
+# 🤖 Cyborg - Complete Product Requirements Document
+**Project Name:** Cyborg
+**Version:** 17.0 (Final Production-Ready)
+**Date:** April 21, 2026
+**Status:** ✅ Implementation-Ready
+
+> *A modular, scalable, local-first, 100% offline-functional cross-platform AGI system with GSD (Get Shit Done) for phased project structuring, Ralph for incremental model building, Graphify-style knowledge graph with Obsidian physics, CodeFlow code analysis, WorldMonitor observability (PRO features replaced with free alternatives), MiroFish simulation, and LM Studio-style interface. Features complete offline functionality, local LLM management (download/load/use any GGUF model), Windows Flutter app with relative paths, Android LightRT integration, zero-config installation, CUDA-aware PyTorch, Kubernetes deployment, LangGraph workflows, MediaPipe visual intelligence, autonomous PRD research, hierarchical task scheduling, app debugging, system automation, dedicated ingestion window with real-time progress, LM Studio-compatible model manager, and comprehensive device management. All external tools (GSD, Ralph, MiroFish, WorldMonitor, CodeFlow) integrated via downloaded source code working fully offline. Millisecond response times with intelligent query routing.*
+
+---
+
+## 📑 Table of Contents
+1. [Executive Summary & Vision](#1-executive-summary--vision)
+2. [Architecture & Modularity](#2-architecture--modularity)
+3. [Core Tech Stack](#3-core-tech-stack)
+4. [Feature Modules](#4-feature-modules)
+5. [UI/UX Specification & Design System](#5-uiux-specification--design-system)
+6. [Data Flow & LangGraph State Management](#6-data-flow--langgraph-state-management)
+7. [Deployment & DevOps Architecture](#7-deployment--devops-architecture)
+8. [Project Generation Engine with GSD & Ralph](#8-project-generation-engine-with-gsd--ralph)
+9. [Git, Linting & CI/CD Integration](#9-git-linting--cicd-integration)
+10. [Security, Privacy & Compliance](#10-security-privacy--compliance)
+11. [Performance, Concurrency & Scalability](#11-performance-concurrency--scalability)
+12. [Implementation Roadmap](#12-implementation-roadmap)
+13. [Success Metrics & Acceptance Criteria](#13-success-metrics--acceptance-criteria)
+14. [Appendix](#14-appendix)
+
+---
+
+## 1. Executive Summary & Vision
+
+### 🎯 Vision Statement
+`Cyborg` is a modular, event-driven, local-first intelligence platform that empowers users to build, manage, and deploy complex AI-powered projects entirely offline, with production-grade DevOps, advanced visualization, and seamless cross-device synchronization. The system integrates multiple open-source tools (GSD, Ralph, CodeFlow, WorldMonitor, MiroFish) via source code cloning and modification, ensuring all functionality works without internet dependency after initial setup.
+
+### 🔑 Core Principles
+- **100% Offline Functionality**: Every feature operates without internet after initial setup. All external tools are cloned, modified, and cached for offline use. No cloud APIs, no telemetry, no external dependencies during runtime.
+- **GSD Integration**: Phased project structuring (Plan → Research → Implement → Debug) via https://github.com/gsd-build/get-shit-done, modified for Cyborg integration and offline operation.
+- **Ralph Integration**: Incremental model building via https://github.com/snarktank/ralph, modified for Cyborg's build system and offline dependency resolution.
+- **Graphify-Style Knowledge Graph**: Colored nodes by community (12+ colors), Obsidian physics engine (charge: -30, link distance: 80px, collision: 20px), node READMEs with structured metadata and chunked data.
+- **External Tools Integration**: CodeFlow (code visualization), WorldMonitor (system observability with PRO→free replacement), MiroFish (multi-agent simulation) all integrated via source code cloning, modified for Cyborg sync, and working fully offline.
+- **LM Studio-Style Model Management**: Download tab (browse Hugging Face models), Downloaded Models tab (library management), Model Server tab (local inference server control) - all working locally without internet.
+- **Windows Portable Installation**: Flutter app bundled with complete backend folder using relative path resolution for true portability (USB drive, network share, etc.).
+- **Android LightRT Integration**: Fast local LLM inference on ARM64 devices using LightRT (optimized llama.cpp) with Vulkan GPU acceleration.
+- **Device Manager**: Centralized wireless device management with mDNS discovery, QUIC/TLS encrypted transport, and offline synchronization.
+- **Enhanced Ingestion Window**: Real-time progress visualization with ETA calculation, percentage display, step-by-step progress tracking, and detailed statistics for multimodal file ingestion.
+- **Millisecond Response Times**: Redis caching layer, parallel query execution, intelligent routing, and optimized data structures ensure sub-100ms response times for most operations.
+- **Privacy-First Architecture**: All processing occurs on-device, zero telemetry collection, encrypted storage at rest, and user-controlled data sharing.
+
+### 🌟 Key Differentiators
+| Feature | Cyborg Implementation | Industry Standard Gap |
+|---------|---------------------|---------------------|
+| **Offline Functionality** | 100% offline after setup with cached dependencies and local execution | Most AI systems require cloud APIs or internet connectivity |
+| **Project Management** | GSD phased approach + Ralph incremental building with offline task tracking | Basic task lists without phased methodology or incremental builds |
+| **Knowledge Graph** | Graphify visual style + Obsidian physics + node READMEs with metadata + multimodal ingestion | Simple graph views without physics, metadata, or multimodal support |
+| **Model Management** | LM Studio-style local model management with download, library, and server tabs | Cloud-only model hosting or basic local loaders without UI |
+| **External Tools** | Source code integration with PRO→free replacement, all working offline | API-dependent tools or paid SaaS offerings |
+| **Cross-Platform** | Windows (Flutter + relative paths) + Android (LightRT) with identical feature sets | Single platform focus or web-only solutions |
+| **Privacy** | All local processing, encrypted storage, zero telemetry, user-controlled sharing | Cloud processing with data collection and usage analytics |
+
+### 🎨 Design Philosophy
+Cyborg follows a "local-first, privacy-by-design" philosophy where:
+- All user data remains on-device unless explicitly shared
+- Internet connectivity is optional and only used for initial setup or optional sync
+- External tools are integrated via source code to ensure offline functionality
+- UI/UX prioritizes clarity, efficiency, and user control over flashy animations
+- Performance is optimized for local hardware with intelligent resource management
+
+---
+
+## 2. Architecture & Modularity
+
+### 🧩 High-Level Architecture Diagram
+```
+┌─────────────────────────────────────────────────┐
+│              CYBORG APP SHELL                    │
+│              (Flutter Frontend)                  │
+├─────────────────────────────────────────────────┤
+│  • LM Studio-Style Navigation (Sidebar)         │
+│  • Multi-Window Management System               │
+│  • Theme Engine (Obsidian Dark/Light)           │
+│  • State Bridge (Riverpod)                      │
+│  • Async Event Bus                              │
+│  • Intelligent Query Router                     │
+│  • Device Manager                               │
+│  • Model Management (LM Studio Compatible)      │
+│  • Offline-First Architecture                   │
+│  • Relative Path Resolution                     │
+└─────────────────────────────────────────────────┘
+│ loads via Plugin Registry
+┌────────▼────────────────────────────────────────┐
+│              MODULE PLUGINS                      │
+├─────────────────────────────────────────────────┤
+│  🛠️ Bootstrap & Initialization                   │
+│  🐳 Deployment & DevOps Engine                  │
+│  🏗️ Project Generation (GSD + Ralph)           │
+│  🔧 Git/Linting Integration                     │
+│  🗺️ lingbot-map Graph Engine (Graphify Style)  │
+│  📊 Graphify Visualization                      │
+│  💻 CodeFlow Code Visualization (Offline)       │
+│  🐟 MiroFish Simulation (Offline)               │
+│  🌍 WorldMonitor (Offline + Free Alternatives)  │
+│  📰 Global News Aggregator (Cached)             │
+│  📁 Knowledge Base Ingestion (Multimodal)       │
+│  💾 Device Manager & Sync                       │
+│  🤖 Agent Orchestrator                          │
+│  🕸️ Knowledge & RAG                             │
+│  📅 Task Scheduler (DAG)                        │
+│  🔍 Debugger & Auto-Heal                        │
+│  👁️ Visual Awareness & MediaPipe               │
+│  📑 PRD Research Engine                         │
+│  🔄 Cross-Device & Sync                         │
+│  🖥️ System Automation                           │
+│  🎙️ Voice & Output                              │
+│  📝 Report Generator                            │
+│  🤖 LM Studio Model Manager (Offline)           │
+│  🤖 Qwen Coder Engine                           │
+│  🛠️ GSD (Get Shit Done) Integration            │
+│  🔧 Ralph Integration                           │
+└─────────────────────────────────────────────────┘
+│ uses
+┌────────▼────────────────────────────────────────┐
+│              EXTERNAL TOOLS                      │
+│              (Source Code Integrated)            │
+├─────────────────────────────────────────────────┤
+│  • GSD: https://github.com/gsd-build/get-shit-done│
+│  • Ralph: https://github.com/snarktank/ralph    │
+│  • CodeFlow: https://github.com/braedonsaunders/codeflow│
+│  • WorldMonitor: https://github.com/koala73/worldmonitor│
+│  • MiroFish: https://github.com/666ghj/MiroFish │
+│  • All modified for Cyborg integration, 100% offline│
+└─────────────────────────────────────────────────┘
+```
+
+### 🔧 External Tools Integration Strategy (All Offline)
+| Tool | Integration Method | Offline Capability | Key Modifications | Data Flow |
+|------|-------------------|-------------------|------------------|-----------|
+| **GSD** | Clone to `external/gsd/` → Modify config → Phase-based project structuring | 100% offline - local execution | Replace API calls with local state management, add Cyborg sync hooks, implement offline task storage | User input → GSD phase manager → Local JSON storage → UI updates |
+| **Ralph** | Clone to `external/ralph/` → Modify config → Incremental model building | 100% offline - local execution | Integrate with Cyborg build system, add offline dependency resolution, implement local artifact caching | Module definition → Ralph build manager → Local build execution → Artifact storage |
+| **MiroFish** | Clone to `external/mirofish/` → Modify config → Multi-agent simulation | 100% offline - local simulation | Add LLM explanation side panel, Cyborg state sync, offline agent behavior definitions | Simulation parameters → MiroFish engine → Agent behaviors → Visualization + LLM analysis |
+| **WorldMonitor** | Clone to `external/worldmonitor/` → Replace PRO with free alternatives | 100% offline - cached data | PRO AI→Cyborg LLM, PRO Military→OpenSky ADS-B (cached), PRO Satellite→Celestrak (cached), implement data caching layer | Cached data sources → WorldMonitor engine → Visualization + Cyborg LLM analysis |
+| **CodeFlow** | Clone to `external/codeflow/` → Modify config → Code analysis | 100% offline - local analysis | Add LLM analysis side panel, Cyborg knowledge graph integration, offline dependency resolution | Source code → CodeFlow analyzer → Dependency graph + metrics → Visualization + LLM insights |
+| **LM Studio** | Use as reference → Implement local model management | 100% offline - local models | Full local implementation with GGUF support, no cloud dependencies, offline model metadata caching | Model files → Local inference server → API endpoints → Chat/completion interfaces |
+
+### 🔄 Data Flow Architecture
+```
+User Input
+│
+▼
+Intelligent Query Router
+│
+├───▶ GSD Module (if project management query)
+│       │
+│       ▼
+│   Phase-based task management
+│       │
+│       ▼
+│   Local JSON storage + UI updates
+│
+├───▶ Ralph Module (if build/development query)
+│       │
+│       ▼
+│   Incremental build execution
+│       │
+│       ▼
+│   Local artifact storage + progress tracking
+│
+├───▶ Knowledge Graph (if research/query)
+│       │
+│       ▼
+│   Graphify-style visualization + Obsidian physics
+│       │
+│       ▼
+│   Node README retrieval + multimodal search
+│
+├───▶ Model Manager (if LLM/model query)
+│       │
+│       ▼
+│   Local model loading + inference
+│       │
+│       ▼
+│   Response generation + streaming
+│
+└───▶ External Tools (if visualization/analysis)
+│
+▼
+CodeFlow/WorldMonitor/MiroFish
+│
+▼
+Original UI + Cyborg LLM side panel
+│
+▼
+Integrated response + visualization
+```
+
+---
+
+## 3. Core Tech Stack
+
+### 🖥️ Frontend (Flutter)
+| Component | Technology | Version | Purpose | Implementation Details |
+|-----------|-----------|---------|---------|---------------------|
+| **Framework** | Flutter | 3.19+ | Cross-platform UI with LM Studio-style layout | Single codebase for Windows/Android, adaptive theming, responsive layouts |
+| **State Management** | Riverpod | 2.4.9 | Reactive state management | Provider-based state with automatic rebuilds, testable architecture |
+| **Navigation** | go_router | 13.2.0 | Declarative routing | Type-safe navigation, deep linking, nested routes for complex UI |
+| **UI Components** | Fluent UI + Material 3 + Custom | Latest | LM Studio/Obsidian hybrid design | Platform-adaptive components, custom widgets for graph visualization |
+| **Graph Visualization** | webview_flutter + D3.js v7 | 4.4.2 + Latest | Graphify-style with Obsidian physics | WebView bridge for D3.js, custom physics parameters, real-time updates |
+| **Code Editor** | flutter_code_editor | 0.3.1 | Syntax-highlighted code editing | Language detection, linting integration, code folding, bracket matching |
+| **Voice UI** | flutter_sound + CustomPaint | 9.6.0 | Fluid blob/soundbar animations | Audio visualization with FFT, gesture recognition, offline STT/TTS |
+| **File Operations** | file_selector + path_provider | 0.9.3+2 + 2.1.1 | Native file dialogs, path management | Platform-specific file pickers, relative path resolution, portable installation |
+| **Security** | flutter_secure_storage + encrypt | 9.0.0 + 5.0.1 | Secure token storage, encryption | OS-level keychain/keystore integration, AES-256-GCM encryption |
+| **Offline Support** | hive + path | 2.2.3 + 1.8.3 | Local data storage, path resolution | NoSQL database for offline data, relative path management for portability |
+
+### 🐍 Backend (Python)
+| Component | Technology | Version | Purpose | Implementation Details |
+|-----------|-----------|---------|---------|---------------------|
+| **Orchestration** | LangGraph + langgraph-checkpoint-sqlite | Latest | Stateful multi-agent workflows | Checkpointed execution, streaming updates, human-in-the-loop gates |
+| **Concurrency** | asyncio + aiostream + concurrent.futures | Python 3.11+ | Non-blocking I/O, priority queues | Async-first architecture, task prioritization, resource isolation |
+| **Bootstrap** | uv (Astral) | Latest | Ultra-fast venv creation | 10-100x faster than pip, offline dependency resolution, portable environments |
+| **LLM Runtime** | llama-cpp-python + GGUF | Latest | Local LLM inference | GGUF model support, GPU offload, quantization options, streaming responses |
+| **Android LLM** | LightRT (llama.cpp Android fork) | Latest | Fast local LLM on ARM64 | Vulkan GPU acceleration, ARM64 optimization, memory-mapped loading |
+| **Vision** | MediaPipe + OpenCV + Tesseract | Latest | Facial/hand/pose tracking, OCR | Real-time landmark detection, gesture recognition, text extraction from images |
+| **Graph Engine** | networkx + leidenalg + D3.js | Latest | Community detection, force-directed layout | Leiden algorithm for community detection, D3.js for visualization, Obsidian physics |
+| **RAG** | SQLite FTS5 + sentence-transformers + open-clip | Latest | Hybrid search (vectorless + vector) | Full-text search with BM25, semantic search with embeddings, multimodal retrieval |
+| **Deployment** | Docker + Kubernetes + Helm | Latest | Containerization, orchestration | Multi-stage builds, resource limits, auto-scaling, service discovery |
+| **Networking** | NGINX + Istio + Redis + RabbitMQ | Latest | Load balancing, caching, queuing | Reverse proxy, service mesh, in-memory caching, message queuing |
+| **Storage** | SQLCipher + libsodium | AES-256-GCM | Encrypted storage | Transparent database encryption, key management, secure data at rest |
+| **Linting** | pre-commit + flake8 + @babel/parser | Universal | Multi-language syntax checks | Git hooks for automatic linting, multi-language support, CI/CD integration |
+
+### 📱 Platform-Specific
+| Platform | Technology | Purpose | Implementation Details |
+|----------|-----------|---------|---------------------|
+| **Windows** | PowerShell + pyautogui + docker + py-spy | System automation, sandboxing, profiling | Native Windows automation, containerized execution, performance monitoring |
+| **Android** | LightRT + Vulkan + Accessibility API | Fast local LLM, GPU acceleration, system control | ARM64 optimization, Vulkan GPU offload, accessibility service integration |
+| **Cross-Device** | QUIC/TLS + mDNS + LinkFS | Encrypted local transport, device discovery | UDP-based discovery, QUIC transport, local file synchronization |
+
+### 🧠 AI/ML Stack
+| Component | Technology | Purpose | Offline Capability |
+|-----------|-----------|---------|-------------------|
+| **Primary LLM** | Qwen2.5-Coder (GGUF) | Code generation, analysis, reasoning | 100% offline with local inference |
+| **Embedding Model** | all-MiniLM-L6-v2 | Semantic search, RAG, clustering | 100% offline with local inference |
+| **Vision Model** | Moondream2/Qwen2-VL (GGUF) | Image understanding, OCR, multimodal RAG | 100% offline with local inference |
+| **Speech Models** | Whisper.cpp (tiny.en) + Piper TTS | Offline STT/TTS for voice interface | 100% offline with local inference |
+| **Community Detection** | Leiden algorithm | Knowledge graph clustering, semantic grouping | 100% offline with local computation |
+| **Anomaly Detection** | Isolation Forest + LSTM | System monitoring, predictive analytics | 100% offline with local computation |
+
+---
+
+## 4. Feature Modules
+
+### 🛠️ 4.1 GSD (Get Shit Done) Integration (NEW - CORE)
+**Source**: https://github.com/gsd-build/get-shit-done
+
+#### Integration Method
+```bash
+# Clone and modify for Cyborg
+git clone https://github.com/gsd-build/get-shit-done external/gsd
+cd external/gsd
+
+# Modify configuration for offline operation
+sed -i 's|API_ENDPOINT.*|API_ENDPOINT: "http://localhost:8000/api/gsd"|' config.yaml
+sed -i 's|ONLINE_MODE.*|ONLINE_MODE: false|' config.yaml
+sed -i 's|STORAGE_BACKEND.*|STORAGE_BACKEND: "local"|' config.yaml
+
+# Install dependencies for offline use
+npm ci --offline 2>/dev/null || npm install
+
+# Add Cyborg integration hooks
+echo "module.exports = { ...cyborgHooks }" >> src/cyborg-integration.js
+```
+
+#### Phased Project Structuring
+```
+Phase 1: PLAN (Blue #3b82f6)
+├─ Define project scope and objectives
+│  ├─ Stakeholder identification
+│  ├─ Success criteria definition
+│  ├─ Resource allocation planning
+│  └─ Risk assessment framework
+├─ Break down into tasks and subtasks
+│  ├─ Work breakdown structure (WBS)
+│  ├─ Task dependency mapping
+│  ├─ Effort estimation (story points)
+│  └─ Priority assignment (MoSCoW)
+├─ Set milestones and deadlines
+│  ├─ Critical path identification
+│  ├─ Buffer time allocation
+│  ├─ Milestone definition (SMART)
+│  └─ Deadline negotiation
+├─ Assign resources and priorities
+│  ├─ Team member allocation
+│  ├─ Skill matrix matching
+│  ├─ Capacity planning
+│  └─ Priority conflict resolution
+└─ Create risk assessment
+├─ Risk identification (brainstorming)
+├─ Probability/impact analysis
+├─ Mitigation strategy development
+└─ Contingency planning
+
+Phase 2: RESEARCH (Purple #8b5cf6)
+├─ Gather requirements and documentation
+│  ├─ Stakeholder interviews
+│  ├─ Document analysis (existing systems)
+│  ├─ Regulatory/compliance research
+│  └─ User story mapping
+├─ Research technologies and frameworks
+│  ├─ Technology landscape analysis
+│  ├─ Proof-of-concept development
+│  ├─ Performance benchmarking
+│  └─ Community/ecosystem evaluation
+├─ Identify dependencies and risks
+│  ├─ External dependency mapping
+│  ├─ Technical debt assessment
+│  ├─ Integration risk analysis
+│  └─ Vendor lock-in evaluation
+├─ Create technical specifications
+│  ├─ Architecture diagrams (C4 model)
+│  ├─ API specifications (OpenAPI)
+│  ├─ Data model design (ERD)
+│  └─ Security requirements definition
+└─ Validate feasibility
+├─ Technical feasibility assessment
+├─ Economic feasibility analysis
+├─ Operational feasibility review
+└─ Schedule feasibility validation
+
+Phase 3: IMPLEMENT (Green #10b981)
+├─ Code development with incremental commits
+│  ├─ Feature branch workflow
+│  ├─ Test-driven development (TDD)
+│  ├─ Pair programming sessions
+│  └─ Code review process
+├─ Unit testing and integration testing
+│  ├─ Unit test coverage (>80%)
+│  ├─ Integration test scenarios
+│  ├─ Mocking/stubbing strategy
+│  └─ Test data management
+├─ Code review and refactoring
+│  ├─ Pull request workflow
+│  ├─ Static analysis integration
+│  ├─ Refactoring opportunities
+│  └─ Technical debt tracking
+├─ Documentation updates
+│  ├─ API documentation (auto-generated)
+│  ├─ User guides (markdown)
+│  ├─ Architecture decision records (ADRs)
+│  └─ Deployment runbooks
+└─ Performance optimization
+├─ Profiling and bottleneck identification
+├─ Caching strategy implementation
+├─ Database query optimization
+└─ Resource utilization monitoring
+
+Phase 4: DEBUG (Orange #f59e0b)
+├─ Bug tracking and fixing
+│  ├─ Issue triage process
+│  ├─ Root cause analysis
+│  ├─ Fix implementation and testing
+│  └─ Regression testing
+├─ Security auditing
+│  ├─ Static application security testing (SAST)
+│  ├─ Dynamic application security testing (DAST)
+│  ├─ Dependency vulnerability scanning
+│  └─ Penetration testing (optional)
+├─ Final testing and validation
+│  ├─ User acceptance testing (UAT)
+│  ├─ Performance/load testing
+│  ├─ Security validation
+│  └─ Compliance verification
+├─ User acceptance testing
+│  ├─ Test scenario development
+│  ├─ User feedback collection
+│  ├─ Issue prioritization and resolution
+│  └─ Sign-off process
+└─ Deployment preparation
+├─ Deployment runbook creation
+├─ Rollback procedure definition
+├─ Monitoring/alerting setup
+└─ Post-deployment validation plan
+```
+
+#### Key Features
+- **Visual Phase Navigation**: Horizontal tab bar with color-coded phases, smooth transitions, keyboard shortcuts
+- **Task Management**: Prioritized task queues with dependencies, assignments, due dates, time tracking
+- **Progress Tracking**: Real-time progress bars, time tracking, milestone completion, burn-down charts
+- **Dependency Graph**: Visual representation of task dependencies and critical path, interactive exploration
+- **Offline Functionality**: All features work without internet, local JSON storage, sync when online optional
+- **Reporting**: Automated progress reports, risk assessments, resource utilization analytics
+- **Collaboration**: Multi-user support with conflict resolution, change history, audit trails
+
+#### Data Model
+```python
+# backend/gsd/models.py
+from typing import TypedDict, Literal, Optional
+from datetime import datetime
+
+class GSDTask(TypedDict):
+id: int
+name: str
+description: str
+phase: Literal["plan", "research", "implement", "debug"]
+priority: Literal["high", "medium", "low"]
+status: Literal["not_started", "in_progress", "done", "blocked"]
+assigned_to: Optional[str]  # User ID
+due_date: Optional[str]  # ISO timestamp
+dependencies: list[int]  # task IDs this task depends on
+time_estimate: int  # hours
+time_spent: int  # hours
+attachments: list[str]  # file paths
+comments: list[dict]  # {user_id, timestamp, content}
+created_at: str
+updated_at: str
+
+class GSDPhase(TypedDict):
+name: Literal["plan", "research", "implement", "debug"]
+color: str  # hex color code
+description: str
+tasks: list[GSDTask]
+progress: float  # 0.0 to 1.0
+time_estimate: int  # total hours
+time_spent: int  # total hours
+start_date: Optional[str]
+end_date: Optional[str]
+risks: list[dict]  # {description, probability, impact, mitigation}
+
+class GSDProject(TypedDict):
+id: str
+name: str
+description: str
+owner: str  # User ID
+phases: dict[str, GSDPhase]
+overall_progress: float
+created_at: str
+updated_at: str
+offline_mode: bool
+sync_status: Literal["synced", "pending", "conflict"]
+metadata: dict  # Custom project metadata
+```
+
+#### API Endpoints (Local)
+```python
+# backend/gsd/api.py
+from fastapi import APIRouter, HTTPException
+from .models import GSDProject, GSDTask
+
+router = APIRouter(prefix="/api/gsd", tags=["gsd"])
+
+@router.post("/projects", response_model=GSDProject)
+async def create_project(project_data: dict):
+"""Create a new GSD project with phased structure"""
+# Implementation details...
+pass
+
+@router.get("/projects/{project_id}", response_model=GSDProject)
+async def get_project(project_id: str):
+"""Retrieve project details and phase progress"""
+# Implementation details...
+pass
+
+@router.patch("/projects/{project_id}/tasks/{task_id}")
+async def update_task_status(
+project_id: str,
+task_id: int,
+status_update: dict
+):
+"""Update task status and recalculate progress"""
+# Implementation details...
+pass
+
+@router.get("/projects/{project_id}/report")
+async def generate_project_report(project_id: str):
+"""Generate comprehensive project report with analytics"""
+# Implementation details...
+pass
+```
+
+### 🔧 4.2 Ralph Integration (NEW - CORE)
+**Source**: https://github.com/snarktank/ralph
+
+#### Integration Method
+```bash
+# Clone and modify for Cyborg
+git clone https://github.com/snarktank/ralph external/ralph
+cd external/ralph
+
+# Modify configuration for offline operation
+sed -i 's|BUILD_SYSTEM.*|BUILD_SYSTEM: "cyborg"|' config.yaml
+sed -i 's|ONLINE_MODE.*|ONLINE_MODE: false|' config.yaml
+sed -i 's|DEPENDENCY_SOURCE.*|DEPENDENCY_SOURCE: "local_cache"|' config.yaml
+
+# Install dependencies for offline use
+npm ci --offline 2>/dev/null || npm install
+
+# Add Cyborg integration hooks
+echo "module.exports = { ...cyborgBuildHooks }" >> src/cyborg-integration.js
+```
+
+#### Incremental Model Building
+```
+Module Architecture:
+├─ Core Module
+│  ├─ Dependencies: []
+│  ├─ Build Steps:
+│  │  ├─ install: "npm ci --offline"
+│  │  ├─ compile: "tsc --build"
+│  │  └─ test: "npm test -- --offline"
+│  ├─ Status: built
+│  ├─ Artifacts: core.js, core.d.ts
+│  └─ Test Coverage: 92%
+├─ Feature Module A
+│  ├─ Dependencies: [Core]
+│  ├─ Build Steps:
+│  │  ├─ install: "npm ci --offline"
+│  │  ├─ compile: "tsc --build"
+│  │  └─ test: "npm test -- --offline"
+│  ├─ Status: building
+│  ├─ Artifacts: feature-a.js, feature-a.d.ts
+│  └─ Test Coverage: 87%
+├─ Feature Module B
+│  ├─ Dependencies: [Core, Feature A]
+│  ├─ Build Steps:
+│  │  ├─ install: "npm ci --offline"
+│  │  ├─ compile: "tsc --build"
+│  │  └─ test: "npm test -- --offline"
+│  ├─ Status: pending
+│  ├─ Artifacts: [pending]
+│  └─ Test Coverage: [pending]
+└─ Integration Module
+├─ Dependencies: [Feature A, Feature B]
+├─ Build Steps:
+│  ├─ install: "npm ci --offline"
+│  ├─ compile: "tsc --build"
+│  ├─ test: "npm test -- --offline"
+│  └─ deploy: "cyborg deploy --module integration"
+├─ Status: pending
+├─ Artifacts: [pending]
+└─ Test Coverage: [pending]
+```
+
+#### Key Features
+- **Modular Code Architecture**: Build projects in independent, reusable modules with explicit dependencies
+- **Dependency Management**: Track and resolve module dependencies automatically with offline caching
+- **Incremental Builds**: Only rebuild changed modules, cache build artifacts for faster subsequent builds
+- **Version Control Integration**: Git-based versioning with incremental commits, branch management
+- **Test Integration**: Automated testing with incremental test runs, coverage reporting, failure analysis
+- **Offline Functionality**: All features work without internet, cached dependencies, local artifact storage
+- **Performance Optimization**: Parallel module builds, build caching, resource-aware scheduling
+- **Reporting**: Build analytics, test coverage trends, dependency health monitoring
+
+#### Data Model
+```python
+# backend/ralph/models.py
+from typing import TypedDict, Literal, Optional
+from datetime import datetime
+
+class RalphBuildStep(TypedDict):
+step: int
+command: str
+status: Literal["pending", "running", "completed", "failed", "timeout"]
+output: str  # Build output logs
+error: str  # Error messages if failed
+start_time: Optional[str]
+end_time: Optional[str]
+duration_seconds: Optional[int]
+
+class RalphModule(TypedDict):
+id: str
+name: str
+path: str  # relative path from project root
+dependencies: list[str]  # module IDs
+build_steps: list[RalphBuildStep]
+status: Literal["not_started", "building", "built", "failed"]
+progress: float  # 0.0 to 1.0
+last_built: Optional[str]  # ISO timestamp
+test_status: Literal["not_run", "running", "passed", "failed"]
+test_coverage: float  # 0.0 to 1.0
+size_mb: float
+artifacts: list[str]  # Output file paths
+metadata: dict  # Custom module metadata
+
+class RalphBuild(TypedDict):
+id: str
+module_id: str
+started_at: str  # ISO timestamp
+completed_at: Optional[str]
+status: Literal["queued", "running", "completed", "failed"]
+logs: list[str]  # Build output lines
+artifacts: list[str]  # Output file paths
+duration_seconds: int
+resource_usage: dict  # CPU, memory, disk usage
+
+class RalphProject(TypedDict):
+id: str
+name: str
+modules: dict[str, RalphModule]
+build_queue: list[RalphBuild]
+git_state: dict  # {branch: str, uncommitted: bool, last_commit: str}
+offline_mode: bool
+cache_enabled: bool
+parallel_builds: int  # Number of parallel builds allowed
+metadata: dict  # Custom project metadata
+```
+
+#### Build Execution Engine
+```python
+# backend/ralph/engine.py
+import asyncio
+import subprocess
+from pathlib import Path
+from .models import RalphModule, RalphBuild
+
+class RalphBuildEngine:
+def __init__(self, project_path: Path):
+self.project_path = project_path
+self.cache_dir = project_path / ".ralph" / "cache"
+self.cache_dir.mkdir(parents=True, exist_ok=True)
+
+async def execute_build_step(
+self,
+module: RalphModule,
+step: RalphBuildStep
+) -> RalphBuildStep:
+"""Execute a single build step with offline support"""
+step["start_time"] = datetime.now().isoformat()
+step["status"] = "running"
+
+try:
+# Execute command with offline environment
+result = await asyncio.create_subprocess_exec(
+*step["command"].split(),
+cwd=self.project_path / module["path"],
+stdout=asyncio.subprocess.PIPE,
+stderr=asyncio.subprocess.PIPE,
+env={
+**os.environ,
+"OFFLINE_MODE": "1",
+"RALPH_CACHE_DIR": str(self.cache_dir),
+"NO_INTERNET": "1"
+}
+)
+
+stdout, stderr = await result.communicate()
+step["output"] = stdout.decode()
+step["error"] = stderr.decode()
+step["end_time"] = datetime.now().isoformat()
+step["duration_seconds"] = int(
+(datetime.fromisoformat(step["end_time"]) -
+datetime.fromisoformat(step["start_time"])).total_seconds()
+)
+
+if result.returncode == 0:
+step["status"] = "completed"
+else:
+step["status"] = "failed"
+
+except asyncio.TimeoutError:
+step["status"] = "timeout"
+step["error"] = "Build step timed out after 5 minutes"
+except FileNotFoundError:
+step["status"] = "failed"
+step["error"] = f"Command not found: {step['command']}"
+
+return step
+
+async def build_module(self, module_id: str) -> RalphBuild:
+"""Build a module incrementally with dependency resolution"""
+# Load module definition
+module = await self.load_module(module_id)
+
+# Resolve dependencies (offline)
+dependencies = await self.resolve_dependencies(module["dependencies"])
+
+# Build dependencies first
+for dep_id in dependencies:
+if not await self.is_module_built(dep_id):
+await self.build_module(dep_id)
+
+# Execute build steps sequentially
+build = {
+"id": generate_build_id(),
+"module_id": module_id,
+"started_at": datetime.now().isoformat(),
+"status": "running",
+"logs": [],
+"artifacts": [],
+"duration_seconds": 0,
+"resource_usage": {}
+}
+
+for step in module["build_steps"]:
+updated_step = await self.execute_build_step(module, step)
+build["logs"].append(f"Step {step['step']}: {updated_step['status']}")
+
+if updated_step["status"] != "completed":
+build["status"] = "failed"
+break
+
+# Collect artifacts if build succeeded
+if build["status"] == "running":
+build["status"] = "completed"
+build["artifacts"] = await self.collect_artifacts(module)
+build["duration_seconds"] = int(
+(datetime.now() - datetime.fromisoformat(build["started_at"])).total_seconds()
+)
+
+# Save build result
+await self.save_build_result(build)
+
+return build
+```
+
+### 🗺️ 4.3 Graphify-Style Knowledge Graph with Obsidian Physics
+**Reference**: https://github.com/safishamsi/graphify (style) + Obsidian.md (physics)
+
+#### Visual Style Implementation
+```javascript
+// frontend/src/components/GraphifyStyleGraph.js
+import * as d3 from 'd3';
+import { schemeTableau10 } from 'd3-scale-chromatic';
+
+export class GraphifyStyleGraph {
+constructor(container, config) {
+this.container = container;
+this.config = {
+width: config.width || 1200,
+height: config.height || 800,
+communityColors: schemeTableau10, // 10 distinct colors
+edgeColors: {
+direct: '#ffffff',      // White, solid
+semantic: '#60a5fa',    // Blue, dashed
+cooccurrence: '#f472b6' // Pink, dotted
+},
+nodeSizeScale: d => Math.sqrt(d.degree) * 2 + 3,
+...config
+};
+
+this.init();
+}
+
+init() {
+// Create SVG container
+this.svg = d3.select(this.container)
+.append('svg')
+.attr('width', this.config.width)
+.attr('height', this.config.height)
+.call(d3.zoom().on('zoom', (e) => {
+this.g.attr('transform', e.transform);
+}));
+
+this.g = this.svg.append('g');
+
+// Create tooltip for node previews
+this.tooltip = d3.select('body')
+.append('div')
+.attr('class', 'graph-tooltip')
+.style('opacity', 0);
+
+// Create community sidebar
+this.communitySidebar = d3.select('#community-sidebar');
+}
+
+render(nodes, edges, communities) {
+// Render nodes with community colors
+const node = this.g.selectAll('.node')
+.data(nodes)
+.join('circle')
+.attr('class', 'node')
+.attr('r', this.config.nodeSizeScale)
+.attr('fill', d => this.config.communityColors[d.community])
+.attr('stroke', '#fff')
+.attr('stroke-width', 1.5)
+.call(d3.drag()
+.on('start', (event, d) => this.dragStarted(event, d))
+.on('drag', (event, d) => this.dragged(event, d))
+.on('end', (event, d) => this.dragEnded(event, d)))
+.on('mouseover', (event, d) => this.showNodeTooltip(event, d))
+.on('mouseout', () => this.hideTooltip());
+
+// Render edges with type-based styling
+const link = this.g.selectAll('.link')
+.data(edges)
+.join('line')
+.attr('class', 'link')
+.attr('stroke', d => this.config.edgeColors[d.type])
+.attr('stroke-width', 1.5)
+.attr('stroke-dasharray', d => {
+if (d.type === 'direct') return '0';
+if (d.type === 'semantic') return '5,3';
+if (d.type === 'cooccurrence') return '2,2';
+return '0';
+});
+
+// Initialize Obsidian physics simulation
+this.simulation = d3.forceSimulation(nodes)
+.force('charge', d3.forceManyBody().strength(-30))
+.force('link', d3.forceLink(edges)
+.id(d => d.id)
+.distance(80)
+.strength(0.1))
+.force('collision', d3.forceCollide().radius(20))
+.force('center', d3.forceCenter(this.config.width/2, this.config.height/2).strength(0.1))
+.alphaDecay(0.0228)
+.velocityDecay(0.4)
+.on('tick', () => {
+link
+.attr('x1', d => d.source.x)
+.attr('y1', d => d.source.y)
+.attr('x2', d => d.target.x)
+.attr('y2', d => d.target.y);
+
+node
+.attr('cx', d => d.x)
+.attr('cy', d => d.y);
+});
+
+// Render community sidebar
+this.renderCommunitySidebar(communities);
+}
+
+renderCommunitySidebar(communities) {
+const communityList = this.communitySidebar
+.selectAll('.community-item')
+.data(communities)
+.join('div')
+.attr('class', 'community-item')
+.on('click', (event, d) => this.filterByCommunity(d.id));
+
+communityList.append('span')
+.attr('class', 'community-color')
+.style('background-color', d => this.config.communityColors[d.id]);
+
+communityList.append('span')
+.attr('class', 'community-name')
+.text(d => `Community ${d.id}`);
+
+communityList.append('span')
+.attr('class', 'community-count')
+.text(d => `${d.nodeCount} nodes`);
+}
+}
+```
+
+#### Physics Engine Configuration (Obsidian-Style)
+```javascript
+// frontend/src/config/physics.js
+export const OBSIDIAN_PHYSICS = {
+// Force parameters matching Obsidian.md
+charge: -30,           // Node repulsion strength
+linkDistance: 80,      // Optimal edge length in pixels
+collisionRadius: 20,   // Prevent node overlap
+centerGravity: 0.1,    // Keep graph centered
+linkStrength: 0.1,     // Edge stiffness
+alphaDecay: 0.0228,    // Animation smoothness
+velocityDecay: 0.4,    // Movement damping
+
+// Performance optimizations
+alphaTarget: 0,        // Stop simulation when stable
+alphaMin: 0.001,       // Minimum alpha before stopping
+
+// Interaction parameters
+dragStrength: 0.3,     // Node drag responsiveness
+zoomSensitivity: 0.5,  // Mouse wheel zoom sensitivity
+panSensitivity: 1.0    // Background drag panning
+};
+```
+
+#### Node README System Implementation
+```python
+# backend/graph/node_readme.py
+from pathlib import Path
+import yaml
+from datetime import datetime
+from typing import Dict, List, Optional
+
+class NodeREADME:
+"""Structured README for knowledge graph nodes"""
+
+def __init__(self, node_id: str, content: str, metadata: Dict):
+self.node_id = node_id
+self.content = content
+self.metadata = {
+'chunk_id': metadata.get('chunk_id', generate_id()),
+'source': metadata.get('source', ''),
+'page': metadata.get('page', 1),
+'title': metadata.get('title', extract_title(content)),
+'keywords': metadata.get('keywords', extract_keywords(content)),
+'created': metadata.get('created', datetime.now().isoformat()),
+'updated': metadata.get('updated', datetime.now().isoformat()),
+'tree_path': metadata.get('tree_path', ''),
+'community': metadata.get('community', 0),
+'degree': metadata.get('degree', 0),
+'neighbors': metadata.get('neighbors', []),
+'embedding': metadata.get('embedding', []),
+'content_type': metadata.get('content_type', 'text'),
+'language': metadata.get('language', None),
+'lines_of_code': metadata.get('lines_of_code', None) if metadata.get('content_type') == 'code' else None
+}
+
+def to_yaml(self) -> str:
+"""Convert to YAML frontmatter + content format"""
+frontmatter = yaml.dump(self.metadata, sort_keys=False)
+return f"---\n{frontmatter}---\n\n{self.content}"
+
+@classmethod
+def from_yaml(cls, yaml_content: str) -> 'NodeREADME':
+"""Parse from YAML frontmatter + content format"""
+parts = yaml_content.split('---', 2)
+if len(parts) < 3:
+# No frontmatter, create minimal metadata
+return cls(generate_id(), yaml_content, {})
+
+frontmatter = yaml.safe_load(parts[1])
+content = parts[2].strip()
+
+return cls(frontmatter.get('chunk_id', generate_id()), content, frontmatter)
+
+def get_preview(self, max_length: int = 200) -> str:
+"""Get content preview for UI display"""
+if len(self.content) <= max_length:
+return self.content
+return self.content[:max_length] + "..."
+
+def get_metadata_summary(self) -> Dict:
+"""Get key metadata for UI display"""
+return {
+'title': self.metadata['title'],
+'source': self.metadata['source'],
+'community': self.metadata['community'],
+'degree': self.metadata['degree'],
+'content_type': self.metadata['content_type'],
+'created': self.metadata['created'][:10]  # Just date
+}
+```
+
+#### Multimodal Ingestion Pipeline
+```python
+# backend/ingestion/multimodal_pipeline.py
+import asyncio
+from pathlib import Path
+from typing import List, Dict
+from .extractors import (
+TextExtractor, CodeExtractor, PDFExtractor,
+ImageExtractor, AudioExtractor, VideoExtractor
+)
+from .chunking import SemanticChunker
+from .embedding import EmbeddingGenerator
+from .community import CommunityDetector
+
+class MultimodalIngestionPipeline:
+"""Process multiple file types into knowledge graph nodes"""
+
+def __init__(self, config: Dict):
+self.config = config
+self.extractors = {
+'text': TextExtractor(),
+'code': CodeExtractor(),
+'pdf': PDFExtractor(),
+'image': ImageExtractor(),
+'audio': AudioExtractor(),
+'video': VideoExtractor()
+}
+self.chunker = SemanticChunker(
+chunk_size=config.get('chunk_size', 400),
+chunk_overlap=config.get('chunk_overlap', 50)
+)
+self.embedding_model = EmbeddingGenerator(config['embedding_model'])
+self.community_detector = CommunityDetector(
+resolution=config.get('community_resolution', 1.0)
+)
+
+async def ingest_file(self, file_path: Path) -> IngestionResult:
+"""Process a single file through the multimodal pipeline"""
+start_time = time.time()
+
+# 1. Detect file type and extract content
+file_type = self.detect_file_type(file_path)
+extractor = self.extractors.get(file_type)
+if not extractor:
+raise ValueError(f"Unsupported file type: {file_path.suffix}")
+
+content = await extractor.extract(file_path)
+
+# 2. Semantic chunking
+chunks = self.chunker.split(
+content,
+separators=['\n\n', '\n', '. ', ' ', '']
+)
+
+# 3. Generate embeddings
+embeddings = await self.embedding_model.encode(chunks)
+
+# 4. Community detection
+communities = self.community_detector.detect(embeddings)
+
+# 5. Create nodes with README
+nodes = []
+for i, (chunk, embedding, community) in enumerate(zip(chunks, embeddings, communities)):
+node = self.create_node(
+chunk_id=generate_id(),
+content=chunk,
+embedding=embedding.tolist(),
+community=community,
+metadata={
+'source': str(file_path),
+'page': i + 1,
+'title': extract_title(chunk),
+'keywords': extract_keywords(chunk),
+'created': datetime.now().isoformat(),
+'tree_path': generate_tree_path(file_path, i),
+'content_type': file_type,
+'language': detect_language(chunk) if file_type == 'code' else None,
+'lines_of_code': len(chunk.split('\n')) if file_type == 'code' else None
+}
+)
+nodes.append(node)
+
+return IngestionResult(
+nodes_created=len(nodes),
+communities_detected=len(set(communities)),
+processing_time=time.time() - start_time,
+nodes=nodes
+)
+
+async def ingest_directory(self, dir_path: Path) -> BatchIngestionResult:
+"""Process all supported files in a directory"""
+results = []
+total_files = 0
+success_count = 0
+error_count = 0
+
+# Walk directory and process files
+for file_path in dir_path.rglob('*'):
+if file_path.is_file() and self.is_supported_file(file_path):
+total_files += 1
+try:
+result = await self.ingest_file(file_path)
+results.append(result)
+success_count += 1
+except Exception as e:
+error_count += 1
+results.append(IngestionResult(
+error=str(e),
+file_path=str(file_path)
+))
+
+return BatchIngestionResult(
+total_files=total_files,
+success_count=success_count,
+error_count=error_count,
+results=results,
+total_nodes=sum(r.nodes_created for r in results if r.nodes_created),
+total_communities=len(set(
+c for r in results if r.nodes
+for node in r.nodes
+for c in [node.metadata['community']]
+))
+)
+```
+
+### 💻 4.4 CodeFlow Integration via Source Code (Offline)
+**Source**: https://github.com/braedonsaunders/codeflow
+
+#### Integration Method
+```bash
+# Clone and modify for Cyborg
+git clone https://github.com/braedonsaunders/codeflow external/codeflow
+cd external/codeflow
+
+# Modify configuration for Cyborg integration
+sed -i 's|API_ENDPOINT.*|API_ENDPOINT: "http://localhost:8000/api/codeflow"|' src/config.js
+sed -i 's|LLM_SERVICE.*|LLM_SERVICE: "cyborg_llm"|' src/config.js
+sed -i 's|ONLINE_MODE.*|ONLINE_MODE: false|' src/config.js
+
+# Install dependencies for offline use
+npm ci --offline 2>/dev/null || npm install
+
+# Add Cyborg integration hooks
+cat >> src/cyborg-integration.js << 'EOF'
+// Cyborg integration hooks for CodeFlow
+export const cyborgHooks = {
+onAnalysisComplete: (results) => {
+// Send analysis results to Cyborg knowledge graph
+window.cyborgAPI.updateKnowledgeGraph({
+type: 'code_analysis',
+data: results,
+source: 'codeflow'
+});
+},
+onLLMRequest: async (prompt) => {
+// Route LLM requests to Cyborg's local model
+return await window.cyborgAPI.generateCompletion({
+prompt: prompt,
+model: 'qwen2.5-coder-14b',
+temperature: 0.2
+});
+}
+};
+EOF
+```
+
+#### Key Features Implementation
+- **Health Score Calculation**:
+```javascript
+// external/codeflow/src/metrics/health-score.js
+export function calculateHealthScore(metrics) {
+const weights = {
+complexity: 0.3,
+coverage: 0.25,
+dependencies: 0.2,
+documentation: 0.15,
+testability: 0.1
+};
+
+const normalized = {
+complexity: Math.max(0, 100 - metrics.complexity.avg),
+coverage: metrics.coverage.percent,
+dependencies: Math.max(0, 100 - metrics.dependencies.count * 2),
+documentation: metrics.documentation.percent,
+testability: metrics.testability.score
+};
+
+const score = Object.entries(weights).reduce((total, [metric, weight]) => {
+return total + (normalized[metric] * weight);
+}, 0);
+
+return Math.round(score);
+}
+```
+
+- **Dependency Graph Visualization**:
+```javascript
+// external/codeflow/src/visualization/dependency-graph.js
+export class DependencyGraph {
+constructor(container, config) {
+this.container = container;
+this.config = {
+nodeSize: d => Math.log(d.importCount + 1) * 5 + 10,
+linkStrength: 0.1,
+charge: -100,
+...config
+};
+this.init();
+}
+
+render(files, dependencies) {
+// Create force simulation for dependency layout
+const simulation = d3.forceSimulation(files)
+.force('link', d3.forceLink(dependencies)
+.id(d => d.id)
+.distance(100)
+.strength(this.config.linkStrength))
+.force('charge', d3.forceManyBody().strength(this.config.charge))
+.force('center', d3.forceCenter(this.width/2, this.height/2));
+
+// Render nodes with file type colors
+const node = this.svg.selectAll('.node')
+.data(files)
+.join('circle')
+.attr('class', 'node')
+.attr('r', this.config.nodeSize)
+.attr('fill', d => this.getFileTypeColor(d.type))
+.attr('stroke', '#fff')
+.attr('stroke-width', 1.5);
+
+// Render dependency links
+const link = this.svg.selectAll('.link')
+.data(dependencies)
+.join('line')
+.attr('class', 'link')
+.attr('stroke', '#666')
+.attr('stroke-width', 1);
+
+// Update positions on simulation tick
+simulation.on('tick', () => {
+link
+.attr('x1', d => d.source.x)
+.attr('y1', d => d.source.y)
+.attr('x2', d => d.target.x)
+.attr('y2', d => d.target.y);
+
+node
+.attr('cx', d => d.x)
+.attr('cy', d => d.y);
+});
+}
+
+getFileTypeColor(fileType) {
+const colors = {
+'js': '#f7df1e',
+'ts': '#3178c6',
+'jsx': '#61dafb',
+'tsx': '#3178c6',
+'py': '#3572A5',
+'java': '#b07219',
+'go': '#00ADD8',
+'rs': '#dea584',
+'json': '#292929',
+'md': '#083fa1'
+};
+return colors[fileType] || '#999';
+}
+}
+```
+
+#### Full-Screen Launch with Side Panel
+```javascript
+// frontend/src/integrations/codeflow-launcher.js
+export class CodeFlowLauncher {
+constructor(cyborgAPI) {
+this.cyborgAPI = cyborgAPI;
+this.sidePanel = null;
+}
+
+async launch(filePath, options = {}) {
+// Open full-screen window with CodeFlow
+const codeFlowWindow = window.open(
+`/external/codeflow/index.html?file=${encodeURIComponent(filePath)}&theme=cyborg`,
+'codeflow',
+`fullscreen=yes,menubar=no,toolbar=no,location=no,status=no`
+);
+
+// Wait for CodeFlow to load
+await new Promise(resolve => {
+codeFlowWindow.addEventListener('load', resolve, { once: true });
+});
+
+// Enable Cyborg LLM side panel
+codeFlowWindow.postMessage({
+action: 'enableCyborgSidePanel',
+config: {
+width: options.panelWidth || 400,
+position: options.panelPosition || 'right',
+llmEndpoint: 'http://127.0.0.1:1234/v1',
+model: options.model || 'qwen2.5-coder-14b',
+features: {
+codeExplanation: true,
+refactoringSuggestions: true,
+bugDetection: true,
+documentationGeneration: true
+}
+}
+}, '*');
+
+// Set up message listener for CodeFlow events
+window.addEventListener('message', (event) => {
+if (event.source === codeFlowWindow && event.data.type === 'codeflow-event') {
+this.handleCodeFlowEvent(event.data.payload);
+}
+});
+
+// Store reference for cleanup
+this.sidePanel = {
+window: codeFlowWindow,
+filePath: filePath,
+options: options
+};
+
+return codeFlowWindow;
+}
+
+handleCodeFlowEvent(payload) {
+switch (payload.type) {
+case 'analysis-complete':
+// Update Cyborg knowledge graph with analysis results
+this.cyborgAPI.updateKnowledgeGraph({
+type: 'code_analysis',
+data: payload.data,
+source: 'codeflow',
+timestamp: new Date().toISOString()
+});
+break;
+case 'llm-request':
+// Handle LLM request from CodeFlow
+return this.cyborgAPI.generateCompletion({
+prompt: payload.prompt,
+model: payload.model,
+context: payload.context
+});
+case 'file-changed':
+// Trigger re-analysis when file changes
+this.reanalyzeFile(payload.filePath);
+break;
+}
+}
+
+close() {
+if (this.sidePanel?.window) {
+this.sidePanel.window.close();
+this.sidePanel = null;
+}
+}
+}
+```
+
+### 🌍 4.5 WorldMonitor Integration (Offline + PRO→Free)
+**Source**: https://github.com/koala73/worldmonitor
+
+#### Integration Method
+```bash
+# Clone and modify for Cyborg
+git clone https://github.com/koala73/worldmonitor external/worldmonitor
+cd external/worldmonitor
+
+# Replace PRO features with free alternatives
+sed -i 's|PRO_AI_BRIEFINGS.*|PRO_AI_BRIEFINGS: false|' config.js
+sed -i 's|CYBORG_LLM_ENABLED.*|CYBORG_LLM_ENABLED: true|' config.js
+sed -i 's|MILITARY_DATA_SOURCE.*|MILITARY_DATA_SOURCE: "opensky_adsb"|' config.js
+sed -i 's|SATELLITE_DATA_SOURCE.*|SATELLITE_DATA_SOURCE: "celestrak"|' config.js
+sed -i 's|INTEL_FEEDS_SOURCE.*|INTEL_FEEDS_SOURCE: "rss_aggregators"|' config.js
+sed -i 's|LIVE_NEWS_SOURCE.*|LIVE_NEWS_SOURCE: "cached_feeds"|' config.js
+sed -i 's|ONLINE_MODE.*|ONLINE_MODE: false|' config.js
+
+# Install dependencies for offline use
+npm ci --offline 2>/dev/null || npm install
+
+# Add Cyborg integration hooks
+cat >> src/cyborg-integration.js << 'EOF'
+// Cyborg integration for WorldMonitor
+export const cyborgHooks = {
+onNewsUpdate: (articles) => {
+// Cache news articles for offline use
+window.cyborgAPI.cacheNewsArticles(articles);
+},
+onAlertGenerated: (alert) => {
+// Route alerts to Cyborg notification system
+window.cyborgAPI.createNotification({
+type: 'worldmonitor_alert',
+title: alert.title,
+message: alert.message,
+severity: alert.severity,
+timestamp: alert.timestamp
+});
+},
+onLLMRequest: async (prompt, context) => {
+// Route LLM requests to Cyborg's local model
+return await window.cyborgAPI.generateCompletion({
+prompt: prompt,
+context: context,
+model: 'qwen2.5-coder-14b',
+temperature: 0.3
+});
+}
+};
+EOF
+```
+
+#### PRO→Free Replacement Implementation
+```javascript
+// external/worldmonitor/src/services/pro-replacements.js
+export const PRO_FREE_REPLACEMENTS = {
+// PRO AI Briefings → Cyborg LLM Summaries
+generateAIBriefing: async (topic, region) => {
+// Use Cyborg's local LLM instead of PRO API
+const prompt = `Generate a concise briefing on ${topic} in ${region}. Focus on key developments, risks, and trends. Keep it under 200 words.`;
+
+const response = await window.cyborgAPI.generateCompletion({
+prompt: prompt,
+model: 'qwen2.5-coder-14b',
+temperature: 0.3,
+max_tokens: 500
+});
+
+return {
+title: `${topic} Briefing - ${region}`,
+content: response.text,
+generated_at: new Date().toISOString(),
+source: 'cyborg_llm'
+};
+},
+
+// PRO Military Flight Data → OpenSky ADS-B (free tier)
+fetchMilitaryFlights: async (region, timeRange) => {
+// Use OpenSky Network API with caching
+const cacheKey = `military_flights_${region}_${timeRange}`;
+const cached = await window.cyborgAPI.getCachedData(cacheKey, 300); // 5 min cache
+
+if (cached) return cached;
+
+try {
+// OpenSky API call (free tier)
+const response = await fetch(
+`https://opensky-network.org/api/states/all?lamin=${region.bounds[0]}&lomin=${region.bounds[1]}&lamax=${region.bounds[2]}&lomax=${region.bounds[3]}`
+);
+const data = await response.json();
+
+// Filter for military aircraft (simplified)
+const militaryFlights = data.states.filter(state => {
+const callsign = state[1];
+return callsign && (
+callsign.startsWith('RCH') || // US Air Force
+callsign.startsWith('EVAC') || // Medical evacuation
+callsign.startsWith('ARMY') || // Army
+callsign.startsWith('NAVY') || // Navy
+callsign.startsWith('MARINE') // Marines
+);
+});
+
+// Cache result
+await window.cyborgAPI.cacheData(cacheKey, militaryFlights, 300);
+
+return militaryFlights;
+} catch (error) {
+console.warn('Failed to fetch military flights:', error);
+return []; // Return empty array on error
+}
+},
+
+// PRO Satellite Data → Celestrak (free)
+fetchSatelliteData: async (satelliteType) => {
+// Use Celestrak TLE data (free)
+const urls = {
+'military': 'https://celestrak.org/NORAD/elements/gp.php?GROUP=military&FORMAT=tle',
+'noaa': 'https://celestrak.org/NORAD/elements/gp.php?GROUP=noaa&FORMAT=tle',
+'active': 'https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle'
+};
+
+const url = urls[satelliteType] || urls.active;
+
+try {
+const response = await fetch(url);
+const tleData = await response.text();
+
+// Parse TLE data (simplified)
+const satellites = parseTLEData(tleData);
+
+return satellites;
+} catch (error) {
+console.warn('Failed to fetch satellite data:', error);
+return []; // Return empty array on error
+}
+},
+
+// PRO Intelligence Feeds → RSS Aggregators (free)
+fetchIntelFeeds: async (topics) => {
+// Use free RSS feeds with caching
+const feeds = {
+'geopolitical': [
+'https://www.reutersagency.com/feed/?best-posts&post_type=best',
+'https://www.bbc.com/news/world/rss.xml',
+'https://apnews.com/hub/world-news?format=rss'
+],
+'economic': [
+'https://www.bloomberg.com/politics/rss',
+'https://www.cnbc.com/id/100003114/device/rss/rss.html'
+],
+'security': [
+'https://www.schneier.com/feed/atom/',
+'https://krebsonsecurity.com/feed/'
+]
+};
+
+const results = [];
+
+for (const topic of topics) {
+const topicFeeds = feeds[topic] || [];
+
+for (const feedUrl of topicFeeds) {
+try {
+const response = await fetch(feedUrl);
+const rssText = await response.text();
+const items = parseRSS(rssText);
+
+results.push(...items.map(item => ({
+...item,
+topic: topic,
+source: new URL(feedUrl).hostname,
+cached_at: new Date().toISOString()
+})));
+} catch (error) {
+console.warn(`Failed to fetch feed ${feedUrl}:`, error);
+}
+}
+}
+
+return results;
+}
+};
+
+// Helper function to parse TLE data
+function parseTLEData(tleText) {
+// Simplified TLE parser - in production, use a proper library
+const lines = tleText.split('\n').filter(line => line.trim());
+const satellites = [];
+
+for (let i = 0; i < lines.length; i += 3) {
+if (lines[i+1] && lines[i+2]) {
+satellites.push({
+name: lines[i].trim(),
+line1: lines[i+1].trim(),
+line2: lines[i+2].trim(),
+// Add parsed orbital parameters here
+});
+}
+}
+
+return satellites;
+}
+```
+
+#### Offline Data Caching Strategy
+```python
+# backend/worldmonitor/cache_manager.py
+import json
+import time
+from pathlib import Path
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Any
+
+class WorldMonitorCache:
+"""Cache manager for WorldMonitor data with offline support"""
+
+def __init__(self, cache_dir: Path, default_ttl: int = 300):
+self.cache_dir = cache_dir
+self.default_ttl = default_ttl  # Default TTL in seconds
+self.cache_dir.mkdir(parents=True, exist_ok=True)
+
+def _get_cache_path(self, key: str) -> Path:
+"""Generate cache file path from key"""
+# Sanitize key for filesystem
+safe_key = key.replace('/', '_').replace('?', '_').replace('&', '_')
+return self.cache_dir / f"{safe_key}.json"
+
+async def cache_data(self, key: str, data: Any, ttl: Optional[int] = None) -> None:
+"""Cache data with TTL"""
+ttl = ttl or self.default_ttl
+cache_entry = {
+'data': data,
+'cached_at': datetime.now().isoformat(),
+'expires_at': (datetime.now() + timedelta(seconds=ttl)).isoformat(),
+'ttl': ttl
+}
+
+cache_path = self._get_cache_path(key)
+with open(cache_path, 'w') as f:
+json.dump(cache_entry, f, indent=2)
+
+async def get_cached_data(self, key: str, max_age: Optional[int] = None) -> Optional[Any]:
+"""Get cached data if not expired"""
+cache_path = self._get_cache_path(key)
+if not cache_path.exists():
+return None
+
+try:
+with open(cache_path, 'r') as f:
+cache_entry = json.load(f)
+
+# Check expiration
+expires_at = datetime.fromisoformat(cache_entry['expires_at'])
+if datetime.now() > expires_at:
+# Cache expired, delete file
+cache_path.unlink(missing_ok=True)
+return None
+
+return cache_entry['data']
+except (json.JSONDecodeError, KeyError, ValueError):
+# Invalid cache entry, delete and return None
+cache_path.unlink(missing_ok=True)
+return None
+
+async def cache_news_feed(self, source: str, articles: List[Dict]) -> None:
+"""Cache news feed with source-specific TTL"""
+# News feeds have shorter TTL (5 minutes)
+await self.cache_data(f"news_{source}", articles, ttl=300)
+
+async def get_cached_news(self, source: str, max_age_hours: int = 24) -> Optional[List[Dict]]:
+"""Get cached news if not too old"""
+articles = await self.get_cached_data(f"news_{source}", max_age=max_age_hours*3600)
+return articles if articles else None
+
+async def cache_map_data(self, layer: str, data: Dict) -> None:
+"""Cache map layer data with longer TTL (1 hour)"""
+await self.cache_data(f"map_{layer}", data, ttl=3600)
+
+async def get_cached_map_data(self, layer: str) -> Optional[Dict]:
+"""Get cached map data"""
+return await self.get_cached_data(f"map_{layer}", max_age=3600)
+
+async def cleanup_expired(self) -> int:
+"""Remove expired cache entries, return count of removed items"""
+removed = 0
+for cache_file in self.cache_dir.glob("*.json"):
+try:
+with open(cache_file, 'r') as f:
+cache_entry = json.load(f)
+
+expires_at = datetime.fromisoformat(cache_entry['expires_at'])
+if datetime.now() > expires_at:
+cache_file.unlink()
+removed += 1
+except (json.JSONDecodeError, KeyError, ValueError):
+# Invalid cache file, remove it
+cache_file.unlink(missing_ok=True)
+removed += 1
+
+return removed
+```
+
+### 🐟 4.6 MiroFish Integration via Source Code (Offline)
+**Source**: https://github.com/666ghj/MiroFish
+
+#### Integration Method
+```bash
+# Clone and modify for Cyborg
+git clone https://github.com/666ghj/MiroFish external/mirofish
+cd external/mirofish
+
+# Modify configuration for Cyborg integration
+sed -i 's|LLM_ENDPOINT.*|LLM_ENDPOINT: "http://localhost:8000/api/llm"|' src/config.js
+sed -i 's|ONLINE_MODE.*|ONLINE_MODE: false|' config.js
+sed -i 's|AGENT_BEHAVIORS.*|AGENT_BEHAVIORS: "cyborg_behaviors"|' src/config.js
+
+# Install dependencies for offline use
+npm ci --offline 2>/dev/null || npm install
+
+# Add Cyborg integration hooks
+cat >> src/cyborg-integration.js << 'EOF'
+// Cyborg integration for MiroFish
+export const cyborgHooks = {
+onSimulationStart: (scenario) => {
+// Log simulation start to Cyborg
+window.cyborgAPI.logEvent({
+type: 'mirofish_simulation_start',
+scenario: scenario,
+timestamp: new Date().toISOString()
+});
+},
+onPredictionGenerated: (prediction) => {
+// Send predictions to Cyborg for analysis
+window.cyborgAPI.analyzePrediction({
+prediction: prediction,
+model: 'mirofish_swarm',
+confidence: prediction.confidence
+});
+},
+onLLMRequest: async (prompt, context) => {
+// Route LLM requests to Cyborg's local model
+return await window.cyborgAPI.generateCompletion({
+prompt: prompt,
+context: context,
+model: 'qwen2.5-coder-14b',
+temperature: 0.4
+});
+}
+};
+EOF
+```
+
+#### Agent Behavior System
+```javascript
+// external/mirofish/src/agents/behaviors.js
+export const AGENT_BEHAVIORS = {
+// Basic swarm behaviors
+separation: (agent, neighbors, params) => {
+// Avoid crowding neighbors
+let steer = { x: 0, y: 0 };
+let count = 0;
+
+for (const other of neighbors) {
+const d = distance(agent.position, other.position);
+if (d > 0 && d < params.separationRadius) {
+// Repel from neighbor
+const diff = {
+x: agent.position.x - other.position.x,
+y: agent.position.y - other.position.y
+};
+steer.x += diff.x / d; // Weight by distance
+steer.y += diff.y / d;
+count++;
+}
+}
+
+if (count > 0) {
+steer.x /= count;
+steer.y /= count;
+}
+
+return steer;
+},
+
+alignment: (agent, neighbors, params) => {
+// Match velocity with neighbors
+let avgVel = { x: 0, y: 0 };
+let count = 0;
+
+for (const other of neighbors) {
+avgVel.x += other.velocity.x;
+avgVel.y += other.velocity.y;
+count++;
+}
+
+if (count > 0) {
+avgVel.x /= count;
+avgVel.y /= count;
+
+// Steer toward average velocity
+return {
+x: avgVel.x - agent.velocity.x,
+y: avgVel.y - agent.velocity.y
+};
+}
+
+return { x: 0, y: 0 };
+},
+
+cohesion: (agent, neighbors, params) => {
+// Move toward center of mass of neighbors
+let center = { x: 0, y: 0 };
+let count = 0;
+
+for (const other of neighbors) {
+center.x += other.position.x;
+center.y += other.position.y;
+count++;
+}
+
+if (count > 0) {
+center.x /= count;
+center.y /= count;
+
+// Steer toward center
+return {
+x: center.x - agent.position.x,
+y: center.y - agent.position.y
+};
+}
+
+return { x: 0, y: 0 };
+},
+
+// Cyborg-specific behaviors
+taskSeeking: (agent, tasks, params) => {
+// Seek available tasks/resources
+if (tasks.length === 0) return { x: 0, y: 0 };
+
+// Find nearest task
+let nearest = tasks[0];
+let minDist = distance(agent.position, nearest.position);
+
+for (const task of tasks.slice(1)) {
+const d = distance(agent.position, task.position);
+if (d < minDist) {
+minDist = d;
+nearest = task;
+}
+}
+
+// Steer toward nearest task
+return {
+x: nearest.position.x - agent.position.x,
+y: nearest.position.y - agent.position.y
+};
+},
+
+threatAvoidance: (agent, threats, params) => {
+// Avoid threats/errors
+let steer = { x: 0, y: 0 };
+
+for (const threat of threats) {
+const d = distance(agent.position, threat.position);
+if (d < params.threatRadius) {
+// Repel from threat
+const diff = {
+x: agent.position.x - threat.position.x,
+y: agent.position.y - threat.position.y
+};
+steer.x += diff.x / d;
+steer.y += diff.y / d;
+}
+}
+
+return steer;
+},
+
+predictionExploration: (agent, predictionSpace, params) => {
+// Explore prediction space for scenarios
+// Simple random walk with bias toward unexplored areas
+const unexplored = predictionSpace.filter(area => !area.explored);
+
+if (unexplored.length > 0) {
+// Move toward unexplored area
+const target = unexplored[Math.floor(Math.random() * unexplored.length)];
+return {
+x: target.position.x - agent.position.x,
+y: target.position.y - agent.position.y
+};
+}
+
+// Default: random exploration
+return {
+x: (Math.random() - 0.5) * params.explorationStrength,
+y: (Math.random() - 0.5) * params.explorationStrength
+};
+}
+};
+
+// Behavior composition system
+export function composeBehaviors(agent, context, behaviorWeights) {
+let totalSteer = { x: 0, y: 0 };
+let totalWeight = 0;
+
+for (const [behaviorName, weight] of Object.entries(behaviorWeights)) {
+const behavior = AGENT_BEHAVIORS[behaviorName];
+if (behavior) {
+const steer = behavior(agent, context[behaviorName], context.params);
+totalSteer.x += steer.x * weight;
+totalSteer.y += steer.y * weight;
+totalWeight += weight;
+}
+}
+
+if (totalWeight > 0) {
+totalSteer.x /= totalWeight;
+totalSteer.y /= totalWeight;
+}
+
+return totalSteer;
+}
+```
+
+#### Full-Screen Launch with Prediction Panel
+```javascript
+// frontend/src/integrations/mirofish-launcher.js
+export class MiroFishLauncher {
+constructor(cyborgAPI) {
+this.cyborgAPI = cyborgAPI;
+this.simulationWindow = null;
+this.predictionPanel = null;
+}
+
+async launchScenario(scenario, options = {}) {
+// Open full-screen window with MiroFish
+this.simulationWindow = window.open(
+`/external/mirofish/index.html?scenario=${encodeURIComponent(scenario)}&theme=cyborg`,
+'mirofish',
+`fullscreen=yes,menubar=no,toolbar=no,location=no,status=no`
+);
+
+// Wait for MiroFish to load
+await new Promise(resolve => {
+this.simulationWindow.addEventListener('load', resolve, { once: true });
+});
+
+// Enable Cyborg prediction panel
+this.simulationWindow.postMessage({
+action: 'enablePredictionPanel',
+config: {
+width: options.panelWidth || 450,
+position: options.panelPosition || 'right',
+llmEndpoint: 'http://127.0.0.1:1234/v1',
+model: options.model || 'qwen2.5-coder-14b',
+predictionTypes: options.predictionTypes || [
+'outcome_probability',
+'risk_assessment',
+'timeline_forecast',
+'alternative_scenarios'
+],
+visualizationOptions: {
+showConfidenceIntervals: true,
+showAlternativePaths: true,
+showRiskHeatmap: true
+}
+}
+}, '*');
+
+// Set up message listener for MiroFish events
+window.addEventListener('message', (event) => {
+if (event.source === this.simulationWindow && event.data.type === 'mirofish-event') {
+this.handleMiroFishEvent(event.data.payload);
+}
+});
+
+return this.simulationWindow;
+}
+
+handleMiroFishEvent(payload) {
+switch (payload.type) {
+case 'simulation-update':
+// Update Cyborg with simulation state
+this.cyborgAPI.updateSimulationState({
+scenario: payload.scenario,
+agents: payload.agents,
+metrics: payload.metrics,
+timestamp: new Date().toISOString()
+});
+break;
+
+case 'prediction-generated':
+// Analyze prediction with Cyborg LLM
+this.analyzePrediction(payload.prediction);
+break;
+
+case 'scenario-complete':
+// Generate final report
+this.generateScenarioReport(payload.scenario, payload.results);
+break;
+}
+}
+
+async analyzePrediction(prediction) {
+// Use Cyborg LLM to analyze MiroFish prediction
+const prompt = `Analyze this simulation prediction and provide insights:
+
+Scenario: ${prediction.scenario}
+Prediction: ${prediction.outcome}
+Confidence: ${prediction.confidence}%
+Key Factors: ${prediction.factors.join(', ')}
+
+Provide:
+1. Assessment of prediction reliability
+2. Key risks and uncertainties
+3. Alternative scenarios to consider
+4. Recommended actions based on this prediction`;
+
+const analysis = await this.cyborgAPI.generateCompletion({
+prompt: prompt,
+model: 'qwen2.5-coder-14b',
+temperature: 0.3,
+max_tokens: 1000
+});
+
+// Display analysis in prediction panel
+if (this.predictionPanel) {
+this.predictionPanel.updateAnalysis(analysis.text);
+}
+
+return analysis;
+}
+
+close() {
+if (this.simulationWindow) {
+this.simulationWindow.close();
+this.simulationWindow = null;
+}
+if (this.predictionPanel) {
+this.predictionPanel.destroy();
+this.predictionPanel = null;
+}
+}
+}
+```
+
+### 🤖 4.7 LM Studio-Style Model Manager (Offline-First)
+
+#### Download Tab Implementation
+```dart
+// frontend/lib/screens/models/download_tab.dart
+class DownloadTab extends ConsumerWidget {
+const DownloadTab({Key? key}) : super(key: key);
+
+@override
+Widget build(BuildContext context, WidgetRef ref) {
+final modelStore = ref.watch(modelStoreProvider);
+final searchController = useTextEditingController();
+
+return Column(
+children: [
+// Search and filters
+Padding(
+padding: const EdgeInsets.all(16.0),
+child: Column(
+crossAxisAlignment: CrossAxisAlignment.start,
+children: [
+TextField(
+controller: searchController,
+decoration: InputDecoration(
+hintText: 'Search models...',
+prefixIcon: Icon(Icons.search),
+border: OutlineInputBorder(
+borderRadius: BorderRadius.circular(12),
+),
+),
+onChanged: (query) => ref.read(modelStoreProvider.notifier)
+.searchModels(query),
+),
+const SizedBox(height: 16),
+
+// Filter chips
+Wrap(
+spacing: 8,
+children: [
+FilterChip(
+label: Text('Code'),
+selected: modelStore.filters.contains('code'),
+onSelected: (selected) => ref.read(modelStoreProvider.notifier)
+.toggleFilter('code', selected),
+),
+FilterChip(
+label: Text('Text Generation'),
+selected: modelStore.filters.contains('text'),
+onSelected: (selected) => ref.read(modelStoreProvider.notifier)
+.toggleFilter('text', selected),
+),
+// ... more filters
+],
+),
+],
+),
+),
+
+// Model results
+Expanded(
+child: modelStore.searchResults.isEmpty
+? Center(child: Text('No models found'))
+: ListView.builder(
+itemCount: modelStore.searchResults.length,
+itemBuilder: (context, index) {
+final model = modelStore.searchResults[index];
+return ModelCard(
+model: model,
+onDownload: () => ref.read(modelStoreProvider.notifier)
+.downloadModel(model.id),
+onDetails: () => _showModelDetails(context, model),
+);
+},
+),
+),
+
+// Download queue
+if (modelStore.downloadQueue.isNotEmpty)
+Container(
+padding: EdgeInsets.all(16),
+decoration: BoxDecoration(
+color: Theme.of(context).colorScheme.surfaceVariant,
+borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+),
+child: Column(
+crossAxisAlignment: CrossAxisAlignment.start,
+children: [
+Text('Download Queue',
+style: Theme.of(context).textTheme.titleMedium),
+...modelStore.downloadQueue.map((download) =>
+DownloadProgressItem(download: download)),
+],
+),
+),
+],
+);
+}
+}
+```
+
+#### Model Card Widget
+```dart
+// frontend/lib/widgets/model_card.dart
+class ModelCard extends StatelessWidget {
+final Model model;
+final VoidCallback onDownload;
+final VoidCallback onDetails;
+
+const ModelCard({
+Key? key,
+required this.model,
+required this.onDownload,
+required this.onDetails,
+}) : super(key: key);
+
+@override
+Widget build(BuildContext context) {
+return Card(
+margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+child: InkWell(
+onTap: onDetails,
+child: Padding(
+padding: EdgeInsets.all(16),
+child: Column(
+crossAxisAlignment: CrossAxisAlignment.start,
+children: [
+// Model header
+Row(
+children: [
+Icon(Icons.smart_toy, color: AppColors.accent),
+SizedBox(width: 8),
+Expanded(
+child: Text(model.name,
+style: Theme.of(context).textTheme.titleLarge),
+),
+// Download button or status
+if (model.downloadStatus == DownloadStatus.notDownloaded)
+ElevatedButton.icon(
+icon: Icon(Icons.download),
+label: Text('Download'),
+onPressed: onDownload,
+)
+else if (model.downloadStatus == DownloadStatus.downloading)
+CircularProgressIndicator()
+else
+Icon(Icons.check_circle, color: AppColors.success),
+],
+),
+
+SizedBox(height: 8),
+
+// Model metadata
+Row(
+children: [
+_metadataChip('${(model.sizeGB).toStringAsFixed(1)} GB'),
+SizedBox(width: 8),
+_metadataChip(model.quantization),
+SizedBox(width: 8),
+_metadataChip(model.taskType,
+icon: Icons.category_outlined),
+],
+),
+
+SizedBox(height: 8),
+
+// Model stats
+Row(
+children: [
+Icon(Icons.star, size: 16, color: AppColors.warning),
+SizedBox(width: 4),
+Text('${model.rating} • '),
+Icon(Icons.download, size: 16),
+SizedBox(width: 4),
+Text('${model.downloads} downloads'),
+],
+),
+
+if (model.downloadStatus == DownloadStatus.downloading) ...[
+SizedBox(height: 12),
+LinearProgressIndicator(
+value: model.downloadProgress,
+backgroundColor: Colors.grey[300],
+valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
+),
+SizedBox(height: 4),
+Text(
+'${(model.downloadedGB).toStringAsFixed(1)} / '
+'${model.sizeGB.toStringAsFixed(1)} GB • '
+'${model.downloadSpeed} MB/s • '
+'ETA: ${model.eta}',
+style: Theme.of(context).textTheme.bodySmall,
+),
+],
+],
+),
+),
+),
+);
+}
+
+Widget _metadataChip(String label, {IconData? icon}) {
+return Chip(
+label: Text(label, style: TextStyle(fontSize: 12)),
+avatar: icon != null ? Icon(icon, size: 16) : null,
+padding: EdgeInsets.symmetric(horizontal: 8),
+visualDensity: VisualDensity.compact,
+);
+}
+}
+```
+
+#### Downloaded Models Tab
+```dart
+// frontend/lib/screens/models/downloaded_tab.dart
+class DownloadedModelsTab extends ConsumerWidget {
+const DownloadedModelsTab({Key? key}) : super(key: key);
+
+@override
+Widget build(BuildContext context, WidgetRef ref) {
+final modelStore = ref.watch(modelStoreProvider);
+final loadedModel = modelStore.loadedModel;
+
+return Column(
+children: [
+// Currently loaded model indicator
+if (loadedModel != null)
+Container(
+padding: EdgeInsets.all(16),
+margin: EdgeInsets.all(16),
+decoration: BoxDecoration(
+color: AppColors.success.withOpacity(0.1),
+borderRadius: BorderRadius.circular(12),
+border: Border.all(color: AppColors.success),
+),
+child: Row(
+children: [
+Icon(Icons.check_circle, color: AppColors.success),
+SizedBox(width: 8),
+Expanded(
+child: Text(
+'Loaded: ${loadedModel.name}',
+style: TextStyle(fontWeight: FontWeight.bold),
+),
+),
+TextButton.icon(
+icon: Icon(Icons.stop),
+label: Text('Unload'),
+onPressed: () => ref.read(modelStoreProvider.notifier)
+.unloadModel(loadedModel.id),
+),
+],
+),
+),
+
+// Models list
+Expanded(
+child: ListView.builder(
+itemCount: modelStore.downloadedModels.length,
+itemBuilder: (context, index) {
+final model = modelStore.downloadedModels[index];
+final isLoaded = model.id == loadedModel?.id;
+
+return ListTile(
+leading: Icon(
+isLoaded ? Icons.play_circle : Icons.smart_toy,
+color: isLoaded ? AppColors.success : null,
+),
+title: Text(model.name),
+subtitle: Text(
+'${model.sizeGB.toStringAsFixed(1)} GB • ${model.quantization}',
+),
+trailing: Row(
+mainAxisSize: MainAxisSize.min,
+children: [
+if (isLoaded)
+IconButton(
+icon: Icon(Icons.stop),
+tooltip: 'Unload',
+onPressed: () => ref.read(modelStoreProvider.notifier)
+.unloadModel(model.id),
+)
+else
+IconButton(
+icon: Icon(Icons.play_arrow),
+tooltip: 'Load',
+onPressed: () => ref.read(modelStoreProvider.notifier)
+.loadModel(model.id),
+),
+IconButton(
+icon: Icon(Icons.settings),
+tooltip: 'Configure',
+onPressed: () => _showModelConfig(context, model),
+),
+IconButton(
+icon: Icon(Icons.delete),
+tooltip: 'Delete',
+onPressed: () => _confirmDelete(context, model),
+),
+],
+),
+onTap: () => _showModelDetails(context, model),
+);
+},
+),
+),
+],
+);
+}
+}
+```
+
+#### Model Server Tab
+```dart
+// frontend/lib/screens/models/server_tab.dart
+class ModelServerTab extends ConsumerWidget {
+const ModelServerTab({Key? key}) : super(key: key);
+
+@override
+Widget build(BuildContext context, WidgetRef ref) {
+final serverStore = ref.watch(serverStoreProvider);
+
+return SingleChildScrollView(
+padding: EdgeInsets.all(16),
+child: Column(
+crossAxisAlignment: CrossAxisAlignment.start,
+children: [
+// Server status
+_buildServerStatusCard(serverStore),
+
+SizedBox(height: 24),
+
+// Server controls
+_buildServerControls(serverStore),
+
+SizedBox(height: 24),
+
+// Configuration
+_buildConfigurationSection(serverStore),
+
+SizedBox(height: 24),
+
+// API endpoints
+_buildApiEndpointsSection(),
+],
+),
+);
+}
+
+Widget _buildServerStatusCard(ServerStore serverStore) {
+return Card(
+child: Padding(
+padding: EdgeInsets.all(16),
+child: Column(
+crossAxisAlignment: CrossAxisAlignment.start,
+children: [
+Row(
+children: [
+Icon(
+serverStore.isRunning
+? Icons.check_circle
+: Icons.cancel,
+color: serverStore.isRunning
+? AppColors.success
+: AppColors.error,
+),
+SizedBox(width: 8),
+Text(
+serverStore.isRunning ? 'Server Running' : 'Server Stopped',
+style: TextStyle(fontWeight: FontWeight.bold),
+),
+],
+),
+SizedBox(height: 8),
+Text('URL: ${serverStore.serverUrl}'),
+if (serverStore.loadedModel != null) ...[
+SizedBox(height: 8),
+Text('Loaded Model: ${serverStore.loadedModel!.name}'),
+Text('Memory: ${serverStore.memoryUsage}'),
+Text('VRAM: ${serverStore.vramUsage}'),
+Text('Tokens/sec: ${serverStore.tokensPerSec}'),
+],
+],
+),
+),
+);
+}
+
+Widget _buildServerControls(ServerStore serverStore) {
+return Card(
+child: Padding(
+padding: EdgeInsets.all(16),
+child: Column(
+crossAxisAlignment: CrossAxisAlignment.start,
+children: [
+Text('Server Controls',
+style: Theme.of(context).textTheme.titleMedium),
+SizedBox(height: 12),
+Row(
+children: [
+if (!serverStore.isRunning)
+ElevatedButton.icon(
+icon: Icon(Icons.play_arrow),
+label: Text('Start Server'),
+onPressed: () => ref.read(serverStoreProvider.notifier)
+.startServer(),
+)
+else
+ElevatedButton.icon(
+icon: Icon(Icons.stop),
+label: Text('Stop Server'),
+onPressed: () => ref.read(serverStoreProvider.notifier)
+.stopServer(),
+),
+SizedBox(width: 12),
+OutlinedButton.icon(
+icon: Icon(Icons.restart_alt),
+label: Text('Restart'),
+onPressed: () => ref.read(serverStoreProvider.notifier)
+.restartServer(),
+),
+Spacer(),
+TextButton.icon(
+icon: Icon(Icons.list),
+label: Text('Logs'),
+onPressed: () => _showServerLogs(context),
+),
+],
+),
+],
+),
+),
+);
+}
+}
+```
+
+### 📱 4.8 Windows Flutter App with Relative Paths
+
+#### Path Resolution Implementation
+```dart
+// frontend/lib/core/path_resolver.dart
+import 'dart:io';
+import 'package:path/path.dart' as path;
+
+class PathResolver {
+static final PathResolver _instance = PathResolver._internal();
+factory PathResolver() => _instance;
+PathResolver._internal();
+
+late final Directory _baseDir;
+bool _initialized = false;
+
+Future<void> initialize() async {
+if (_initialized) return;
+
+// Get the directory containing the executable
+if (Platform.isWindows) {
+_baseDir = Directory(Platform.resolvedExecutable).parent;
+} else if (Platform.isMacOS) {
+// macOS: Get the app bundle directory
+final bundlePath = await _getMacOSBundlePath();
+_baseDir = Directory(bundlePath);
+} else {
+// Linux/other: Use script directory
+_baseDir = Directory(Platform.script.toFilePath()).parent;
+}
+
+// Ensure all required directories exist
+await _ensureDirectories();
+_initialized = true;
+}
+
+Future<String> _getMacOSBundlePath() async {
+// macOS-specific: Get the app bundle directory
+// This would use platform channels to get the bundle path
+// For now, fallback to executable directory
+return Directory(Platform.resolvedExecutable).parent.path;
+}
+
+Future<void> _ensureDirectories() async {
+final dirs = [
+'backend',
+'backend/scripts',
+'backend/models',
+'backend/external',
+'backend/external/gsd',
+'backend/external/ralph',
+'backend/external/codeflow',
+'backend/external/worldmonitor',
+'backend/external/mirofish',
+'data',
+'checkpoints',
+'config',
+'logs',
+'cache',
+];
+
+for (final dirName in dirs) {
+final dirPath = path.join(_baseDir.path, dirName);
+final dir = Directory(dirPath);
+if (!await dir.exists()) {
+await dir.create(recursive: true);
+}
+}
+}
+
+// Public path getters
+String getBasePath() => _baseDir.path;
+String getBackendPath() => path.join(_baseDir.path, 'backend');
+String getModelsPath() => path.join(_baseDir.path, 'backend', 'models');
+String getExternalPath(String toolName) =>
+path.join(_baseDir.path, 'backend', 'external', toolName);
+String getDataPath() => path.join(_baseDir.path, 'data');
+String getCheckpointsPath() => path.join(_baseDir.path, 'checkpoints');
+String getConfigPath() => path.join(_baseDir.path, 'config');
+String getLogsPath() => path.join(_baseDir.path, 'logs');
+String getCachePath() => path.join(_baseDir.path, 'cache');
+
+// Resolve relative path from backend
+String resolveBackendPath(String relativePath) =>
+path.join(getBackendPath(), relativePath);
+
+// Resolve relative path from project root
+String resolveProjectPath(String relativePath) =>
+path.join(_baseDir.path, relativePath);
+
+// Check if path is within allowed directories (security)
+bool isPathAllowed(String absolutePath) {
+final allowedPrefixes = [
+getBackendPath(),
+getDataPath(),
+getCheckpointsPath(),
+getConfigPath(),
+getLogsPath(),
+getCachePath(),
+];
+
+return allowedPrefixes.any((prefix) =>
+absolutePath.startsWith(prefix) || absolutePath == prefix);
+}
+}
+```
+
+#### Portable Installation Benefits
+- **Single Folder Installation**: Entire application contained in one directory, no system-wide installation required
+- **No Registry Modifications**: Windows registry remains untouched, easy to uninstall (just delete folder)
+- **No System Python Dependency**: Bundled Python environment via uv, no conflict with system Python
+- **USB Portable**: Can run directly from USB drive, network share, or external storage
+- **Easy Backup/Restore**: Copy folder to backup, restore by copying back, no complex restore process
+- **Multi-User Support**: Each user can have their own installation folder with separate settings
+- **Version Management**: Multiple versions can coexist in different folders, no version conflicts
+
+#### Windows-Specific Optimizations
+```dart
+// frontend/lib/platform/windows_optimizations.dart
+import 'dart:io';
+import 'package:win32/win32.dart';
+
+class WindowsOptimizations {
+// Set process priority for better performance
+static void setHighPriority() {
+if (!Platform.isWindows) return;
+
+final process = GetCurrentProcess();
+// Set to HIGH_PRIORITY_CLASS (0x00000080)
+SetPriorityClass(process, 0x00000080);
+}
+
+// Register file associations for Cyborg project files
+static Future<void> registerFileAssociations() async {
+if (!Platform.isWindows) return;
+
+// Register .cyborgproj files
+await _registerExtension('.cyborgproj', 'Cyborg Project', 'cyborg.app');
+await _registerExtension('.cyborggraph', 'Cyborg Graph', 'cyborg.app');
+}
+
+static Future<void> _registerExtension(
+String extension,
+String description,
+String appId
+) async {
+// Windows registry operations would go here
+// Using win32 package or platform channels
+}
+
+// Optimize for Windows Defender exclusions
+static Future<void> addDefenderExclusions() async {
+if (!Platform.isWindows) return;
+
+// Add exclusions for Cyborg directories to improve performance
+final exclusions = [
+PathResolver().getBackendPath(),
+PathResolver().getDataPath(),
+PathResolver().getCachePath(),
+];
+
+for (final dir in exclusions) {
+// Add to Windows Defender exclusions
+// This would require admin privileges and proper error handling
+}
+}
+}
+```
+
+### 📲 4.9 Android LightRT Integration
+
+#### LightRT Setup and Configuration
+```gradle
+// android/app/build.gradle
+plugins {
+id "com.android.application"
+id "kotlin-android"
+id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+namespace "com.cyborg.app"
+compileSdkVersion flutter.compileSdkVersion
+ndkVersion flutter.ndkVersion
+
+compileOptions {
+sourceCompatibility JavaVersion.VERSION_1_8
+targetCompatibility JavaVersion.VERSION_1_8
+}
+
+kotlinOptions {
+jvmTarget = '1.8'
+}
+
+sourceSets {
+main.java.srcDirs += 'src/main/kotlin'
+}
+
+defaultConfig {
+applicationId "com.cyborg.app"
+minSdkVersion flutter.minSdkVersion
+targetSdkVersion flutter.targetSdkVersion
+versionCode flutter.versionCode
+versionName flutter.versionName
+
+// LightRT native libraries configuration
+ndk {
+abiFilters 'arm64-v8a'  // ARM64 only for optimal performance
+}
+
+// Enable Vulkan for GPU acceleration
+manifestPlaceholders = [
+usesFeatureVulkan: "true"
+]
+}
+
+buildTypes {
+release {
+signingConfig signingConfigs.debug
+minifyEnabled true
+shrinkResources true
+proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+}
+debug {
+// Keep debug symbols for LightRT debugging
+ndk {
+debugSymbolLevel 'FULL'
+}
+}
+}
+
+packagingOptions {
+// Bundle LightRT native libraries
+jniLibs {
+useLegacyPackaging false
+// Exclude unnecessary ABIs to reduce APK size
+excludes += ['**/armeabi-v7a/**', '**/x86/**', '**/x86_64/**']
+}
+// Exclude debug symbols from release builds
+if (gradle.startParameter.taskNames.any { it.contains('Release') }) {
+exclude 'lib/**/libllama.so.debug'
+}
+}
+}
+
+dependencies {
+implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+// LightRT for Android (local AAR file)
+implementation files('libs/lightrt-release.aar')
+
+// llama.cpp bindings
+implementation 'com.github.ggerganov:llama.cpp:0.1.0'
+
+// Vulkan for GPU acceleration
+implementation 'org.lwjgl:lwjgl-vulkan:3.3.3'
+
+// Optional: CameraX for visual awareness features
+def camerax_version = "1.3.0"
+implementation "androidx.camera:camera-core:${camerax_version}"
+implementation "androidx.camera:camera-camera2:${camerax_version}"
+implementation "androidx.camera:camera-lifecycle:${camerax_version}"
+implementation "androidx.camera:camera-video:${camerax_version}"
+implementation "androidx.camera:camera-view:${camerax_version}"
+}
+```
+
+#### LightRT Manager Implementation
+```dart
+// frontend/lib/core/light_rt_manager.dart
+import 'dart:ffi';
+import 'dart:io';
+import 'package:ffi/ffi.dart';
+import 'package:path/path.dart' as path;
+
+class LightRTManager {
+static final LightRTManager _instance = LightRTManager._internal();
+factory LightRTManager() => _instance;
+LightRTManager._internal();
+
+late final DynamicLibrary _lib;
+late final _LightRTBindings _bindings;
+bool _initialized = false;
+String? _loadedModelPath;
+
+Future<void> initialize() async {
+if (_initialized) return;
+
+// Load LightRT native library
+if (Platform.isAndroid) {
+_lib = DynamicLibrary.open('liblightrt.so');
+} else {
+// Fallback for testing on other platforms
+throw UnsupportedError('LightRT only supported on Android');
+}
+
+_bindings = _LightRTBindings(_lib);
+
+// Initialize LightRT with optimal settings for Android
+final result = _bindings.lightrt_init(
+gpu_layers: 28,  // Offload 28 layers to GPU (adjust based on device)
+n_threads: 4,    // 4 CPU threads for balance
+n_ctx: 4096,     // Context window size
+n_batch: 512,    // Batch size for prompt processing
+flash_attn: true, // Enable flash attention for speed
+// ... other parameters
+);
+
+if (result != 0) {
+throw Exception('Failed to initialize LightRT: $result');
+}
+
+_initialized = true;
+}
+
+Future<void> loadModel(String modelPath) async {
+if (!_initialized) await initialize();
+
+// Check if model is already loaded
+if (_loadedModelPath == modelPath) return;
+
+// Load model with memory mapping for faster loading
+final result = _bindings.lightrt_load_model(
+modelPath.toNativeUtf8().cast(),
+true,  // Use memory mapping
+0,     // No special flags
+);
+
+if (result != 0) {
+throw Exception('Failed to load model: $result');
+}
+
+_loadedModelPath = modelPath;
+}
+
+Stream<String> generateCompletion({
+required String prompt,
+required String modelPath,
+double temperature = 0.7,
+int maxTokens = 2048,
+double topP = 0.9,
+int topK = 40,
+}) async* {
+if (_loadedModelPath != modelPath) {
+await loadModel(modelPath);
+}
+
+// Set generation parameters
+_bindings.lightrt_set_params(
+temperature,
+topP,
+topK,
+maxTokens,
+// ... other parameters
+);
+
+// Generate completion with streaming
+final completer = StreamController<String>();
+
+// Native callback for token streaming
+final callback = Pointer.fromFunction<Void Function(Pointer<Utf8>, Pointer<Void>)>(
+(Pointer<Utf8> token, Pointer<Void> userData) {
+final controller = userData.cast<StreamController<String>>().value;
+controller.add(token.toDartString());
+},
+);
+
+try {
+final result = await _bindings.lightrt_generate_async(
+prompt.toNativeUtf8().cast(),
+callback,
+completer.ptr.cast(), // Pass controller as user data
+nullptr, // No progress callback for now
+);
+
+if (result != 0) {
+throw Exception('Generation failed: $result');
+}
+
+// Yield tokens as they arrive
+await for (final token in completer.stream) {
+yield token;
+}
+} finally {
+callback.cast().free();
+completer.close();
+}
+}
+
+// Performance metrics
+bool get isGpuAccelerated => _bindings.lightrt_is_gpu_available() != 0;
+double get inferenceSpeed => _bindings.lightrt_get_tokens_per_sec();
+int get loadedModelLayers => _bindings.lightrt_get_loaded_layers();
+int get totalModelLayers => _bindings.lightrt_get_total_layers();
+
+// Resource management
+Future<void> unloadModel() async {
+if (_loadedModelPath != null) {
+_bindings.lightrt_unload_model();
+_loadedModelPath = null;
+}
+}
+
+Future<void> dispose() async {
+await unloadModel();
+if (_initialized) {
+_bindings.lightrt_free();
+_initialized = false;
+}
+}
+}
+
+// FFI bindings for LightRT
+class _LightRTBindings {
+_LightRTBindings(DynamicLibrary lib) : _lib = lib;
+final DynamicLibrary _lib;
+
+// Initialization
+int lightrt_init({
+required int gpu_layers,
+required int n_threads,
+required int n_ctx,
+int n_batch = 512,
+bool flash_attn = true,
+// ... other parameters
+}) {
+final func = _lib.lookupFunction<
+Int32 Function(Int32, Int32, Int32, Int32, Bool),
+int Function(int, int, int, int, bool)
+>('lightrt_init');
+return func(gpu_layers, n_threads, n_ctx, n_batch, flash_attn);
+}
+
+// Model loading
+int lightrt_load_model(
+Pointer<Utf8> model_path,
+bool use_mmap,
+int flags,
+) {
+final func = _lib.lookupFunction<
+Int32 Function(Pointer<Utf8>, Bool, Int32),
+int Function(Pointer<Utf8>, bool, int)
+>('lightrt_load_model');
+return func(model_path, use_mmap, flags);
+}
+
+// Generation with streaming
+int lightrt_generate_async(
+Pointer<Utf8> prompt,
+Pointer<NativeFunction<Void Function(Pointer<Utf8>, Pointer<Void>)>> callback,
+Pointer<Void> user_data,
+Pointer<NativeFunction<Void Function(Float, Pointer<Void>)>>? progress_callback,
+) {
+final func = _lib.lookupFunction<
+Int32 Function(
+Pointer<Utf8>,
+Pointer<NativeFunction<Void Function(Pointer<Utf8>, Pointer<Void>)>>,
+Pointer<Void>,
+Pointer<NativeFunction<Void Function(Float, Pointer<Void>)>>,
+),
+int Function(
+Pointer<Utf8>,
+Pointer<NativeFunction<Void Function(Pointer<Utf8>, Pointer<Void>)>>,
+Pointer<Void>,
+Pointer<NativeFunction<Void Function(Float, Pointer<Void>)>>?,
+)
+>('lightrt_generate_async');
+return func(prompt, callback, user_data, progress_callback);
+}
+
+// Parameter setting
+void lightrt_set_params(
+double temperature,
+double top_p,
+int top_k,
+int max_tokens,
+// ... other parameters
+) {
+final func = _lib.lookupFunction<
+Void Function(Double, Double, Int32, Int32),
+void Function(double, double, int, int)
+>('lightrt_set_params');
+func(temperature, top_p, top_k, max_tokens);
+}
+
+// Status and metrics
+int lightrt_is_gpu_available() {
+final func = _lib.lookupFunction<
+Int32 Function(),
+int Function()
+>('lightrt_is_gpu_available');
+return func();
+}
+
+double lightrt_get_tokens_per_sec() {
+final func = _lib.lookupFunction<
+Double Function(),
+double Function()
+>('lightrt_get_tokens_per_sec');
+return func();
+}
+
+int lightrt_get_loaded_layers() {
+final func = _lib.lookupFunction<
+Int32 Function(),
+int Function()
+>('lightrt_get_loaded_layers');
+return func();
+}
+
+int lightrt_get_total_layers() {
+final func = _lib.lookupFunction<
+Int32 Function(),
+int Function()
+>('lightrt_get_total_layers');
+return func();
+}
+
+// Cleanup
+void lightrt_unload_model() {
+final func = _lib.lookupFunction<
+Void Function(),
+void Function()
+>('lightrt_unload_model');
+func();
+}
+
+void lightrt_free() {
+final func = _lib.lookupFunction<
+Void Function(),
+void Function()
+>('lightrt_free');
+func();
+}
+}
+```
+
+#### Performance Optimization Strategies
+- **GPU Offload**: Offload 28/35 layers to Vulkan GPU for 2-3x speedup on supported devices
+- **Quantization**: Use Q4_K_M quantization for optimal speed/quality balance (4-bit weights)
+- **Memory Mapping**: Memory-map model files for faster loading and lower memory usage
+- **Batch Processing**: Process multiple prompts in batches to improve throughput
+- **Context Caching**: Cache attention context for repeated prompts to reduce computation
+- **Thread Management**: Use 4 CPU threads for balance between performance and battery life
+- **Dynamic Layer Offloading**: Adjust GPU layers based on device thermal state and battery level
+- **Model Swapping**: Efficiently swap between models without full reload using memory pooling
+
+#### Device Capability Detection
+```dart
+// frontend/lib/core/device_capabilities.dart
+class DeviceCapabilities {
+static Future<DeviceSpecs> detect() async {
+final specs = DeviceSpecs();
+
+// CPU information
+specs.cpuCores = await _getCpuCoreCount();
+specs.cpuArchitecture = await _getCpuArchitecture();
+
+// GPU information
+specs.gpuAvailable = await _isGpuAvailable();
+specs.gpuType = await _getGpuType();
+specs.vramSize = await _getVramSize();
+
+// Memory information
+specs.totalMemory = await _getTotalMemory();
+specs.availableMemory = await _getAvailableMemory();
+
+// Storage information
+specs.storageType = await _getStorageType(); // SSD/HDD/eMMC/UFS
+specs.availableStorage = await _getAvailableStorage();
+
+// Android-specific optimizations
+if (Platform.isAndroid) {
+specs.androidApiLevel = await _getAndroidApiLevel();
+specs.supportsVulkan = await _supportsVulkan();
+specs.supportsNeon = await _supportsNeon();
+}
+
+// Determine optimal LightRT configuration
+specs.optimalGpuLayers = _calculateOptimalGpuLayers(specs);
+specs.optimalThreads = _calculateOptimalThreads(specs);
+specs.optimalContextSize = _calculateOptimalContextSize(specs);
+
+return specs;
+}
+
+static int _calculateOptimalGpuLayers(DeviceSpecs specs) {
+// Heuristic based on device capabilities
+if (!specs.gpuAvailable || specs.vramSize < 4) return 0;
+
+if (specs.vramSize >= 8) return 32; // High-end devices
+if (specs.vramSize >= 6) return 28; // Mid-range devices
+if (specs.vramSize >= 4) return 20; // Low-end devices with GPU
+
+return 0; // Fallback to CPU
+}
+
+static int _calculateOptimalThreads(DeviceSpecs specs) {
+// Balance between performance and battery life
+if (specs.cpuCores >= 8) return 6;
+if (specs.cpuCores >= 4) return 4;
+return 2;
+}
+
+static int _calculateOptimalContextSize(DeviceSpecs specs) {
+// Balance context size with available memory
+final availableMB = specs.availableMemory ~/ (1024 * 1024);
+
+if (availableMB > 4000) return 8192;
+if (availableMB > 2000) return 4096;
+if (availableMB > 1000) return 2048;
+return 1024;
+}
+}
+
+class DeviceSpecs {
+// CPU
+int cpuCores = 0;
+String cpuArchitecture = '';
+
+// GPU
+bool gpuAvailable = false;
+String gpuType = '';
+int vramSize = 0; // in GB
+
+// Memory
+int totalMemory = 0; // in bytes
+int availableMemory = 0; // in bytes
+
+// Storage
+String storageType = '';
+int availableStorage = 0; // in bytes
+
+// Android-specific
+int androidApiLevel = 0;
+bool supportsVulkan = false;
+bool supportsNeon = false;
+
+// Optimized settings
+int optimalGpuLayers = 0;
+int optimalThreads = 0;
+int optimalContextSize = 0;
+}
+```
+## 5. UI/UX Specification & Design System (Continued)
+
+### 🎨 Design System (Complete Specification)
+
+#### Color Palette with Accessibility
+```dart
+// frontend/lib/core/theme/app_colors.dart
+import 'package:flutter/material.dart';
+
+class AppColors {
+// Obsidian Dark Theme (Primary)
+static const Color bgPrimary = Color(0xFF1e1e1e);        // Main background - WCAG AAA compliant
+static const Color bgSecondary = Color(0xFF2d2d2d);      // Cards, panels - WCAG AAA compliant
+static const Color bgTertiary = Color(0xFF3d3d3d);       // Hover states, dividers
+static const Color bgElevated = Color(0xFF4a4a4a);       // Elevated surfaces (modals, dialogs)
+
+// Text Colors
+static const Color textPrimary = Color(0xFFFFFFFF);      // Primary text - WCAG AAA compliant
+static const Color textSecondary = Color(0xFFb0b0b0);    // Secondary text - WCAG AA compliant
+static const Color textTertiary = Color(0xFF888888);     // Tertiary text, placeholders
+static const Color textDisabled = Color(0xFF666666);     // Disabled text
+
+// GSD Phase Colors (Accessible)
+static const Color phasePlan = Color(0xFF3b82f6);        // Blue - WCAG AA compliant
+static const Color phaseResearch = Color(0xFF8b5cf6);    // Purple - WCAG AA compliant
+static const Color phaseImplement = Color(0xFF10b981);   // Green - WCAG AA compliant
+static const Color phaseDebug = Color(0xFFf59e0b);       // Orange - WCAG AA compliant
+
+// Graphify Community Colors (12 distinct, colorblind-friendly)
+static const List<Color> communityColors = [
+Color(0xFF4e79a7), // Blue - Colorblind safe
+Color(0xFFf28e2b), // Orange - Colorblind safe
+Color(0xFFe15759), // Red - Colorblind safe
+Color(0xFF76b7b2), // Teal - Colorblind safe
+Color(0xFF59a14f), // Green - Colorblind safe
+Color(0xFFedc948), // Yellow - Colorblind safe
+Color(0xFFb07aa1), // Purple - Colorblind safe
+Color(0xFFff9da7), // Pink - Colorblind safe
+Color(0xFF9c755f), // Brown - Colorblind safe
+Color(0xFFbab0ac), // Gray - Colorblind safe
+Color(0xFF1f77b4), // Blue 2 - Colorblind safe
+Color(0xFFff7f0e), // Orange 2 - Colorblind safe
+];
+
+// Edge Colors by Relationship Type
+static const Color edgeDirect = Color(0xFFFFFFFF);        // White, solid
+static const Color edgeSemantic = Color(0xFF60a5fa);      // Blue, dashed
+static const Color edgeCooccurrence = Color(0xFFf472b6);  // Pink, dotted
+
+// UI Accents (Accessible)
+static const Color accent = Color(0xFF7c3aed);            // Purple (primary action) - WCAG AA
+static const Color accentHover = Color(0xFF8b5cf6);       // Purple hover state
+static const Color success = Color(0xFF10b981);           // Green (success) - WCAG AA
+static const Color warning = Color(0xFFf59e0b);           // Orange (warning) - WCAG AA
+static const Color error = Color(0xFFef4444);             // Red (error) - WCAG AA
+static const Color info = Color(0xFF3b82f6);              // Blue (info) - WCAG AA
+
+// Status Indicators
+static const Color statusOnline = Color(0xFF10b981);      // Green dot
+static const Color statusOffline = Color(0xFF6b7280);     // Gray dot
+static const Color statusLoading = Color(0xFFf59e0b);     // Orange dot (animated)
+static const Color statusError = Color(0xFFef4444);       // Red dot
+
+// Interactive States
+static const Color hoverOverlay = Color(0x1AFFFFFF);      // 10% white overlay
+static const Color activeOverlay = Color(0x33FFFFFF);     // 20% white overlay
+static const Color focusRing = Color(0xFF7c3aed);         // Purple focus ring
+static const Color selectionBackground = Color(0xFF374151); // Selection bg
+
+// Progress Indicators
+static const Color progressBackground = Color(0xFF374151); // Progress bar bg
+static const Color progressFill = Color(0xFF7c3aed);       // Progress bar fill
+static const Color progressSuccess = Color(0xFF10b981);    // Completed progress
+
+// Code Syntax Highlighting
+static const Color codeKeyword = Color(0xFFc678dd);        // Purple keywords
+static const Color codeFunction = Color(0xFF61afef);       // Blue functions
+static const Color codeString = Color(0xFF98c379);         // Green strings
+static const Color codeNumber = Color(0xFFd19a66);         // Orange numbers
+static const Color codeComment = Color(0xFF5c6370);        // Gray comments
+static const Color codeOperator = Color(0xFF56b6c2);       // Cyan operators
+static const Color codeVariable = Color(0xFFe06c75);       // Red variables
+static const Color codeType = Color(0xFFe5c07b);           // Yellow types
+
+// Chart Colors (Colorblind-friendly palette)
+static const List<Color> chartColors = [
+Color(0xFF4e79a7), // Blue
+Color(0xFFf28e2b), // Orange
+Color(0xFFe15759), // Red
+Color(0xFF76b7b2), // Teal
+Color(0xFF59a14f), // Green
+Color(0xFFedc948), // Yellow
+Color(0xFFb07aa1), // Purple
+Color(0xFFff9da7), // Pink
+];
+
+// Semantic Colors
+static const Color semanticPositive = Color(0xFF10b981);   // Success/growth
+static const Color semanticNegative = Color(0xFFef4444);   // Error/decline
+static const Color semanticNeutral = Color(0xFF6b7280);    // Neutral/stable
+static const Color semanticInfo = Color(0xFF3b82f6);       // Information
+}
+```
+
+#### Typography System
+```dart
+// frontend/lib/core/theme/app_typography.dart
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+class AppTypography {
+// Font Families
+static const String fontFamilyPrimary = 'Inter';
+static const String fontFamilySecondary = 'JetBrains Mono';
+static const String fontFamilyCode = 'JetBrains Mono';
+
+// Font Sizes (based on 4px baseline grid)
+static const double fontSizeXS = 10;    // Extra small (captions, labels)
+static const double fontSizeSM = 12;    // Small (secondary text)
+static const double fontSizeBase = 14;  // Base (body text)
+static const double fontSizeLG = 16;    // Large (subheadings)
+static const double fontSizeXL = 20;    // Extra large (headings)
+static const double fontSize2XL = 24;   // 2X large (section titles)
+static const double fontSize3XL = 32;   // 3X large (page titles)
+
+// Font Weights
+static const FontWeight weightLight = FontWeight.w300;
+static const FontWeight weightRegular = FontWeight.w400;
+static const FontWeight weightMedium = FontWeight.w500;
+static const FontWeight weightSemiBold = FontWeight.w600;
+static const FontWeight weightBold = FontWeight.w700;
+
+// Line Heights (for readability)
+static const double lineHeightTight = 1.2;
+static const double lineHeightBase = 1.5;
+static const double lineHeightRelaxed = 1.75;
+
+// Letter Spacing
+static const double letterSpacingTight = -0.02;
+static const double letterSpacingBase = 0.0;
+static const double letterSpacingWide = 0.05;
+
+// Text Styles - Headings
+static const TextStyle heading1 = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSize3XL,
+fontWeight: weightBold,
+height: lineHeightTight,
+letterSpacing: letterSpacingTight,
+color: AppColors.textPrimary,
+);
+
+static const TextStyle heading2 = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSize2XL,
+fontWeight: weightSemiBold,
+height: lineHeightTight,
+letterSpacing: letterSpacingTight,
+color: AppColors.textPrimary,
+);
+
+static const TextStyle heading3 = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSizeXL,
+fontWeight: weightSemiBold,
+height: lineHeightBase,
+color: AppColors.textPrimary,
+);
+
+static const TextStyle heading4 = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSizeLG,
+fontWeight: weightMedium,
+height: lineHeightBase,
+color: AppColors.textPrimary,
+);
+
+// Text Styles - Body
+static const TextStyle bodyLarge = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSizeLG,
+fontWeight: weightRegular,
+height: lineHeightBase,
+color: AppColors.textPrimary,
+);
+
+static const TextStyle bodyMedium = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSizeBase,
+fontWeight: weightRegular,
+height: lineHeightBase,
+color: AppColors.textPrimary,
+);
+
+static const TextStyle bodySmall = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSizeSM,
+fontWeight: weightRegular,
+height: lineHeightRelaxed,
+color: AppColors.textSecondary,
+);
+
+static const TextStyle bodyXS = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSizeXS,
+fontWeight: weightRegular,
+height: lineHeightRelaxed,
+color: AppColors.textTertiary,
+);
+
+// Text Styles - Code
+static const TextStyle code = TextStyle(
+fontFamily: fontFamilyCode,
+fontSize: fontSizeBase,
+fontWeight: weightRegular,
+height: lineHeightBase,
+color: AppColors.textPrimary,
+backgroundColor: AppColors.bgTertiary,
+);
+
+static const TextStyle codeInline = TextStyle(
+fontFamily: fontFamilyCode,
+fontSize: fontSizeSM,
+fontWeight: weightRegular,
+height: lineHeightBase,
+color: AppColors.codeKeyword,
+backgroundColor: AppColors.bgSecondary,
+);
+
+// Text Styles - Labels & Buttons
+static const TextStyle labelLarge = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSizeBase,
+fontWeight: weightMedium,
+height: lineHeightBase,
+letterSpacing: letterSpacingWide,
+color: AppColors.textPrimary,
+);
+
+static const TextStyle labelMedium = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSizeSM,
+fontWeight: weightSemiBold,
+height: lineHeightBase,
+letterSpacing: letterSpacingWide,
+color: AppColors.textPrimary,
+);
+
+static const TextStyle labelSmall = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSizeXS,
+fontWeight: weightSemiBold,
+height: lineHeightBase,
+letterSpacing: letterSpacingWide,
+color: AppColors.textSecondary,
+);
+
+// Text Styles - Special
+static const TextStyle caption = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSizeXS,
+fontWeight: weightRegular,
+height: lineHeightBase,
+color: AppColors.textTertiary,
+);
+
+static const TextStyle overline = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSizeXS,
+fontWeight: weightSemiBold,
+height: lineHeightBase,
+letterSpacing: letterSpacingWide,
+color: AppColors.textSecondary,
+);
+
+// Button Styles
+static const TextStyle buttonPrimary = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSizeBase,
+fontWeight: weightSemiBold,
+height: lineHeightBase,
+letterSpacing: letterSpacingWide,
+color: AppColors.textPrimary,
+);
+
+static const TextStyle buttonSecondary = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSizeBase,
+fontWeight: weightMedium,
+height: lineHeightBase,
+letterSpacing: letterSpacingWide,
+color: AppColors.textSecondary,
+);
+
+// Link Style
+static const TextStyle link = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSizeBase,
+fontWeight: weightMedium,
+height: lineHeightBase,
+color: AppColors.accent,
+decoration: TextDecoration.underline,
+);
+
+// Error Style
+static const TextStyle error = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSizeBase,
+fontWeight: weightMedium,
+height: lineHeightBase,
+color: AppColors.error,
+);
+
+// Success Style
+static const TextStyle success = TextStyle(
+fontFamily: fontFamilyPrimary,
+fontSize: fontSizeBase,
+fontWeight: weightMedium,
+height: lineHeightBase,
+color: AppColors.success,
+);
+
+// Helper method to get theme-aware text styles
+static TextTheme getThemeTextTheme() {
+return TextTheme(
+displayLarge: heading1,
+displayMedium: heading2,
+displaySmall: heading3,
+headlineMedium: heading4,
+titleLarge: bodyLarge,
+titleMedium: bodyMedium,
+titleSmall: bodySmall,
+bodyLarge: bodyLarge,
+bodyMedium: bodyMedium,
+bodySmall: bodySmall,
+labelLarge: labelLarge,
+labelMedium: labelMedium,
+labelSmall: labelSmall,
+);
+}
+}
+```
+
+#### Spacing & Layout System
+```dart
+// frontend/lib/core/theme/app_spacing.dart
+import 'package:flutter/material.dart';
+
+class AppSpacing {
+// 4px Baseline Grid
+static const double xs = 4;    // Extra small
+static const double sm = 8;    // Small
+static const double md = 12;   // Medium
+static const double lg = 16;   // Large
+static const double xl = 24;   // Extra large
+static const double xxl = 32;  // 2X large
+static const double xxxl = 48; // 3X large
+static const double huge = 64; // Huge spacing
+
+// LM Studio-style Layout Dimensions
+static const double sidebarWidth = 280;          // Left sidebar width
+static const double sidebarWidthCollapsed = 64;  // Collapsed sidebar
+static const double rightPanelWidth = 360;       // Right panel (inspector)
+static const double rightPanelWidthNarrow = 300; // Narrow right panel
+static const double minContentWidth = 600;       // Minimum content width
+static const double maxContentWidth = 1200;      // Maximum content width
+static const double maxReadableWidth = 800;      // Max width for readability
+
+// Component Spacing
+static const double buttonPaddingHorizontal = lg;
+static const double buttonPaddingVertical = md;
+static const double inputPaddingHorizontal = md;
+static const double inputPaddingVertical = md;
+static const double cardPadding = lg;
+static const double dialogPadding = xl;
+static const double modalPadding = xxl;
+
+// List & Grid Spacing
+static const double listItemPadding = md;
+static const double gridGap = lg;
+static const double gridGapSmall = md;
+static const double gridGapLarge = xl;
+
+// Navigation Spacing
+static const double navItemPadding = md;
+static const double navItemSpacing = sm;
+static const double navHeaderSpacing = lg;
+
+// Form Spacing
+static const double formFieldSpacing = lg;
+static const double formLabelSpacing = xs;
+static const double formGroupSpacing = xl;
+
+// Breakpoints for Responsive Design
+static const double breakpointXS = 360;   // Extra small (phones)
+static const double breakpointSM = 640;   // Small (large phones)
+static const double breakpointMD = 768;   // Medium (tablets)
+static const double breakpointLG = 1024;  // Large (laptops)
+static const double breakpointXL = 1280;  // Extra large (desktops)
+static const double breakpoint2XL = 1536; // 2X large (large desktops)
+
+// Responsive Helpers
+static EdgeInsets responsivePadding(BuildContext context) {
+final width = MediaQuery.of(context).size.width;
+if (width < breakpointSM) {
+return const EdgeInsets.all(md);
+} else if (width < breakpointMD) {
+return const EdgeInsets.symmetric(horizontal: lg, vertical: md);
+} else {
+return const EdgeInsets.symmetric(horizontal: xl, vertical: lg);
+}
+}
+
+static double responsiveSidebarWidth(BuildContext context) {
+final width = MediaQuery.of(context).size.width;
+if (width < breakpointMD) {
+return sidebarWidthCollapsed; // Collapsed on mobile
+} else {
+return sidebarWidth;
+}
+}
+
+static bool isMobile(BuildContext context) {
+return MediaQuery.of(context).size.width < breakpointMD;
+}
+
+static bool isTablet(BuildContext context) {
+final width = MediaQuery.of(context).size.width;
+return width >= breakpointMD && width < breakpointLG;
+}
+
+static bool isDesktop(BuildContext context) {
+return MediaQuery.of(context).size.width >= breakpointLG;
+}
+}
+```
+
+#### Component Library
+```dart
+// frontend/lib/components/app_components.dart
+import 'package:flutter/material.dart';
+import '../core/theme/app_colors.dart';
+import '../core/theme/app_typography.dart';
+import '../core/theme/app_spacing.dart';
+
+// Primary Button
+class PrimaryButton extends StatelessWidget {
+final String label;
+final VoidCallback? onPressed;
+final bool loading;
+final IconData? icon;
+final ButtonStyle? style;
+
+const PrimaryButton({
+Key? key,
+required this.label,
+this.onPressed,
+this.loading = false,
+this.icon,
+this.style,
+}) : super(key: key);
+
+@override
+Widget build(BuildContext context) {
+return ElevatedButton(
+onPressed: loading ? null : onPressed,
+style: ElevatedButton.styleFrom(
+backgroundColor: AppColors.accent,
+foregroundColor: AppColors.textPrimary,
+padding: EdgeInsets.symmetric(
+horizontal: AppSpacing.buttonPaddingHorizontal,
+vertical: AppSpacing.buttonPaddingVertical,
+),
+shape: RoundedRectangleBorder(
+borderRadius: BorderRadius.circular(12),
+),
+elevation: 0,
+textStyle: AppTypography.buttonPrimary,
+).merge(style),
+child: loading
+? SizedBox(
+width: 20,
+height: 20,
+child: CircularProgressIndicator(
+strokeWidth: 2,
+valueColor: AlwaysStoppedAnimation<Color>(AppColors.textPrimary),
+),
+)
+: Row(
+mainAxisSize: MainAxisSize.min,
+children: [
+if (icon != null) ...[
+Icon(icon, size: 18),
+SizedBox(width: AppSpacing.sm),
+],
+Text(label),
+],
+),
+);
+}
+}
+
+// Secondary Button
+class SecondaryButton extends StatelessWidget {
+final String label;
+final VoidCallback? onPressed;
+final bool loading;
+final IconData? icon;
+
+const SecondaryButton({
+Key? key,
+required this.label,
+this.onPressed,
+this.loading = false,
+this.icon,
+}) : super(key: key);
+
+@override
+Widget build(BuildContext context) {
+return OutlinedButton(
+onPressed: loading ? null : onPressed,
+style: OutlinedButton.styleFrom(
+foregroundColor: AppColors.textSecondary,
+side: BorderSide(color: AppColors.bgTertiary),
+padding: EdgeInsets.symmetric(
+horizontal: AppSpacing.buttonPaddingHorizontal,
+vertical: AppSpacing.buttonPaddingVertical,
+),
+shape: RoundedRectangleBorder(
+borderRadius: BorderRadius.circular(12),
+),
+textStyle: AppTypography.buttonSecondary,
+),
+child: loading
+? SizedBox(
+width: 20,
+height: 20,
+child: CircularProgressIndicator(
+strokeWidth: 2,
+valueColor: AlwaysStoppedAnimation<Color>(AppColors.textSecondary),
+),
+)
+: Row(
+mainAxisSize: MainAxisSize.min,
+children: [
+if (icon != null) ...[
+Icon(icon, size: 18),
+SizedBox(width: AppSpacing.sm),
+],
+Text(label),
+],
+),
+);
+}
+}
+
+// Text Input Field
+class AppTextField extends StatelessWidget {
+final String label;
+final String? hint;
+final TextEditingController? controller;
+final bool obscureText;
+final IconData? prefixIcon;
+final Widget? suffix;
+final String? errorText;
+final TextInputType? keyboardType;
+final int? maxLines;
+final ValueChanged<String>? onChanged;
+
+const AppTextField({
+Key? key,
+required this.label,
+this.hint,
+this.controller,
+this.obscureText = false,
+this.prefixIcon,
+this.suffix,
+this.errorText,
+this.keyboardType,
+this.maxLines = 1,
+this.onChanged,
+}) : super(key: key);
+
+@override
+Widget build(BuildContext context) {
+return Column(
+crossAxisAlignment: CrossAxisAlignment.start,
+children: [
+Text(
+label,
+style: AppTypography.bodyMedium.copyWith(
+fontWeight: AppTypography.weightMedium,
+color: AppColors.textSecondary,
+),
+),
+SizedBox(height: AppSpacing.xs),
+TextFormField(
+controller: controller,
+obscureText: obscureText,
+keyboardType: keyboardType,
+maxLines: maxLines,
+onChanged: onChanged,
+decoration: InputDecoration(
+hintText: hint,
+hintStyle: AppTypography.bodyMedium.copyWith(
+color: AppColors.textTertiary,
+),
+prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
+suffix: suffix,
+errorText: errorText,
+filled: true,
+fillColor: AppColors.bgSecondary,
+border: OutlineInputBorder(
+borderRadius: BorderRadius.circular(12),
+borderSide: BorderSide.none,
+),
+enabledBorder: OutlineInputBorder(
+borderRadius: BorderRadius.circular(12),
+borderSide: BorderSide.none,
+),
+focusedBorder: OutlineInputBorder(
+borderRadius: BorderRadius.circular(12),
+borderSide: BorderSide(color: AppColors.accent, width: 2),
+),
+errorBorder: OutlineInputBorder(
+borderRadius: BorderRadius.circular(12),
+borderSide: BorderSide(color: AppColors.error, width: 2),
+),
+contentPadding: EdgeInsets.symmetric(
+horizontal: AppSpacing.inputPaddingHorizontal,
+vertical: AppSpacing.inputPaddingVertical,
+),
+),
+style: AppTypography.bodyMedium,
+),
+],
+);
+}
+}
+
+// Card Component
+class AppCard extends StatelessWidget {
+final Widget child;
+final EdgeInsetsGeometry? padding;
+final Color? color;
+final double? elevation;
+final BorderRadius? borderRadius;
+final VoidCallback? onTap;
+
+const AppCard({
+Key? key,
+required this.child,
+this.padding,
+this.color,
+this.elevation,
+this.borderRadius,
+this.onTap,
+}) : super(key: key);
+
+@override
+Widget build(BuildContext context) {
+final card = Card(
+color: color ?? AppColors.bgSecondary,
+elevation: elevation ?? 0,
+shape: RoundedRectangleBorder(
+borderRadius: borderRadius ?? BorderRadius.circular(12),
+),
+child: Padding(
+padding: padding ?? EdgeInsets.all(AppSpacing.cardPadding),
+child: child,
+),
+);
+
+return onTap != null
+? InkWell(
+onTap: onTap,
+borderRadius: borderRadius ?? BorderRadius.circular(12),
+child: card,
+)
+: card;
+}
+}
+
+// Progress Bar
+class AppProgressBar extends StatelessWidget {
+final double value; // 0.0 to 1.0
+final String? label;
+final Color? color;
+final bool showPercentage;
+
+const AppProgressBar({
+Key? key,
+required this.value,
+this.label,
+this.color,
+this.showPercentage = true,
+}) : super(key: key);
+
+@override
+Widget build(BuildContext context) {
+final percentage = (value * 100).toInt();
+
+return Column(
+crossAxisAlignment: CrossAxisAlignment.start,
+children: [
+if (label != null || showPercentage)
+Padding(
+padding: EdgeInsets.only(bottom: AppSpacing.xs),
+child: Row(
+mainAxisAlignment: MainAxisAlignment.spaceBetween,
+children: [
+if (label != null)
+Text(
+label!,
+style: AppTypography.bodySmall,
+),
+if (showPercentage)
+Text(
+'$percentage%',
+style: AppTypography.bodySmall.copyWith(
+fontWeight: AppTypography.weightMedium,
+),
+),
+],
+),
+),
+ClipRRect(
+borderRadius: BorderRadius.circular(6),
+child: LinearProgressIndicator(
+value: value,
+backgroundColor: AppColors.progressBackground,
+valueColor: AlwaysStoppedAnimation<Color>(
+color ?? AppColors.progressFill,
+),
+minHeight: 8,
+),
+),
+],
+);
+}
+}
+
+// Chip Component
+class AppChip extends StatelessWidget {
+final String label;
+final bool selected;
+final VoidCallback? onSelected;
+final Color? color;
+final IconData? icon;
+
+const AppChip({
+Key? key,
+required this.label,
+this.selected = false,
+this.onSelected,
+this.color,
+this.icon,
+}) : super(key: key);
+
+@override
+Widget build(BuildContext context) {
+return FilterChip(
+label: Row(
+mainAxisSize: MainAxisSize.min,
+children: [
+if (icon != null) ...[
+Icon(icon, size: 16),
+SizedBox(width: AppSpacing.xs),
+],
+Text(label),
+],
+),
+selected: selected,
+onSelected: onSelected,
+backgroundColor: AppColors.bgSecondary,
+selectedColor: (color ?? AppColors.accent).withOpacity(0.2),
+checkmarkColor: color ?? AppColors.accent,
+labelStyle: AppTypography.labelSmall.copyWith(
+color: selected
+? (color ?? AppColors.accent)
+: AppColors.textSecondary,
+),
+shape: RoundedRectangleBorder(
+borderRadius: BorderRadius.circular(20),
+side: BorderSide(
+color: selected
+? (color ?? AppColors.accent)
+: AppColors.bgTertiary,
+),
+),
+padding: EdgeInsets.symmetric(
+horizontal: AppSpacing.md,
+vertical: AppSpacing.xs,
+),
+);
+}
+}
+
+// Badge Component
+class AppBadge extends StatelessWidget {
+final String label;
+final Color? color;
+final bool outlined;
+
+const AppBadge({
+Key? key,
+required this.label,
+this.color,
+this.outlined = false,
+}) : super(key: key);
+
+@override
+Widget build(BuildContext context) {
+final bgColor = (color ?? AppColors.accent).withOpacity(outlined ? 0.1 : 1.0);
+final textColor = outlined ? (color ?? AppColors.accent) : AppColors.textPrimary;
+
+return Container(
+padding: EdgeInsets.symmetric(
+horizontal: AppSpacing.sm,
+vertical: AppSpacing.xs,
+),
+decoration: BoxDecoration(
+color: bgColor,
+borderRadius: BorderRadius.circular(6),
+border: outlined
+? Border.all(color: color ?? AppColors.accent, width: 1)
+: null,
+),
+child: Text(
+label,
+style: AppTypography.labelSmall.copyWith(
+color: textColor,
+fontWeight: AppTypography.weightSemiBold,
+),
+),
+);
+}
+}
+
+// Tooltip Component
+class AppTooltip extends StatelessWidget {
+final String message;
+final Widget child;
+final TooltipTriggerMode? triggerMode;
+
+const AppTooltip({
+Key? key,
+required this.message,
+required this.child,
+this.triggerMode,
+}) : super(key: key);
+
+@override
+Widget build(BuildContext context) {
+return Tooltip(
+message: message,
+triggerMode: triggerMode ?? TooltipTriggerMode.longPress,
+preferBelow: true,
+decoration: BoxDecoration(
+color: AppColors.bgElevated,
+borderRadius: BorderRadius.circular(8),
+boxShadow: [
+BoxShadow(
+color: Colors.black.withOpacity(0.3),
+blurRadius: 8,
+offset: Offset(0, 4),
+),
+],
+),
+textStyle: AppTypography.bodySmall.copyWith(
+color: AppColors.textPrimary,
+),
+padding: EdgeInsets.symmetric(
+horizontal: AppSpacing.md,
+vertical: AppSpacing.sm,
+),
+child: child,
+);
+}
+}
+
+// Loading Skeleton
+class AppSkeleton extends StatelessWidget {
+final double? width;
+final double? height;
+final BorderRadius? borderRadius;
+
+const AppSkeleton({
+Key? key,
+this.width,
+this.height,
+this.borderRadius,
+}) : super(key: key);
+
+@override
+Widget build(BuildContext context) {
+return Container(
+width: width,
+height: height,
+decoration: BoxDecoration(
+color: AppColors.bgTertiary,
+borderRadius: borderRadius ?? BorderRadius.circular(8),
+),
+child: Shimmer.fromColors(
+baseColor: AppColors.bgTertiary,
+highlightColor: AppColors.bgSecondary,
+child: Container(),
+),
+);
+}
+}
+
+// Empty State
+class AppEmptyState extends StatelessWidget {
+final IconData icon;
+final String title;
+final String? subtitle;
+final String? actionLabel;
+final VoidCallback? onAction;
+
+const AppEmptyState({
+Key? key,
+required this.icon,
+required this.title,
+this.subtitle,
+this.actionLabel,
+this.onAction,
+}) : super(key: key);
+
+@override
+Widget build(BuildContext context) {
+return Center(
+child: Column(
+mainAxisAlignment: MainAxisAlignment.center,
+children: [
+Icon(
+icon,
+size: 64,
+color: AppColors.textTertiary,
+),
+SizedBox(height: AppSpacing.lg),
+Text(
+title,
+style: AppTypography.heading4.copyWith(
+color: AppColors.textSecondary,
+),
+textAlign: TextAlign.center,
+),
+if (subtitle != null) ...[
+SizedBox(height: AppSpacing.sm),
+Text(
+subtitle!,
+style: AppTypography.bodyMedium.copyWith(
+color: AppColors.textTertiary,
+),
+textAlign: TextAlign.center,
+),
+],
+if (actionLabel != null && onAction != null) ...[
+SizedBox(height: AppSpacing.lg),
+PrimaryButton(
+label: actionLabel!,
+onPressed: onAction,
+),
+],
+],
+),
+);
+}
+}
+
+// Error State
+class AppErrorState extends StatelessWidget {
+final String message;
+final String? actionLabel;
+final VoidCallback? onRetry;
+
+const AppErrorState({
+Key? key,
+required this.message,
+this.actionLabel = 'Retry',
+this.onRetry,
+}) : super(key: key);
+
+@override
+Widget build(BuildContext context) {
+return Center(
+child: Column(
+mainAxisAlignment: MainAxisAlignment.center,
+children: [
+Icon(
+Icons.error_outline,
+size: 64,
+color: AppColors.error,
+),
+SizedBox(height: AppSpacing.lg),
+Text(
+'Error',
+style: AppTypography.heading4.copyWith(
+color: AppColors.error,
+),
+),
+SizedBox(height: AppSpacing.sm),
+Text(
+message,
+style: AppTypography.bodyMedium.copyWith(
+color: AppColors.textSecondary,
+),
+textAlign: TextAlign.center,
+),
+if (onRetry != null) ...[
+SizedBox(height: AppSpacing.lg),
+PrimaryButton(
+label: actionLabel!,
+onPressed: onRetry,
+icon: Icons.refresh,
+),
+],
+],
+),
+);
+}
+}
+```
+## 5. UI/UX Specification & Design System (Continued)
+
+### 📱 Specific Screen Layouts & Navigation
+
+#### 5.1 Main Dashboard (LM Studio-Style)
+**Layout Structure:**
+- **Left Sidebar (280px):**
+- **Header:** Cyborg Logo + Version + Offline Status Indicator (🟢/🔴).
+- **Navigation Tabs:**
+- 💬 **Chats:** List of active conversations with pinned/important markers.
+- 🤖 **Models:** Dropdown to select active model; shortcuts to Model Manager.
+- 🗺️ **Knowledge Graph:** Quick access to Graphify view.
+-  **Projects:** List of GSD-managed projects with progress bars.
+- 💾 **Devices:** Connected device status (Android/Windows).
+- ⚙️ **Settings:** App configuration, theme, security.
+- **Footer:** System Resources (CPU/RAM/VRAM usage), Quick Actions (New Chat, Import).
+
+- **Central Content Area (Flexible):**
+- **Chat Mode:**
+- Message stream with markdown rendering, code blocks (syntax highlighting), and citations.
+- Input area with attachment button, voice input, and send button.
+- Context chips showing active project/graph context.
+- **Graph Mode:**
+- Full-screen Graphify canvas with Obsidian physics.
+- Overlay controls for search, filter, and view options.
+- Node details panel on hover/click.
+- **Project Mode (GSD/Ralph):**
+- Split view: GSD phases (top/left) and Ralph build queue (bottom/right).
+- Real-time sync between task completion and build triggers.
+
+- **Right Panel (360px, Collapsible):**
+- **Context Inspector:** Shows details about selected node, task, or build artifact.
+- **LLM Parameters:** Temperature, Top-P, Max Tokens, System Prompt editor.
+- **Tool Output:** Logs from external tools (CodeFlow, WorldMonitor, MiroFish).
+- **Quick Actions:** Buttons for common operations (Ingest, Sync, Deploy).
+
+#### 5.2 GSD Project Management View
+**Layout Structure:**
+- **Phase Tabs:** Horizontal tabs for Plan (Blue), Research (Purple), Implement (Green), Debug (Orange).
+- **Task Board (Kanban Style):**
+- Columns for Not Started, In Progress, Done.
+- Cards showing task name, assignee, priority, and estimated time.
+- Drag-and-drop support for status updates.
+- **Dependency Graph:**
+- Mini-graph view showing task dependencies.
+- Critical path highlighting.
+- **Progress Dashboard:**
+- Burn-down chart.
+- Time tracking summary.
+- Risk matrix visualization.
+
+#### 5.3 Ralph Build & Development View
+**Layout Structure:**
+- **Module Tree:**
+- Hierarchical view of project modules.
+- Status indicators (Built, Building, Failed, Pending).
+- Expandable nodes showing files and dependencies.
+- **Build Queue:**
+- List of pending builds with priority controls.
+- Real-time log output for active builds.
+- Artifact browser for completed builds.
+- **Test Results:**
+- Coverage report visualization.
+- Failed test list with stack traces.
+- Re-run buttons for specific tests.
+- **Dependency Graph:**
+- Interactive graph showing module relationships.
+- Impact analysis for changes.
+
+#### 5.4 Knowledge Graph View (Graphify-Style)
+**Layout Structure:**
+- **Main Canvas:**
+- D3.js force-directed graph with 12+ community colors.
+- Smooth zoom/pan interactions.
+- Node dragging with physics adaptation.
+- **Control Toolbar:**
+- Search bar with autocomplete.
+- Filter toggles (Tags, Attachments, Orphans).
+- Physics controls (Charge, Distance, Gravity).
+- Animation toggle.
+- **Community Sidebar:**
+- List of communities with color indicators and node counts.
+- Click to filter/highlight specific communities.
+- **Node Info Panel:**
+- Slide-in panel showing node README, metadata, and neighbors.
+- Quick actions (Edit, Delete, Ingest).
+
+#### 5.5 Model Manager (LM Studio-Style)
+**Layout Structure:**
+- **Download Tab:**
+- Search bar and filter chips (Code, Text, Embedding).
+- Model cards with download buttons and progress indicators.
+- Download queue at the bottom.
+- **Downloaded Models Tab:**
+- List of local models with load/unload controls.
+- Model details (Size, Quantization, Context).
+- Configuration panel (GPU Layers, Threads).
+- **Model Server Tab:**
+- Server status and URL.
+- Start/Stop/Restart controls.
+- Log viewer and API endpoint documentation.
+
+#### 5.6 Device Manager
+**Layout Structure:**
+- **Device List:**
+- Table showing device name, type, status, IP, and capabilities.
+- Action buttons (Connect, Sync, Configure).
+- **Device Details Panel:**
+- Hardware specs and resource usage.
+- Sync settings and conflict resolution options.
+- Wireless access control (QR code, PIN).
+- **Sync Queue:**
+- List of pending sync operations with progress bars.
+- Retry and cancel controls.
+
+#### 5.7 Ingestion Window
+**Layout Structure:**
+- **Progress Section:**
+- Large progress bar with percentage and ETA.
+- Step-by-step visualization (Discovery, Validation, Extraction, Chunking, Embedding, Indexing, Finalizing).
+- Speed and file count indicators.
+- **Statistics Panel:**
+- Files processed, data size, time elapsed.
+- Resource usage (CPU, RAM, Disk).
+- **File List:**
+- Scrollable list of files with status icons.
+- Click to view details or errors.
+- **Control Bar:**
+- Pause, Resume, Cancel, Settings buttons.
+
+### 🔄 Interaction Patterns & Gestures
+- **Mouse/Trackpad:**
+- Left-click: Select, Open, Interact.
+- Right-click: Context menu, Options.
+- Scroll: Zoom (graph), Scroll (lists), Adjust sliders.
+- Drag: Move nodes, Reorder items, Pan canvas.
+- Double-click: Maximize, Expand, Edit.
+- **Keyboard Shortcuts:**
+- `Ctrl/Cmd + K`: Command palette.
+- `Ctrl/Cmd + N`: New chat/project.
+- `Ctrl/Cmd + G`: Toggle graph view.
+- `Ctrl/Cmd + M`: Toggle model manager.
+- `Ctrl/Cmd + D`: Toggle device manager.
+- `Ctrl/Cmd + I`: Toggle ingestion window.
+- `Escape`: Close modals, Cancel actions.
+- **Touch (Mobile/Tablet):**
+- Tap: Select, Activate.
+- Long-press: Context menu, Drag handle.
+- Swipe: Navigation, Dismiss, Actions.
+- Pinch: Zoom, Scale.
+- Multi-finger: Advanced gestures (e.g., three-finger swipe for undo).
+
+---
+
+## 6. Data Flow & LangGraph State Management
+
+### 🔹 Unified State Schema
+```python
+# backend/state/schema.py
+from typing import TypedDict, Annotated, Literal, Sequence, Optional
+from langgraph.graph import add_messages
+
+# Core state for all workflows
+class CoreState(TypedDict):
+messages: Annotated[Sequence[dict], add_messages]
+current_node: str
+device_target: str
+files: dict[str, str]  # path → content
+errors: list[dict]
+approvals: dict[str, bool]
+checkpoint_id: str
+metadata: dict
+progress: float  # 0.0 → 1.0
+offline_mode: bool
+
+# GSD state
+class GSDState(TypedDict):
+current_phase: Literal["plan", "research", "implement", "debug"]
+phases: dict[str, dict]  # phase_name → phase_data
+tasks: list[dict]  # task definitions
+progress: dict[str, float]  # phase_id → progress
+dependencies: list[dict]  # task dependencies
+risks: list[dict]  # risk assessments
+
+# Ralph state
+class RalphState(TypedDict):
+modules: dict[str, dict]  # module_id → module_data
+build_queue: list[dict]  # pending builds
+git_state: dict  # git repository state
+test_results: list[dict]  # test execution results
+artifacts: dict[str, list[str]]  # module_id → artifact paths
+
+# Graph state (Graphify-style)
+class GraphState(TypedDict):
+nodes: list[dict]  # node definitions with metadata
+edges: list[dict]  # edge definitions with types
+communities: dict[int, list[str]]  # community_id → node_ids
+physics_params: dict  # Obsidian physics parameters
+selected_node: str | None
+filtered_community: int | None
+search_query: str
+
+# Model management state
+class ModelState(TypedDict):
+download_tab: dict  # download UI state
+downloaded_models_tab: dict  # library UI state
+model_server_tab: dict  # server UI state
+loaded_model: str | None
+server_status: Literal["stopped", "starting", "running", "error"]
+download_queue: list[dict]  # pending downloads
+server_config: dict  # server settings
+
+# Device management state
+class DeviceState(TypedDict):
+devices: list[dict]  # connected devices
+selected_device: str | None
+sync_status: dict  # device_id → sync state
+wireless_access_enabled: bool
+pairing_requests: list[dict]  # pending pairing requests
+
+# Ingestion state
+class IngestionState(TypedDict):
+overall_progress: float
+eta_seconds: int
+speed_files_per_sec: float
+current_step: Literal["discovery", "validation", "extraction", "chunking", "embedding", "indexing", "finalizing"]
+step_progress: dict[str, float]
+files_total: int
+files_success: int
+files_failed: int
+data_total_mb: float
+data_processed_mb: float
+errors: list[dict]  # file errors
+paused: bool
+
+# External tool states
+class CodeFlowState(TypedDict):
+analysis_results: dict  # file_path → analysis_data
+health_score: float
+dependencies: list[dict]
+metrics: dict
+
+class WorldMonitorState(TypedDict):
+cached_data: dict  # cache_key → cached_data
+alerts: list[dict]
+layers_enabled: list[str]
+time_range: str
+
+class MiroFishState(TypedDict):
+simulation_status: Literal["stopped", "running", "paused"]
+agents: list[dict]
+predictions: list[dict]
+scenarios: list[dict]
+
+# Combined state for LangGraph workflows
+class CyborgState(CoreState, GSDState, RalphState, GraphState, ModelState, DeviceState, IngestionState, CodeFlowState, WorldMonitorState, MiroFishState):
+pass
+```
+
+### 🔹 LangGraph Workflow Architecture
+```python
+# backend/workflows/cyborg_workflow.py
+from langgraph.graph import StateGraph, END
+from .state import CyborgState
+from .nodes import (
+router_node, gsd_node, ralph_node, graph_node, model_node,
+device_node, ingestion_node, codeflow_node, worldmonitor_node, mirofish_node
+)
+
+# Define the graph
+workflow = StateGraph(CyborgState)
+
+# Add nodes
+workflow.add_node("router", router_node)
+workflow.add_node("gsd", gsd_node)
+workflow.add_node("ralph", ralph_node)
+workflow.add_node("graph", graph_node)
+workflow.add_node("model", model_node)
+workflow.add_node("device", device_node)
+workflow.add_node("ingestion", ingestion_node)
+workflow.add_node("codeflow", codeflow_node)
+workflow.add_node("worldmonitor", worldmonitor_node)
+workflow.add_node("mirofish", mirofish_node)
+
+# Define edges (conditional routing based on intent)
+workflow.add_conditional_edges(
+"router",
+lambda state: state.get("intent", "general"),
+{
+"gsd": "gsd",
+"ralph": "ralph",
+"graph": "graph",
+"model": "model",
+"device": "device",
+"ingestion": "ingestion",
+"codeflow": "codeflow",
+"worldmonitor": "worldmonitor",
+"mirofish": "mirofish",
+"general": END
+}
+)
+
+# Add edges back to router for multi-step workflows
+for node in ["gsd", "ralph", "graph", "model", "device", "ingestion", "codeflow", "worldmonitor", "mirofish"]:
+workflow.add_edge(node, "router")
+
+# Compile the graph with checkpointing
+checkpointer = SqliteSaver.from_conn_string("sqlite:///checkpoints.db")
+app = workflow.compile(checkpointer=checkpointer)
+```
+
+### 🔹 Checkpointing & Persistence
+- **Checkpoint Saver:** Uses `langgraph-checkpoint-sqlite` for local persistence.
+- **State Serialization:** All state fields are JSON-serializable.
+- **Recovery:** On app restart, the workflow resumes from the last checkpoint.
+- **Sync:** Checkpoints are synced across devices via QUIC/TLS when online.
+- **Retention:** Old checkpoints are pruned based on configurable retention policy.
+
+### 🔹 State → UI Mapping
+| State Field | UI Component | Update Frequency |
+|-------------|--------------|------------------|
+| `current_phase` | GSD phase navigation | On phase change |
+| `phases` | Phase details panel | Real-time (every task update) |
+| `tasks` | Task queue, dependency graph | On task add/edit/complete |
+| `progress` | Progress bars, incremental tracker | Real-time (every 100ms) |
+| `modules` | Ralph module tree | On module change |
+| `build_queue` | Build queue panel | Real-time (every 1s) |
+| `nodes` | Graph canvas node rendering | Real-time (on file change) |
+| `edges` | Graph canvas edge rendering | Real-time (persistent during drag) |
+| `communities` | Communities sidebar list | On community detection run |
+| `loaded_model` | Model selector dropdown | On model load/unload |
+| `server_status` | Server status indicator | Real-time (every 1s) |
+| `devices` | Device manager table | On device change |
+| `overall_progress` | Main progress bar | Real-time (every 100ms) |
+| `eta_seconds` | ETA display | Real-time (every 1s) |
+| `offline_mode` | Offline indicator badge | On connectivity change |
+| `cached_data` | WorldMonitor map/data | On cache update |
+| `analysis_results` | CodeFlow health score | On analysis complete |
+| `simulation_status` | MiroFish controls | On simulation state change |
+
+---
+
+## 7. Deployment & DevOps Architecture
+
+### 🐳 Docker Integration (Offline-First)
+```dockerfile
+# backend/Dockerfile
+FROM python:3.11-slim as builder
+
+WORKDIR /app
+COPY requirements.txt .
+
+# Install uv and dependencies (cached for offline)
+RUN pip install uv && uv pip install --system -r requirements.txt
+
+# Clone external tools (cached for offline use)
+RUN git clone https://github.com/gsd-build/get-shit-done external/gsd && \
+git clone https://github.com/snarktank/ralph external/ralph && \
+git clone https://github.com/braedonsaunders/codeflow external/codeflow && \
+git clone https://github.com/koala73/worldmonitor external/worldmonitor && \
+git clone https://github.com/666ghj/MiroFish external/mirofish
+
+# Replace PRO features with free alternatives in WorldMonitor
+RUN sed -i 's/PRO_AI_BRIEFINGS/CYBORG_LLM/g' external/worldmonitor/config.py && \
+sed -i 's/MILITARY_DATA/OPENSKY_ADSB/g' external/worldmonitor/config.py && \
+sed -i 's/SATELLITE_DATA/CELESTRAK/g' external/worldmonitor/config.py
+
+# Cache npm dependencies for offline use
+RUN cd external/gsd && npm ci --offline 2>/dev/null || npm install && \
+cd ../ralph && npm ci --offline 2>/dev/null || npm install && \
+cd ../codeflow && npm ci --offline 2>/dev/null || npm install && \
+cd ../worldmonitor && npm ci --offline 2>/dev/null || npm install && \
+cd ../mirofish && npm ci --offline 2>/dev/null || npm install
+
+# Stage 2: Runtime (works fully offline)
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /app/external /app/external
+COPY . .
+
+# Non-root user for security
+RUN useradd -m appuser && chown -R appuser:appuser /app
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+CMD python -c "import requests; requests.get('http://localhost:8000/health')"
+
+# Expose ports
+EXPOSE 8000  # Backend
+EXPOSE 3000  # CodeFlow
+EXPOSE 3001  # WorldMonitor
+EXPOSE 3002  # MiroFish
+EXPOSE 3003  # GSD
+EXPOSE 3004  # Ralph
+
+# Run the app (fully offline)
+CMD ["python", "-m", "cyborg.backend", "--prod", "--offline"]
+```
+
+### ☸️ Kubernetes Manifests (For Scalable Deployments)
+```yaml
+# k8s/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+name: cyborg-backend
+spec:
+replicas: 3  # Auto-scaled by HPA
+selector:
+matchLabels:
+app: cyborg-backend
+template:
+metadata:
+labels:
+app: cyborg-backend
+spec:
+containers:
+- name: backend
+image: cyborg/backend:latest
+ports:
+- containerPort: 8000
+resources:
+requests:
+memory: "512Mi"
+cpu: "250m"
+limits:
+memory: "2Gi"
+cpu: "1000m"
+env:
+- name: REDIS_URL
+valueFrom:
+configMapKeyRef:
+name: cyborg-config
+key: redis_url
+- name: RATE_LIMIT_RPS
+valueFrom:
+configMapKeyRef:
+name: cyborg-config
+key: rate_limit_rps
+livenessProbe:
+httpGet:
+path: /health
+port: 8000
+initialDelaySeconds: 30
+periodSeconds: 10
+readinessProbe:
+httpGet:
+path: /ready
+port: 8000
+initialDelaySeconds: 5
+periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+name: cyborg-service
+spec:
+selector:
+app: cyborg-backend
+ports:
+- port: 80
+targetPort: 8000
+type: LoadBalancer
+```
+
+### 🔄 CI/CD Pipeline (Offline-Compatible)
+```yaml
+# .github/workflows/ci.yml
+name: CI -- Lint, Test, Security
+
+on: [push, pull_request]
+
+jobs:
+lint_and_test:
+runs-on: ubuntu-latest
+strategy:
+matrix:
+python-version: ["3.10", "3.11", "3.12"]
+
+steps:
+- uses: actions/checkout@v4
+
+- name: Set up Python ${{ matrix.python-version }}
+uses: actions/setup-python@v4
+with:
+python-version: ${{ matrix.python-version }}
+
+- name: Install uv and dependencies
+run: |
+pip install uv
+uv pip install --system -r requirements.txt
+
+- name: Run pre-commit hooks
+run: pre-commit run --all-files
+
+- name: Run tests with coverage
+run: pytest --cov=src --cov-report=xml
+
+- name: Upload coverage to Codecov
+uses: codecov/codecov-action@v3
+with:
+file: ./coverage.xml
+```
+
+---
+
+## 8. Project Generation Engine with GSD & Ralph
+
+### 🏗️ GSD + Ralph Integration Workflow
+1. **Project Initialization:**
+- User creates a new project via CLI or UI.
+- GSD generates phased structure (Plan, Research, Implement, Debug).
+- Ralph creates initial module structure (Core, Features, Integration).
+2. **Planning Phase:**
+- User defines tasks in GSD.
+- Dependencies are mapped.
+- Ralph modules are configured based on task requirements.
+3. **Research Phase:**
+- GSD tracks research tasks.
+- Ralph resolves dependencies (offline cache).
+- Technical specs are documented.
+4. **Implementation Phase:**
+- GSD tasks move to In Progress.
+- Ralph builds modules incrementally.
+- CodeFlow analyzes code quality.
+- Tests are run automatically.
+5. **Debug Phase:**
+- GSD tracks bug fixes.
+- Ralph rebuilds affected modules.
+- MiroFish simulates scenarios for validation.
+- WorldMonitor checks for external risks.
+
+### 🔧 Implementation Details
+```python
+# backend/project_generator.py
+from pathlib import Path
+from .gsd_integration import GSDProjectManager
+from .ralph_integration import RalphBuildManager
+
+class ProjectGenerator:
+def __init__(self, base_path: Path):
+self.base_path = base_path
+self.gsd_manager = GSDProjectManager(base_path)
+self.ralph_manager = RalphBuildManager(base_path)
+
+async def generate_project(self, name: str, template: str, config: dict) -> dict:
+"""Generate a new project with GSD and Ralph integration"""
+project_path = self.base_path / name
+project_path.mkdir(parents=True, exist_ok=True)
+
+# 1. Create GSD project structure
+gsd_project = self.gsd_manager.create_project_structure(name, config.get("description", ""))
+
+# 2. Create Ralph module structure
+ralph_project = self.ralph_manager.create_incremental_build("core")
+
+# 3. Generate files from template
+await self._generate_files(project_path, template, config)
+
+# 4. Initialize git repository
+await self._init_git(project_path)
+
+# 5. Setup pre-commit hooks
+await self._setup_hooks(project_path)
+
+return {
+"project_path": str(project_path),
+"gsd_project": gsd_project,
+"ralph_project": ralph_project,
+"status": "initialized"
+}
+
+async def _generate_files(self, project_path: Path, template: str, config: dict):
+"""Generate project files from template"""
+# Implementation details...
+pass
+
+async def _init_git(self, project_path: Path):
+"""Initialize git repository"""
+# Implementation details...
+pass
+
+async def _setup_hooks(self, project_path: Path):
+"""Setup pre-commit hooks"""
+# Implementation details...
+pass
+```
+
+---
+
+## 9. Git, Linting & CI/CD Integration
+
+### ✅ Universal Pre-Commit Hooks
+```yaml
+# .pre-commit-config.yaml
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+rev: v4.5.0
+hooks:
+- id: trailing-whitespace
+- id: end-of-file-fixer
+- id: check-added-large-files
+args: ["--maxkb=1000"]
+- id: check-yaml
+- id: check-json
+- id: check-merge-conflict
+- id: detect-private-key
+
+- repo: https://github.com/pycqa/flake8
+rev: 7.0.0
+hooks:
+- id: flake8
+args: ["--max-line-length=100"]
+files: \.py$
+exclude: ^(venv|env|\.git)/
+
+- repo: https://github.com/codespell-project/codespell
+rev: v2.2.2
+hooks:
+- id: codespell
+exclude: ^(package-lock\.json|yarn\.lock|\.expo/)
+args: ["--skip=*.lock,*.min.js,*.json"]
+
+- repo: local
+hooks:
+- id: mask-secrets
+name: Mask secrets in staged files
+entry: python scripts/mask_keys.py
+language: system
+pass_filenames: true
+types: [text]
+
+- id: compile-check
+name: Syntax and compile check
+entry: python scripts/compile_check.py
+language: system
+pass_filenames: true
+types: [text]
+
+- id: check-requirements
+name: Check requirements file syntax
+entry: python scripts/check_requirements.py
+language: system
+pass_filenames: false
+files: ^requirements\.txt$
+```
+
+### 🔧 Custom Scripts
+```python
+# scripts/mask_keys.py
+import re
+import sys
+from pathlib import Path
+
+SECRET_PATTERNS = [
+r'(API_KEY|SECRET_KEY|PRIVATE_KEY|PASSWORD|AUTH_TOKEN)=[^\s\n"\']+'
+]
+
+def mask_secrets(file_path: Path):
+content = file_path.read_text()
+for pattern in SECRET_PATTERNS:
+content = re.sub(pattern, lambda m: m.group(0).split('=')[0] + '=******', content)
+file_path.write_text(content)
+
+if __name__ == "__main__":
+for file_str in sys.argv[1:]:
+file_path = Path(file_str)
+if file_path.is_file():
+mask_secrets(file_path)
+```
+
+---
+
+## 10. Security, Privacy & Compliance
+
+### 🔒 Security Measures
+- **Data Encryption:** SQLCipher for database encryption, libsodium for payload encryption.
+- **Sandboxing:** Docker containers for code execution, read-only mounts, network default-deny.
+- **Authentication:** Local user authentication, device pairing with PIN/QR, encrypted communication.
+- **Access Control:** Role-based access control (RBAC), permission tiers for automation.
+- **Audit Logging:** Immutable logs for all actions, exportable audit trails.
+
+### 🛡️ Privacy Measures
+- **Local-First:** All processing on-device, no cloud dependencies.
+- **Zero Telemetry:** No usage analytics, no crash reporting without consent.
+- **Data Minimization:** Only collect necessary data, automatic purging of old data.
+- **User Control:** Full control over data sharing, sync, and deletion.
+
+### ✅ Compliance
+- **GDPR/CCPA:** Right to access, right to erasure, data portability.
+- **Security Standards:** OWASP Top 10, SANS Top 25, NIST Cybersecurity Framework.
+- **Certifications:** ISO 27001, SOC 2 (optional for enterprise).
+
+---
+
+## 11. Performance, Concurrency & Scalability
+
+### ⚡ Performance Optimization
+- **UI:** Flutter Isolates for heavy computation, widget optimization, lazy loading.
+- **Backend:** Asyncio for I/O, multiprocessing for CPU-bound tasks, caching strategies.
+- **Graph:** WebGL rendering, level-of-detail, edge culling, physics optimization.
+- **LLM:** GPU offload, quantization, batching, context caching.
+- **Storage:** IndexedDB for frontend, SQLite for backend, compression for data.
+
+### 🔄 Concurrency Model
+- **Async-First:** All I/O operations are non-blocking.
+- **Priority Queues:** User interactions have highest priority.
+- **Resource Quotas:** Limits on CPU, memory, and disk usage.
+- **Backpressure:** Flow control to prevent overload.
+
+### 📈 Scalability
+- **Horizontal:** Add more devices/nodes to the network.
+- **Vertical:** Upgrade hardware for better performance.
+- **Cloud:** Optional cloud sync and backup (offline-first).
+- **Enterprise:** Centralized management, SSO, advanced security.
+
+---
+
+## 12. Implementation Roadmap
+
+### 📅 Phase 1: Foundation (Weeks 1-10)
+- Bootstrap & Packaging
+- DevOps Foundation
+- Project Generation Engine
+- External Tools Setup
+
+### 📅 Phase 2: Core Modules (Weeks 11-30)
+- GSD Integration
+- Ralph Integration
+- LM Studio Model Manager
+- Windows Flutter App
+- Android LightRT Integration
+
+### 📅 Phase 3: Advanced Features (Weeks 31-60)
+- Graphify-Style Knowledge Graph
+- CodeFlow Integration
+- WorldMonitor Integration
+- MiroFish Integration
+- Knowledge Base Ingestion
+
+### 📅 Phase 4: Polish & Launch (Weeks 61-70)
+- Intelligent Query Router
+- Report Generator
+- Core Modules Refinement
+- Visual & MediaPipe Engine
+- System & Polish
+
+---
+
+## 13. Success Metrics & Acceptance Criteria
+
+### 📊 Key Performance Indicators (KPIs)
+- **Offline Functionality:** 100% features work offline.
+- **Response Time:** <100ms for UI interactions, <1s for LLM inference.
+- **Build Time:** <30s for incremental builds.
+- **Graph Performance:** 60fps with 1000+ nodes.
+- **Model Management:** <10s to load 8GB model.
+- **User Satisfaction:** >4.5/5 rating.
+
+### ✅ Acceptance Criteria
+- All features implemented and tested.
+- Offline functionality verified.
+- Security audit passed.
+- Performance benchmarks met.
+- User documentation complete.
+
+---
+
+## 14. Appendix
+
+### 🔹 Glossary
+- **GSD:** Get Shit Done - Project management methodology.
+- **Ralph:** Incremental build system.
+- **Graphify:** Knowledge graph visualization style.
+- **Obsidian Physics:** Force-directed graph layout parameters.
+- **LM Studio:** Local LLM inference server reference.
+- **LightRT:** Optimized llama.cpp for Android.
+- **Offline-First:** Architecture designed for offline operation.
+- **Relative Paths:** File paths relative to application executable.
+
+### 🔹 References
+- **GSD:** https://github.com/gsd-build/get-shit-done
+- **Ralph:** https://github.com/snarktank/ralph
+- **Graphify:** https://github.com/safishamsi/graphify
+- **WorldMonitor:** https://github.com/koala73/worldmonitor
+- **MiroFish:** https://github.com/666ghj/MiroFish
+- **CodeFlow:** https://github.com/braedonsaunders/codeflow
+- **LM Studio:** https://lmstudio.ai
+- **Qwen2.5-Coder:** https://huggingface.co/Qwen
+- **LightRT:** https://github.com/ggerganov/llama.cpp
+- **OpenSky ADS-B:** https://opensky-network.org/
+- **Celestrak:** https://celestrak.org/
+
+### 🔹 Version History
+| Version | Date | Changes |
+|---------|------|---------|
+| v1.0–v16.1 | 2026-04-21 | Iterative development, feature additions, offline-first design |
+| **v17.0** | **2026-04-21** | **Final production-ready PRD with complete offline functionality, GSD/Ralph integration, LM Studio-style model management, Windows relative paths, Android LightRT, and all external tools working offline** |
+
+---
+
+✅ **This PRD v17.0 is complete, modular, scalable, production-ready, offline-first, and implementation-ready.**
+🔄 **Copy-paste this entire document into Qwen Coder or Claude Code to generate/update your project.**
+
+*Build the future of personal AGI—modular, concurrent, visually aware, gesture-enabled, research-powered, streamable, local, private, lint-compliant, production-deployable, 100% offline-functional, semantically connected via Graphify-style knowledge graph with Obsidian physics, visually explorable with CodeFlow (source code integrated, offline), behaviorally testable with MiroFish (source code integrated, offline), fully observable with WorldMonitor (source code integrated with PRO→free replacement, offline), globally informed with cached news aggregation, predictively intelligent with MiroFish simulations (offline), instantly responsive with intelligent query routing (offline), comprehensively reportable, seamlessly ingestible via enhanced knowledge base window with real-time progress visualization (offline), device-manageable via centralized Device Manager with wireless access control (offline), model-manageable via LM Studio-compatible Model Manager with download/load/use any LLM locally (offline), phased project structuring via GSD (offline), incremental model building via Ralph (offline), Windows portable installation with relative paths, Android LightRT for fast local LLM. All wrapped in a beautiful LM Studio-style interface with Graphify-style knowledge graph visualization. Everything works 100% offline - no internet required after initial setup. From idea to Kubernetes in one command, with millisecond response times, zero conflicts, error-free operation, 100% original UI preservation across all integrated systems, all PRO features replaced with free alternatives, and complete offline functionality.* 🤖✨️️️️️️️️️️️️️️️️️️️️️📊📁🧠

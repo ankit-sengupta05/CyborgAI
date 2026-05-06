@@ -3,6 +3,7 @@ Graph Service — Knowledge graph with Leiden community detection.
 Graphify-style visualization + Obsidian physics parameters.
 """
 import asyncio
+import datetime
 import hashlib
 import structlog
 from pathlib import Path
@@ -162,10 +163,16 @@ class GraphService:
         if not path.exists():
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        if path.is_dir():
-            return await self._ingest_directory(path)
-        else:
-            return await self._ingest_single_file(path)
+        try:
+            if path.is_dir():
+                return await self._ingest_directory(path)
+            else:
+                return await self._ingest_single_file(path)
+        except FileNotFoundError:
+            raise
+        except Exception as e:
+            log.error(f"Ingest failed for {path.name}: {e}", exc_info=True)
+            return {"nodes_created": 0, "error": str(e), "file": str(path)}
 
     async def _ingest_directory(self, dir_path: Path) -> dict:
         total, success, failed = 0, 0, 0
@@ -291,7 +298,6 @@ class GraphService:
         nodes_created = 0
         edges_created = 0
 
-        import datetime
         for i, chunk in enumerate(chunks):
             # 1. Extract Triplets via LLM
             triplets = await self._extract_triplets(chunk)
@@ -433,59 +439,12 @@ tree_path: {file_path.parent.name} > Page {i} > {base_title[:50]}
         return {"nodes_created": nodes_created, "edges_created": edges_created, "file": str(file_path)}
 
     async def _extract_text(self, file_path: Path) -> str:
-        """Extract text from various file types."""
-        suffix = file_path.suffix.lower()
-        loop = asyncio.get_event_loop()
-
-        if suffix in (".txt", ".md", ".py", ".js", ".ts", ".json",
-                      ".html", ".css", ".csv"):
-            return file_path.read_text(encoding="utf-8", errors="ignore")
-
-        elif suffix == ".pdf":
-            return await loop.run_in_executor(None, self._extract_pdf, file_path)
-
-        elif suffix == ".docx":
-            return await loop.run_in_executor(None, self._extract_docx, file_path)
-
-        elif suffix == ".pptx":
-            return await loop.run_in_executor(None, self._extract_pptx, file_path)
-
-        return ""
-
-    def _extract_pdf(self, file_path: Path) -> str:
+        """Extract text from various file types — delegates to text_extractor utility."""
+        from services.utils.text_extractor import extract_text as _ext
         try:
-            import PyPDF2
-            reader = PyPDF2.PdfReader(str(file_path))
-            return "\n".join(
-                p.extract_text() or "" for p in reader.pages
-            )
-        except Exception:
-            return ""
-
-    def _extract_docx(self, file_path: Path) -> str:
-        try:
-            from docx import Document
-            doc = Document(str(file_path))
-            return "\n".join(p.text for p in doc.paragraphs)
-        except Exception:
-            return ""
-
-    def _extract_pptx(self, file_path: Path) -> str:
-        try:
-            from pptx import Presentation
-            prs = Presentation(str(file_path))
-            text_runs = []
-            for slide in prs.slides:
-                for shape in slide.shapes:
-                    if hasattr(shape, "text") and shape.text:
-                        text_runs.append(shape.text.strip())
-                    if hasattr(shape, "has_table") and shape.has_table:
-                        for row in shape.table.rows:
-                            for cell in row.cells:
-                                text_runs.append(cell.text.strip())
-            return "\n".join(text_runs)
+            return await _ext(file_path)
         except Exception as e:
-            log.warning(f"PPTX extraction failed for {file_path.name}: {e}")
+            log.warning(f"Text extraction failed for {file_path.name}: {e}")
             return ""
 
     def _chunk_text(self, text: str, chunk_size: int = 512,

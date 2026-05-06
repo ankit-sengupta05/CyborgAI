@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:io' if (dart.library.html) 'package:cyborg/core/services/io_stubs.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/theme/app_theme.dart';
@@ -119,7 +120,9 @@ class _HomeworkScannerScreenState extends State<HomeworkScannerScreen> {
               child: _image != null
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(11),
-                      child: Image.file(_image!, fit: BoxFit.contain))
+                      child: kIsWeb
+                          ? Image.network(_image!.path, fit: BoxFit.contain)
+                          : Image.file(_image! as dynamic, fit: BoxFit.contain))
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

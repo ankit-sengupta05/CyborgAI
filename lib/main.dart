@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,8 +21,7 @@ void main() async {
   );
 
   // Initialize local storage
-  final appDir = await getApplicationSupportDirectory();
-  Hive.init(appDir.path);
+  await Hive.initFlutter();
   await Hive.openBox('cyborg_cache');
   await Hive.openBox('cyborg_settings');
   await Hive.openBox('cyborg_projects');

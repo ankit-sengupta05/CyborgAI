@@ -107,11 +107,11 @@ class GraphState {
     this.error,
     this.initialized = false,
     this.showLabels = true,
-    this.repelForce = -8000.0,
-    this.centerForce = 0.04,
-    this.nodeSize = 1.0,
-    this.linkThickness = 1.0,
-    this.showArrows = true,
+    this.repelForce = -12000.0,
+    this.centerForce = 0.05,
+    this.nodeSize = 0.8,
+    this.linkThickness = 0.6,
+    this.showArrows = false,
   });
 
   GraphState copyWith({
@@ -799,7 +799,7 @@ class _GraphCanvasState extends State<_GraphCanvas>
   Offset? _panStartPan;
   bool _settled = false;
   String? _hoveredId;
-  Offset? _mousePos; // For repel effect
+  Offset? _mousePos; 
   int _ticks = 0;
   double _startScale = 1.0;
 
@@ -816,15 +816,22 @@ class _GraphCanvasState extends State<_GraphCanvas>
   void _buildLayouts() {
     _layouts.clear();
     const cx = 400.0, cy = 300.0;
-    // Golden angle spiral — guarantees no two nodes start at the same position (no NaN)
-    const goldenAngle = 2.399963229728653; // radians
+    _pan = Offset.zero;
+    _scale = 1.0;
+    
+    final rng = math.Random();
+    const goldenAngle = 2.399963229728653;
+    
     for (var i = 0; i < widget.nodes.length; i++) {
-      final r = 30.0 + 8.0 * math.sqrt(i.toDouble());
+      final r = 60.0 + 45.0 * math.sqrt(i.toDouble());
       final angle = i * goldenAngle;
+      final jx = (rng.nextDouble() - 0.5) * 40;
+      final jy = (rng.nextDouble() - 0.5) * 40;
+      
       _layouts.add(_NodeLayout(
         widget.nodes[i],
-        cx + r * math.cos(angle),
-        cy + r * math.sin(angle),
+        cx + r * math.cos(angle) + jx,
+        cy + r * math.sin(angle) + jy,
       ));
     }
     _settled = false;
@@ -846,7 +853,7 @@ class _GraphCanvasState extends State<_GraphCanvas>
     }
     if (old.repelForce != widget.repelForce || old.centerForce != widget.centerForce) {
       _settled = false;
-      _ticks = 0; // Reset cooling to wake up simulation
+      _ticks = 0;
       if (!_ticker.isAnimating) _ticker.repeat();
     }
   }
@@ -862,9 +869,10 @@ class _GraphCanvasState extends State<_GraphCanvas>
 
   void _tick() {
     if (_settled && _draggedNode == null) return;
-    final alpha = math.max(0.001, 0.3 * math.exp(-_ticks * 0.03));
+    // Slower decay for large graphs to allow spreading
+    final alpha = math.max(0.001, 1.0 * math.exp(-_ticks * 0.002)); 
     _ticks++;
-    if (alpha < 0.005 && _draggedNode == null) {
+    if (alpha < 0.01 && _draggedNode == null) {
       _settled = true;
       _ticker.stop();
       return;
@@ -874,12 +882,11 @@ class _GraphCanvasState extends State<_GraphCanvas>
       for (var l in _layouts) l.node.id: l
     };
 
-    // Physics Parameters
-    final repelStrength = widget.repelForce; 
-    final clusterRepelStrength = widget.repelForce / 2; 
-    final linkStrength = 0.2;
-    final idealLinkDist = 160.0; 
-    final centerStrength = widget.centerForce;
+    // OBSIDIAN-FIDELITY PHYSICS: Corrected force signs and balanced constants
+    final repelStrength = widget.repelForce.abs() * 250.0; // Positive for repulsion
+    final linkStrength = 0.035; 
+    final idealLinkDist = 280.0; 
+    final centerStrength = widget.centerForce * 0.008; // Weaker centering for better spread
 
     for (var i = 0; i < _layouts.length; i++) {
       final a = _layouts[i];
@@ -889,23 +896,31 @@ class _GraphCanvasState extends State<_GraphCanvas>
         final b = _layouts[j];
         final dx = b.x - a.x, dy = b.y - a.y;
         final distSq = dx * dx + dy * dy;
-        if (distSq < 1) continue;
-        if (distSq > 800 * 800) continue; 
+        
+        if (distSq > 1200 * 1200) continue; 
 
+        final dist = math.sqrt(math.max(1.0, distSq));
+        
+        // Inverse Square Repulsion (Corrected Direction: Positive pushes away)
         double force = (repelStrength / distSq) * alpha;
         
-        // Cluster Spacing Enhancement
-        if (a.node.community != b.node.community) {
-          force += (clusterRepelStrength / distSq) * alpha;
+        // Hard Anti-Collision (Discreet push-out)
+        final ra = (math.sqrt(a.node.degree.toDouble()) * 1.8 + 3.5).clamp(3.5, 18);
+        final rb = (math.sqrt(b.node.degree.toDouble()) * 1.8 + 3.5).clamp(3.5, 18);
+        final minSeparation = (ra + rb) * widget.nodeSize + 15.0;
+        
+        if (dist < minSeparation) {
+          final overlap = minSeparation - dist;
+          force += (overlap * 50.0) * alpha; // Massive push for overlap
         }
 
-        final fx = (dx / math.sqrt(distSq)) * force;
-        final fy = (dy / math.sqrt(distSq)) * force;
+        final fx = (dx / dist) * force;
+        final fy = (dy / dist) * force;
         
-        a.vx += fx;
-        a.vy += fy;
-        b.vx -= fx;
-        b.vy -= fy;
+        a.vx -= fx; // a moves left if b is right
+        a.vy -= fy;
+        b.vx += fx; // b moves right if b is right
+        b.vy += fy;
       }
     }
 
@@ -933,17 +948,22 @@ class _GraphCanvasState extends State<_GraphCanvas>
     for (final l in _layouts) {
       if (l == _draggedNode) continue;
       
-      // Center gravity
       l.vx += (400 - l.x) * centerStrength * alpha;
       l.vy += (300 - l.y) * centerStrength * alpha;
 
+      // Speed limit
+      final speedSq = l.vx * l.vx + l.vy * l.vy;
+      if (speedSq > 50 * 50) {
+        final speed = math.sqrt(speedSq);
+        l.vx = (l.vx / speed) * 50;
+        l.vy = (l.vy / speed) * 50;
+      }
+
       l.x += l.vx;
       l.y += l.vy;
-      l.vx *= 0.82; // Slightly less damping for more 'active' feel
-      l.vy *= 0.82;
-
-      l.x = l.x.clamp(-2000.0, 3000.0);
-      l.y = l.y.clamp(-2000.0, 3000.0);
+      
+      l.vx *= 0.85; // Slightly higher damping for floaty movement
+      l.vy *= 0.85;
     }
     if (mounted) setState(() {});
   }
@@ -999,17 +1019,14 @@ class _GraphCanvasState extends State<_GraphCanvas>
       child: MouseRegion(
         onHover: (e) {
           final h = _hitTest(e.localPosition);
-          setState(() {
-            if (h != _hoveredId) _hoveredId = h;
-            _mousePos = e.localPosition;
-            if (!_settled) _ticks = math.max(0, _ticks - 5); // Keep alive on mouse move
-          });
-          if (!_ticker.isAnimating) _ticker.repeat();
-          _settled = false;
+          if (h != _hoveredId) {
+            setState(() {
+              _hoveredId = h;
+            });
+          }
         },
         onExit: (_) => setState(() {
           _hoveredId = null;
-          _mousePos = null;
         }),
         cursor: _hoveredId != null
             ? SystemMouseCursors.click
@@ -1084,7 +1101,7 @@ class _ObsidianPainter extends CustomPainter {
       Offset(x * scale + pan.dx, y * scale + pan.dy);
 
   double _r(KGNode n) =>
-      (math.sqrt(n.degree.toDouble()) * 2 + 4).clamp(5, 22) * scale;
+      (math.sqrt(n.degree.toDouble()) * 1.8 + 3.5).clamp(3.5, 18) * scale;
 
   Color _nodeColor(KGNode n) =>
       AppColors.communityColors[n.community % AppColors.communityColors.length];
@@ -1101,13 +1118,15 @@ class _ObsidianPainter extends CustomPainter {
       if (hiddenCommunities.contains(a.node.community) ||
           hiddenCommunities.contains(b.node.community)) continue;
 
-      final isHighlighted = selectedId != null &&
-          (edge.source == selectedId || edge.target == selectedId);
+      final isHighlighted = (selectedId != null && (edge.source == selectedId || edge.target == selectedId)) ||
+                           (hoveredId != null && (edge.source == hoveredId || edge.target == hoveredId));
+      
+      // Obsidian-style subtle edges: visible but faded by default
       final opacity = searchLower.isNotEmpty
-          ? 0.08
+          ? 0.03
           : isHighlighted
-              ? 0.8
-              : 0.2;
+              ? 0.9  // Strong highlight
+              : 0.22; // Visible but subtle by default
 
       if (!a.x.isFinite || !a.y.isFinite || !b.x.isFinite || !b.y.isFinite)
         continue;
@@ -1115,11 +1134,15 @@ class _ObsidianPainter extends CustomPainter {
       final posA = _p(a.x, a.y);
       final posB = _p(b.x, b.y);
 
-      // Mirofish Style: Straight line with arrow
+      final edgeColor = isHighlighted 
+          ? AppColors.accent 
+          : Colors.white.withOpacity(0.12); // Softer white-fade for base edges
+
+      // Obsidian Style: Very thin, subtle lines
       final paint = Paint()
-        ..color = (isHighlighted ? AppColors.accent : AppColors.border)
+        ..color = (isHighlighted ? AppColors.accent : Colors.white.withOpacity(0.5))
             .withOpacity(opacity)
-        ..strokeWidth = (isHighlighted ? (2.0 * scale) : (0.8 * scale)) * linkThickness
+        ..strokeWidth = (isHighlighted ? (1.2 * scale) : (0.4 * scale)) * linkThickness
         ..style = PaintingStyle.stroke;
 
       canvas.drawLine(posA, posB, paint);
@@ -1151,25 +1174,36 @@ class _ObsidianPainter extends CustomPainter {
       if (isSelected) {
         canvas.drawCircle(
             pos,
-            r + 6 * scale,
+            r + 5 * scale,
             Paint()
-              ..color = color.withOpacity(0.2)
+              ..color = color.withOpacity(0.15)
               ..style = PaintingStyle.fill);
       }
       canvas.drawCircle(
           pos,
           r * nodeSize,
           Paint()
-            ..color = color.withOpacity(opacity * 0.8)
+            ..color = color.withOpacity(opacity * 0.9)
             ..style = PaintingStyle.fill);
-      canvas.drawCircle(
-          pos,
-          r * nodeSize,
-          Paint()
-            ..color = (isSelected || isHovered ? color : color.withOpacity(0.4))
-                .withOpacity(opacity)
-            ..strokeWidth = isSelected ? 2.0 * scale : 1.0 * scale
-            ..style = PaintingStyle.stroke);
+      
+      // Only draw stroke if selected or hovered, otherwise use a very subtle one or none
+      if (isSelected || isHovered) {
+        canvas.drawCircle(
+            pos,
+            r * nodeSize,
+            Paint()
+              ..color = color.withOpacity(opacity)
+              ..strokeWidth = 1.5 * scale
+              ..style = PaintingStyle.stroke);
+      } else {
+        canvas.drawCircle(
+            pos,
+            r * nodeSize,
+            Paint()
+              ..color = Colors.white.withOpacity(opacity * 0.1)
+              ..strokeWidth = 0.5 * scale
+              ..style = PaintingStyle.stroke);
+      }
 
       final showLabel = showLabels &&
           (isSelected || isHovered || (scale > 0.7 && matchesSearch));

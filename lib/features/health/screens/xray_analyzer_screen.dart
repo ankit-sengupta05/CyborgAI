@@ -1,5 +1,7 @@
-import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:io' if (dart.library.html) 'package:cyborg/core/services/io_stubs.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/theme/app_theme.dart';
 import '../services/health_api_service.dart';
@@ -182,7 +184,9 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen>
                   ? ClipRRect(
                       borderRadius:
                           const BorderRadius.vertical(top: Radius.circular(11)),
-                      child: Image.file(_image!, fit: BoxFit.contain))
+                      child: kIsWeb
+                          ? Image.network(_image!.path, fit: BoxFit.contain)
+                          : Image.file(_image! as dynamic, fit: BoxFit.contain))
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

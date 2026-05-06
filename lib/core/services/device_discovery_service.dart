@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'dart:io' if (dart.library.html) 'package:cyborg/core/services/io_stubs.dart';
 import 'package:flutter/foundation.dart';
 import '../constants/api_constants.dart';
 
@@ -18,7 +18,7 @@ class DeviceDiscoveryService {
   static const String _responsePrefix = 'CYBORG_DISCOVERY_RESPONSE_v1:';
   static const Duration _scanTimeout = Duration(seconds: 8);
 
-  RawDatagramSocket? _socket;
+  dynamic _socket;
   final _discoveredDevices = StreamController<CyborgDevice>.broadcast();
   Stream<CyborgDevice> get devices => _discoveredDevices.stream;
 
@@ -26,6 +26,7 @@ class DeviceDiscoveryService {
   /// Returns the base URL of the first healthy Windows Cyborg instance found,
   /// or null if none respond within [_scanTimeout].
   Future<String?> findWindowsCyborgInstance() async {
+    if (kIsWeb) return null; // UDP Sockets not supported in browser
     debugPrint('[DeviceDiscovery] Scanning local network for Windows Cyborg…');
 
     try {
@@ -122,9 +123,10 @@ class CyborgDiscoveryResponder {
   static const String _probeMessage = 'CYBORG_DISCOVERY_PROBE_v1';
   static const String _responsePrefix = 'CYBORG_DISCOVERY_RESPONSE_v1:';
 
-  RawDatagramSocket? _socket;
+  dynamic _socket;
 
   Future<void> start({required String apiBaseUrl}) async {
+    if (kIsWeb) return; 
     try {
       _socket = await RawDatagramSocket.bind(
         InternetAddress.anyIPv4,

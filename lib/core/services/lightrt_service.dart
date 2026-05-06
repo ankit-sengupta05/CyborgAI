@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:ffi';
-import 'dart:io';
-import 'package:ffi/ffi.dart';
+import 'dart:io' if (dart.library.html) 'package:cyborg/core/services/io_stubs.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -297,18 +295,26 @@ class DeviceCapabilities {
     final specs = DeviceSpecs();
     try {
       // CPU cores from platform
-      specs.cpuCores = Platform.numberOfProcessors;
+      if (kIsWeb) {
+        specs.cpuCores = 4;
+        specs.availableMemoryMb = 2048;
+      } else {
+        // We use a safe way to access platform info that doesn't break the web compiler
+        // but since we want to avoid dart:io 'Platform' on web, we'll use a constant for now
+        // or we could use the 'Universal IO' pattern if needed.
+        specs.cpuCores = 8; 
+        // Memory heuristic from cache dir (conservative estimate)
+        final dir = await getTemporaryDirectory();
+        final stat = await dir.stat();
+        specs.availableMemoryMb = 3000; // conservative default
+      }
+
       specs.optimalThreads = specs.cpuCores >= 8
           ? 6
           : specs.cpuCores >= 4
               ? 4
               : 2;
 
-      // Memory heuristic from cache dir (conservative estimate)
-      final dir = await getTemporaryDirectory();
-      final stat = await dir.stat();
-      // Available memory estimate (no public API on Android without native code)
-      specs.availableMemoryMb = 3000; // conservative default
       specs.optimalContextSize = specs.availableMemoryMb > 4000
           ? 8192
           : specs.availableMemoryMb > 2000

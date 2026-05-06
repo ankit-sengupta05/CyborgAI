@@ -90,6 +90,7 @@ class LoadModelRequest(BaseModel):
     n_ctx: int = 4096
     n_threads: Optional[int] = None
     n_batch: int = 512
+    quantization: int = 0
 
 
 class LoadCustomModelRequest(BaseModel):
@@ -146,6 +147,26 @@ async def list_downloaded_models(request: Request):
             "loaded": loaded,
             "source": "local"
         })
+
+    # 1.1 Local Directories (HF Models)
+    for model_dir in models_dir.glob("llm/*"):
+        if model_dir.is_dir() and not model_dir.name.startswith("."):
+            model_id = model_dir.name.lower().replace("_", "-")
+            loaded = False
+            if hasattr(llm_svc, "current_model_path") and llm_svc.current_model_path:
+                loaded = str(Path(llm_svc.current_model_path).resolve()) == str(model_dir.resolve())
+            
+            downloaded.append({
+                "id": model_id,
+                "name": model_dir.name,
+                "size_gb": round(sum(f.stat().st_size for f in model_dir.rglob('*') if f.is_file()) / (1024**3), 2),
+                "quantization": "HF / Raw",
+                "task_type": "text-generation",
+                "path": str(model_dir),
+                "downloaded": True,
+                "loaded": loaded,
+                "source": "local"
+            })
 
     # 2. External server models
     if llm_svc._client:
@@ -295,6 +316,7 @@ async def load_model(model_id: str, request: Request, data: Optional[LoadModelRe
     n_gpu_layers = data.n_gpu_layers if data else -1
     n_threads = data.n_threads if data else None
     n_batch = data.n_batch if data else 512
+    quantization = data.quantization if data else 0
 
     try:
         # Find the model file
@@ -341,7 +363,8 @@ async def load_model(model_id: str, request: Request, data: Optional[LoadModelRe
             n_ctx=n_ctx,
             n_gpu_layers=n_gpu_layers,
             n_threads=n_threads,
-            n_batch=n_batch
+            n_batch=n_batch,
+            quantization=quantization
         )
         if not llm_svc.is_ready:
             raise HTTPException(500, "Model failed to load. Check backend logs for details.")

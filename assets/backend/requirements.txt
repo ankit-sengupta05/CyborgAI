@@ -55,6 +55,9 @@ Pillow>=10.0.0
 chardet>=5.0.0
 easyocr>=1.7.1
 transformers>=4.40.0
+bitsandbytes>=0.43.0
+accelerate>=0.30.0
+safetensors>=0.4.0
 
 # ─── GitHub ──────────────────────────────────────────────────────────────────
 PyGithub>=2.3.0
