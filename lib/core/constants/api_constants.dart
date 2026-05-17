@@ -6,7 +6,13 @@ class ApiConstants {
 
   static String get baseUrl {
     if (_baseUrlOverride != null) return _baseUrlOverride!;
-    if (kIsWeb) return '${Uri.base.origin}/api/v1/';
+    if (kIsWeb) {
+      final uri = Uri.base;
+      if (uri.port != 8765 && (uri.host == 'localhost' || uri.host == '127.0.0.1')) {
+        return 'http://127.0.0.1:8765/api/v1/';
+      }
+      return '${uri.origin}/api/v1/';
+    }
     return 'http://127.0.0.1:8765/api/v1/';
   }
 
@@ -16,8 +22,10 @@ class ApiConstants {
     if (_wsBaseUrlOverride != null) return _wsBaseUrlOverride!;
     if (kIsWeb) {
       final uri = Uri.base;
+      if (uri.port != 8765 && (uri.host == 'localhost' || uri.host == '127.0.0.1')) {
+        return 'ws://127.0.0.1:8765/api/v1/';
+      }
       final protocol = uri.scheme == 'https' ? 'wss' : 'ws';
-      // In web, port might be empty
       final portPart = uri.hasPort ? ':${uri.port}' : '';
       return '$protocol://${uri.host}$portPart/api/v1/';
     }
