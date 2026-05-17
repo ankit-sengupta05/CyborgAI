@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
@@ -107,7 +108,7 @@ class VaultState {
 class VaultNotifier extends StateNotifier<VaultState> {
   final VaultRepository _repo;
 
-  VaultNotifier() : _repo = (Platform.isWindows) ? RemoteVaultRepository() : LocalVaultRepository(),
+  VaultNotifier() : _repo = (Platform.isWindows || kIsWeb) ? RemoteVaultRepository() : LocalVaultRepository(),
                     super(const VaultState()) {
     _init();
   }

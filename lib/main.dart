@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide ChangeNotifierProvider;
@@ -43,8 +44,12 @@ void main() async {
   );
 
   // Initialize local storage in a OneDrive-safe location
-  final appDir = await getApplicationSupportDirectory();
-  await Hive.initFlutter(appDir.path);
+  if (kIsWeb) {
+    await Hive.initFlutter();
+  } else {
+    final appDir = await getApplicationSupportDirectory();
+    await Hive.initFlutter(appDir.path);
+  }
   await Hive.openBox('cyborg_cache');
   await Hive.openBox('cyborg_settings');
   await Hive.openBox('cyborg_projects');
