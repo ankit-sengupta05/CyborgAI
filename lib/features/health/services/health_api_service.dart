@@ -1,4 +1,5 @@
-import 'dart:io' if (dart.library.html) 'package:cyborg/core/services/io_stubs.dart';
+import 'package:flutter/foundation.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:dio/dio.dart';
 import '../../../core/services/api_service.dart';
 
@@ -24,21 +25,26 @@ class HealthApiService {
   }
 
   /// Analyze a chest X-ray image
-  /// [imageFile] — the PNG/JPG file
+  /// [imageFile] — the PNG/JPG file (PlatformFile)
   /// [age] — optional patient age
   /// [symptoms] — comma-separated symptom list
   /// [language] — language code (en, es, hi)
   Future<Map<String, dynamic>> analyzeXray({
-    required File imageFile,
+    required PlatformFile imageFile,
     int? age,
     String? symptoms,
     String language = 'en',
   }) async {
     final formData = FormData.fromMap({
-      'image': await MultipartFile.fromFile(
-        imageFile.path,
-        filename: imageFile.path.split(Platform.pathSeparator).last,
-      ),
+      'image': kIsWeb
+          ? MultipartFile.fromBytes(
+              imageFile.bytes!,
+              filename: imageFile.name,
+            )
+          : await MultipartFile.fromFile(
+              imageFile.path!,
+              filename: imageFile.name,
+            ),
       if (age != null) 'age': age,
       if (symptoms != null) 'symptoms': symptoms,
       'language': language,

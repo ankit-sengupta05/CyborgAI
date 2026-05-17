@@ -1,4 +1,5 @@
-import 'dart:io' if (dart.library.html) 'package:cyborg/core/services/io_stubs.dart';
+import 'package:flutter/foundation.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:dio/dio.dart';
 import '../../../core/services/api_service.dart';
 
@@ -24,22 +25,27 @@ class EducationApiService {
   }
 
   /// Grade a homework image
-  /// [imageFile] — homework photo
+  /// [imageFile] — homework photo (PlatformFile)
   /// [subject] — math, science, english, history
   /// [gradeLevel] — 1-12
   /// [language] — en, es, hi
   Future<Map<String, dynamic>> gradeHomework({
-    required File imageFile,
+    required PlatformFile imageFile,
     required String subject,
     required int gradeLevel,
     String language = 'en',
     String? rubric,
   }) async {
     final formData = FormData.fromMap({
-      'image': await MultipartFile.fromFile(
-        imageFile.path,
-        filename: imageFile.path.split(Platform.pathSeparator).last,
-      ),
+      'image': kIsWeb
+          ? MultipartFile.fromBytes(
+              imageFile.bytes!,
+              filename: imageFile.name,
+            )
+          : await MultipartFile.fromFile(
+              imageFile.path!,
+              filename: imageFile.name,
+            ),
       'subject': subject,
       'grade_level': gradeLevel,
       'language': language,

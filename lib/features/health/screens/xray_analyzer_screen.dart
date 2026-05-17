@@ -17,7 +17,7 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen>
   final _api = HealthApiService();
   final _ageCtrl = TextEditingController();
   final _symptomsCtrl = TextEditingController();
-  File? _image;
+  PlatformFile? _image;
   bool _analyzing = false;
   Map<String, dynamic>? _result;
   String _language = 'en';
@@ -56,10 +56,11 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen>
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       allowMultiple: false,
+      withData: kIsWeb,
     );
-    if (result == null || result.files.single.path == null) return;
+    if (result == null || result.files.isEmpty) return;
     setState(() {
-      _image = File(result.files.single.path!);
+      _image = result.files.single;
       _result = null;
       _error = null;
     });
@@ -187,8 +188,8 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen>
                       borderRadius:
                           const BorderRadius.vertical(top: Radius.circular(11)),
                       child: kIsWeb
-                          ? Image.network(_image!.path, fit: BoxFit.contain)
-                          : Image.file(_image! as dynamic, fit: BoxFit.contain))
+                          ? Image.memory(_image!.bytes!, fit: BoxFit.contain)
+                          : Image.file(File(_image!.path!) as dynamic, fit: BoxFit.contain))
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

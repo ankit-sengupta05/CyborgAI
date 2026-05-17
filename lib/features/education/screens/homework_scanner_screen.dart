@@ -15,7 +15,7 @@ class HomeworkScannerScreen extends StatefulWidget {
 
 class _HomeworkScannerScreenState extends State<HomeworkScannerScreen> {
   final _api = EducationApiService();
-  File? _image;
+  PlatformFile? _image;
   bool _grading = false;
   Map<String, dynamic>? _result;
   String _subject = 'math';
@@ -37,10 +37,11 @@ class _HomeworkScannerScreenState extends State<HomeworkScannerScreen> {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       allowMultiple: false,
+      withData: kIsWeb,
     );
-    if (result == null || result.files.single.path == null) return;
+    if (result == null || result.files.isEmpty) return;
     setState(() {
-      _image = File(result.files.single.path!);
+      _image = result.files.single;
       _result = null;
       _error = null;
     });
@@ -123,8 +124,8 @@ class _HomeworkScannerScreenState extends State<HomeworkScannerScreen> {
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(11),
                       child: kIsWeb
-                          ? Image.network(_image!.path, fit: BoxFit.contain)
-                          : Image.file(_image! as dynamic, fit: BoxFit.contain))
+                          ? Image.memory(_image!.bytes!, fit: BoxFit.contain)
+                          : Image.file(File(_image!.path!) as dynamic, fit: BoxFit.contain))
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
