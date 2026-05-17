@@ -11,6 +11,17 @@ import '../services/api_service.dart';
 import '../../features/mirofish/providers/app_provider.dart' as mf;
 import 'package:hive_flutter/hive_flutter.dart';
 
+// ── Sync System Imports ───────────────────────────────────────────────────
+import '../sync/event_bus/event_bus.dart';
+import '../sync/event_bus/event_persister.dart';
+import '../sync/event_bus/event_types.dart';
+import '../sync/orchestrator/sync_orchestrator.dart';
+import '../sync/orchestrator/dependency_graph.dart';
+import '../sync/orchestrator/priority_queue.dart';
+import '../sync/handlers/sync_handler.dart';
+import '../sync/handlers/graph_sync_handler.dart';
+import '../sync/utilities/brain_vault.dart';
+
 // ── MiroFish (Persistence) ───────────────────────────────────────────────────
 final miroFishProvider = Provider<mf.AppProvider>((ref) {
   final provider = mf.AppProvider()..useCyborgBackend();
@@ -52,8 +63,7 @@ final inferenceBackendProvider = Provider<InferenceBackend>((ref) {
   if (Platform.isWindows) {
     // Windows: reuse the existing BackendService (it already implements
     // full Python backend lifecycle). Wrap it in an adapter below.
-    final svc = ref.read(backendServiceProvider);
-    ref.onDispose(svc.dispose);
+    final svc = ref.read(backendServiceProvider.notifier);
     return _WindowsBackendAdapter(svc);
   } else {
     // Android: LightRT on-device inference with cross-device fallback
@@ -76,10 +86,10 @@ final backendStatusProvider = StreamProvider<BackendProgress>((ref) {
         ));
   }
 
-  final svc = ref.read(backendServiceProvider);
+  final notifier = ref.read(backendServiceProvider.notifier);
   return (() async* {
-    yield svc.currentProgress;
-    yield* svc.progressStream;
+    yield notifier.currentProgress;
+    yield* notifier.progressStream;
   })();
 });
 
@@ -165,4 +175,112 @@ class _WindowsBackendAdapter implements InferenceBackend {
         BackendStatus.running => InferenceStatus.ready,
         BackendStatus.error => InferenceStatus.error,
       };
+}
+
+// ── Sync System Providers ───────────────────────────────────────────────────
+
+/// Dependency graph for sync cascades
+final dependencyGraphProvider = Provider<DependencyGraph>((ref) {
+  return DependencyGraph();
+});
+
+/// Priority queue for sync tasks
+final prioritySyncQueueProvider = Provider<PrioritySyncQueue>((ref) {
+  return PrioritySyncQueue();
+});
+
+/// Event bus for sync events (will be initialized asynchronously)
+final eventBusProvider = StateProvider<EventBus?>((ref) => null);
+
+/// Sync orchestrator
+final syncOrchestratorProvider = StateProvider<SyncOrchestrator?>((ref) => null);
+
+/// Initialize sync system
+Future<void> initializeSyncSystem(WidgetRef ref) async {
+  await BrainVault.ensureVaultStructure();
+  final vaultRoot = (await BrainVault.getRootDirectory()).path;
+  final persister = await EventPersister.create();
+  final eventBus = EventBus(persister);
+  ref.read(eventBusProvider.notifier).state = eventBus;
+
+  final dependencyGraph = ref.read(dependencyGraphProvider);
+  final priorityQueue = ref.read(prioritySyncQueueProvider);
+
+  final orchestrator = SyncOrchestrator(
+    eventBus: eventBus,
+    dependencyGraph: dependencyGraph,
+    syncQueue: priorityQueue,
+  );
+
+  // Register sync handlers
+  orchestrator.subscribe(
+    eventTypes: [FileChangedEvent, ChatMessageEvent, IngestionCompleteEvent, SkillExecutedEvent],
+    handler: GraphSyncHandler(vaultRoot: vaultRoot),
+  );
+
+  ref.read(syncOrchestratorProvider.notifier).state = orchestrator;
+}
+
+/// Sync state notifier
+class SyncStateNotifier extends StateNotifier<SyncState> {
+  final SyncOrchestrator _orchestrator;
+
+  SyncStateNotifier(this._orchestrator) : super(SyncState.initial());
+
+  Future<void> handleEvent(SyncEvent event) async {
+    state = state.copyWith(isProcessing: true);
+    try {
+      await _orchestrator.handleEvent(event);
+      state = state.copyWith(
+        isProcessing: false,
+        lastSyncTime: DateTime.now(),
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isProcessing: false,
+        lastError: error.toString(),
+      );
+    }
+  }
+}
+
+final syncStateProvider = StateNotifierProvider<SyncStateNotifier, SyncState>((ref) {
+  final orchestrator = ref.watch(syncOrchestratorProvider);
+  if (orchestrator != null) {
+    return SyncStateNotifier(orchestrator);
+  }
+  // Placeholder - sync system not initialized yet
+  throw UnimplementedError('Sync system not initialized');
+});
+
+/// Sync state
+class SyncState {
+  final bool isProcessing;
+  final DateTime? lastSyncTime;
+  final String? lastError;
+  final Map<String, int> queueStatus;
+
+  const SyncState({
+    required this.isProcessing,
+    this.lastSyncTime,
+    this.lastError,
+    required this.queueStatus,
+  });
+
+  factory SyncState.initial() => const SyncState(
+    isProcessing: false,
+    queueStatus: {},
+  );
+
+  SyncState copyWith({
+    bool? isProcessing,
+    DateTime? lastSyncTime,
+    String? lastError,
+    Map<String, int>? queueStatus,
+  }) => SyncState(
+    isProcessing: isProcessing ?? this.isProcessing,
+    lastSyncTime: lastSyncTime ?? this.lastSyncTime,
+    lastError: lastError ?? this.lastError,
+    queueStatus: queueStatus ?? this.queueStatus,
+  );
 }

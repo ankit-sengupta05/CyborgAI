@@ -275,7 +275,7 @@ class _MapPanelState extends State<MapPanel> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<DashboardProvider>();
-    final ds = context.watch<DataService>();
+    final ds = context.read<DataService>();
     final variant = provider.mapVariant;
 
     return Container(

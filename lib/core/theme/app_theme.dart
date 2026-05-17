@@ -1,63 +1,48 @@
 import 'package:flutter/material.dart';
+import '../../theme/paperclip_theme.dart';
 
-/// LM Studio-inspired Color Palette
-/// Replicating the clean, professional dark theme of LM Studio
+/// AppColors is now a legacy compatibility layer mapped entirely
+/// to the Cyborg AI PaperclipTheme (Deep obsidian + neon accents)
 class AppColors {
-  // Background colors - LM Studio's signature dark grays
-  static const Color backgroundMain =
-      Color(0xFF18181B); // Main app background (Zinc 900)
-  static const Color backgroundSidebar =
-      Color(0xFF202022); // Sidebar background
-  static const Color backgroundSurface =
-      Color(0xFF27272A); // Cards, panels (Zinc 800)
-  static const Color backgroundInput =
-      Color(0xFF3F3F46); // Input fields (Zinc 700)
+  static const Color backgroundMain    = PaperclipTheme.backgroundDark;
+  static const Color backgroundSidebar = PaperclipTheme.sidebarDark;
+  static const Color backgroundSurface = PaperclipTheme.surfaceDark;
+  static const Color backgroundInput   = PaperclipTheme.surfaceElevatedDark;
 
-  // Border colors - subtle but defined
-  static const Color borderDefault = Color(0xFF3F3F46); // Default borders
-  static const Color borderHover = Color(0xFF52525B); // Hover state borders
+  static const Color borderDefault     = PaperclipTheme.borderDark;
+  static const Color borderHover       = PaperclipTheme.borderBrightDark;
 
-  // Text colors - excellent contrast and hierarchy
-  static const Color textPrimary = Color(0xFFFAFAFA); // Primary text (Zinc 50)
-  static const Color textSecondary =
-      Color(0xFFA1A1AA); // Secondary text (Zinc 400)
-  static const Color textTertiary = Color(0xFF71717A); // Muted text (Zinc 500)
+  static const Color textPrimary       = PaperclipTheme.foregroundDark;
+  static const Color textSecondary     = PaperclipTheme.mutedDark;
+  static const Color textTertiary      = PaperclipTheme.mutedFgDark;
 
-  // Accent colors - LM Studio's blue plus additional accents
-  static const Color accentBlue =
-      Color(0xFF3B82F6); // Primary accent (Blue 500)
-  static const Color accentBlueHover =
-      Color(0xFF2563EB); // Hover state (Blue 600)
-  static const Color accent = Color(0xFF3B82F6); // Alias for accentBlue
-  static const Color accentPurple = Color(0xFF8B5CF6); // Violet 500
-  static const Color accentGreen = Color(0xFF10B981); // Emerald 500
-  static const Color accentRed = Color(0xFFEF4444); // Red 500
-  static const Color accentOrange = Color(0xFFF97316); // Orange 500
-  static const Color accentYellow = Color(0xFFF59E0B); // Amber 500
+  static const Color accentBlue        = Color(0xFF00C2FF); // Electric Cyan
+  static const Color accentBlueHover   = Color(0xFF00A0D6);
+  static const Color accent            = Color(0xFF00C2FF);
+  static const Color accentPurple      = PaperclipTheme.accentPurple;
+  static const Color accentGreen       = PaperclipTheme.accentGreen;
+  static const Color accentRed         = PaperclipTheme.accentRed;
+  static const Color accentOrange      = PaperclipTheme.accentAmber;
+  static const Color accentYellow      = PaperclipTheme.accentAmber;
 
-  // Phase colors
-  static const Color phaseBlue = Color(0xFF3B82F6);
-  static const Color phaseGreen = Color(0xFF10B981);
-  static const Color phaseRed = Color(0xFFEF4444);
+  static const Color phaseBlue         = PaperclipTheme.accentCyan;
+  static const Color phaseGreen        = PaperclipTheme.accentGreen;
+  static const Color phaseRed          = PaperclipTheme.accentRed;
 
-  // Status colors
-  static const Color success = Color(0xFF10B981); // Emerald 500
-  static const Color warning = Color(0xFFF59E0B); // Amber 500
-  static const Color error = Color(0xFFEF4444); // Red 500
-  static const Color info = Color(0xFF3B82F6); // Blue 500
+  static const Color success           = PaperclipTheme.accentGreen;
+  static const Color warning           = PaperclipTheme.accentAmber;
+  static const Color error             = PaperclipTheme.accentRed;
+  static const Color info              = PaperclipTheme.accentCyan;
 
-  // Surface and background aliases for compatibility
-  static const Color surface = Color(0xFF27272A);
-  static const Color surfaceVariant = Color(0xFF27272A);
-  static const Color background = Color(0xFF18181B);
-  static const Color border = Color(0xFF3F3F46);
+  static const Color surface           = PaperclipTheme.surfaceDark;
+  static const Color surfaceVariant    = PaperclipTheme.surfaceElevatedDark;
+  static const Color background        = PaperclipTheme.backgroundDark;
+  static const Color border            = PaperclipTheme.borderDark;
 
-  // Text aliases for compatibility
-  static const Color textMuted = Color(0xFF71717A);
+  static const Color textMuted         = PaperclipTheme.mutedFgDark;
 
-  // Gradient for special elements
   static const LinearGradient accentGradient = LinearGradient(
-    colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+    colors: [PaperclipTheme.accentGreen, PaperclipTheme.accentCyan],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -334,4 +319,16 @@ class AppTheme {
           letterSpacing: 0.2),
     );
   }
+}
+
+class Responsive {
+  static bool isMobile(BuildContext context) =>
+      MediaQuery.of(context).size.width < 800;
+
+  static bool isTablet(BuildContext context) =>
+      MediaQuery.of(context).size.width >= 800 &&
+      MediaQuery.of(context).size.width < 1200;
+
+  static bool isDesktop(BuildContext context) =>
+      MediaQuery.of(context).size.width >= 1200;
 }

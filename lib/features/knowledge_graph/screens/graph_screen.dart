@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/services/api_service.dart';
 import 'package:go_router/go_router.dart';
+import '../../vault/screens/vault_screen.dart';
 
 // ── Models ────────────────────────────────────────────────────────────────────
 class KGNode {
@@ -336,7 +337,7 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
           color: AppColors.surface,
           child: narrow
               ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Row(children: [
+                    Row(children: [
                     const Icon(Icons.hub_outlined,
                         color: AppColors.accent, size: 18),
                     const SizedBox(width: 6),
@@ -357,16 +358,15 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
                                 color: AppColors.accent, fontSize: 10))),
                     const SizedBox(width: 6),
                     IconButton(
+                        icon: const Icon(Icons.tune, size: 18),
+                        padding: EdgeInsets.zero,
+                        tooltip: 'Graph Settings',
+                        onPressed: () => _showMobileSettings(context, s, n)),
+                    IconButton(
                         icon: const Icon(Icons.upload_file_outlined, size: 18),
                         padding: EdgeInsets.zero,
                         tooltip: 'Ingest files',
                         onPressed: () => _showIngest(context, n)),
-                    IconButton(
-                        icon: const Icon(Icons.delete_sweep_outlined,
-                            size: 18, color: AppColors.accentRed),
-                        padding: EdgeInsets.zero,
-                        tooltip: 'Clear Graph',
-                        onPressed: () => _showClearConfirm(context, n)),
                     IconButton(
                         icon: const Icon(Icons.refresh, size: 18),
                         padding: EdgeInsets.zero,
@@ -460,35 +460,35 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
         child: Stack(
           children: [
             Row(children: [
-        Expanded(
-            child: !s.initialized
-                ? const Center(
-                    child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text('Connecting to knowledge graph…',
-                            style: TextStyle(color: AppColors.textSecondary))
-                      ]))
-                : s.loading
-                    ? const Center(
-                        child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                            CircularProgressIndicator(),
-                            SizedBox(height: 16),
-                            Text('Loading graph…',
-                                style:
-                                    TextStyle(color: AppColors.textSecondary))
-                          ]))
-                            : Container(
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? AppColors.backgroundMain
-                                    : const Color(0xFFF9FAFB),
-                                child: Stack(
-                                  fit: StackFit.expand,
+              Expanded(
+                  child: !s.initialized
+                      ? const Center(
+                          child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                              CircularProgressIndicator(),
+                              SizedBox(height: 16),
+                              Text('Connecting to knowledge graph…',
+                                  style: TextStyle(color: AppColors.textSecondary))
+                            ]))
+                      : s.loading
+                          ? const Center(
+                              child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
+                                  CircularProgressIndicator(),
+                                  SizedBox(height: 16),
+                                  Text('Loading graph…',
+                                      style:
+                                          TextStyle(color: AppColors.textSecondary))
+                                ]))
+                          : Container(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.backgroundMain
+                                  : const Color(0xFFF9FAFB),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
                                   _GraphCanvas(
                                     nodes: s.nodes,
                                     edges: s.edges,
@@ -504,80 +504,127 @@ class _KnowledgeGraphScreenState extends ConsumerState<KnowledgeGraphScreen> {
                                     showArrows: s.showArrows,
                                   ),
                                 ]),
-                              )),
-        Container(
-            width: 250,
-            decoration: const BoxDecoration(
-                color: AppColors.surface,
-                border: Border(left: BorderSide(color: AppColors.border))),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                            )),
+              if (!Responsive.isMobile(context))
+                Container(
+                  width: 250,
+                  decoration: const BoxDecoration(
+                      color: AppColors.surface,
+                      border: Border(left: BorderSide(color: AppColors.border))),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ExpansionTile(
+                          initiallyExpanded: true,
+                          title: const Text('COMMUNITIES',
+                              style: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1)),
+                          children: [
+                            SizedBox(
+                              height: 250,
+                              child: ListView(
+                                  padding: EdgeInsets.zero,
+                                  children: _communityItems(s, n)),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 1),
+                        ExpansionTile(
+                          title: const Text('GRAPH SETTINGS',
+                              style: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1)),
+                          children: [
+                            _GraphSidebarControls(state: s, notifier: n),
+                          ],
+                        ),
+                        const Divider(height: 1),
+                        if (selected != null)
+                          _NodeInfo(node: selected)
+                        else if (s.selectedCommunity != null)
+                          _CommunityInfo(
+                              community: s.communities.firstWhere(
+                                  (c) => c.id == s.selectedCommunity,
+                                  orElse: () => KGCommunity(
+                                      id: s.selectedCommunity!,
+                                      nodeCount: 0,
+                                      name: 'Cluster ${s.selectedCommunity}',
+                                      summary: 'Loading...')))
+                        else
+                          const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: Text('Click a node or cluster to inspect',
+                                  style: TextStyle(
+                                      color: AppColors.textMuted, fontSize: 11))),
+                      ],
+                    ),
+                  ),
+                ),
+            ]),
+            if (selected != null)
+              _FloatingNodeInfo(
+                node: selected,
+                onClose: () {
+                  ref.read(graphProvider.notifier).select(null);
+                },
+              ),
+          ],
+        ),
+      ),
+    ]);
+  }
+
+  void _showMobileSettings(BuildContext context, GraphState s, GraphNotifier n) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.backgroundSidebar,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          children: [
+            const Text('Graph Settings & Clusters',
+                style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView(
                 children: [
                   ExpansionTile(
-                    initiallyExpanded: true,
-                    title: const Text('COMMUNITIES',
-                        style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1)),
-                    children: [
-                      SizedBox(
-                        height: 250,
-                        child: ListView(
-                            padding: EdgeInsets.zero,
-                            children: _communityItems(s, n)),
-                      ),
-                    ],
+                    title: const Text('COMMUNITIES'),
+                    children: _communityItems(s, n),
                   ),
-                  const Divider(height: 1),
                   ExpansionTile(
-                    title: const Text('GRAPH SETTINGS',
-                        style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1)),
+                    title: const Text('SETTINGS'),
                     children: [
                       _GraphSidebarControls(state: s, notifier: n),
-                    ],
-                  ),
-                  const Divider(height: 1),
-                  if (selected != null)
-                    _NodeInfo(node: selected)
-                  else if (s.selectedCommunity != null)
-                    _CommunityInfo(
-                        community: s.communities.firstWhere(
-                            (c) => c.id == s.selectedCommunity,
-                            orElse: () => KGCommunity(
-                                id: s.selectedCommunity!,
-                                nodeCount: 0,
-                                name: 'Cluster ${s.selectedCommunity}',
-                                summary: 'Loading...')))
-                  else
-                    const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('Click a node or cluster to inspect',
-                            style: TextStyle(
-                                color: AppColors.textMuted, fontSize: 11))),
-                        ],
+                      const SizedBox(height: 12),
+                      ListTile(
+                        leading: const Icon(Icons.delete_sweep_outlined, color: AppColors.accentRed),
+                        title: const Text('Clear Graph', style: TextStyle(color: AppColors.accentRed)),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _showClearConfirm(context, n);
+                        },
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
-              if (selected != null)
-                _FloatingNodeInfo(
-                  node: selected,
-                  onClose: () {
-                    ref.read(graphProvider.notifier).select(null);
-                  },
-                ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ]);
+      ),
+    );
   }
 
   List<Widget> _communityItems(GraphState s, GraphNotifier n) {
@@ -848,12 +895,10 @@ class _GraphCanvasState extends State<_GraphCanvas>
     }
     if (old.selectedId != widget.selectedId && widget.selectedId != null) {
       _centerOnNode(widget.selectedId!);
-      _settled = false;
-      if (!_ticker.isAnimating) _ticker.repeat();
     }
     if (old.repelForce != widget.repelForce || old.centerForce != widget.centerForce) {
       _settled = false;
-      _ticks = 0;
+      _ticks = math.max(0, _ticks - 300); // More heat for setting changes
       if (!_ticker.isAnimating) _ticker.repeat();
     }
   }
@@ -882,11 +927,11 @@ class _GraphCanvasState extends State<_GraphCanvas>
       for (var l in _layouts) l.node.id: l
     };
 
-    // OBSIDIAN-FIDELITY PHYSICS: Corrected force signs and balanced constants
-    final repelStrength = widget.repelForce.abs() * 250.0; // Positive for repulsion
-    final linkStrength = 0.035; 
-    final idealLinkDist = 280.0; 
-    final centerStrength = widget.centerForce * 0.008; // Weaker centering for better spread
+    // OBSIDIAN-FIDELITY PHYSICS: Smooth gliding, strong cluster separation, compact links
+    final repelStrength = widget.repelForce.abs() * 150.0; // Moderate base repulsion
+    final linkStrength = 0.08; // Stronger links to keep connected nodes closer
+    final idealLinkDist = 50.0; // Much shorter links for tight clustering
+    final centerStrength = widget.centerForce * 0.01; // Gentle pull to center
 
     for (var i = 0; i < _layouts.length; i++) {
       final a = _layouts[i];
@@ -897,29 +942,34 @@ class _GraphCanvasState extends State<_GraphCanvas>
         final dx = b.x - a.x, dy = b.y - a.y;
         final distSq = dx * dx + dy * dy;
         
-        if (distSq > 1200 * 1200) continue; 
+        if (distSq > 1500 * 1500) continue; // Further range for global spread
 
         final dist = math.sqrt(math.max(1.0, distSq));
         
         // Inverse Square Repulsion (Corrected Direction: Positive pushes away)
         double force = (repelStrength / distSq) * alpha;
         
-        // Hard Anti-Collision (Discreet push-out)
+        // --- Cluster Separation Logic ---
+        if (a.node.community != b.node.community) {
+          force *= 2.0; // Moderate push to differentiate clusters without exploding
+        }
+        
+        // Smooth Anti-Collision
         final ra = (math.sqrt(a.node.degree.toDouble()) * 1.8 + 3.5).clamp(3.5, 18);
         final rb = (math.sqrt(b.node.degree.toDouble()) * 1.8 + 3.5).clamp(3.5, 18);
         final minSeparation = (ra + rb) * widget.nodeSize + 15.0;
         
         if (dist < minSeparation) {
           final overlap = minSeparation - dist;
-          force += (overlap * 50.0) * alpha; // Massive push for overlap
+          force += (overlap * 2.0) * alpha; // Smooth anti-collision spring
         }
 
         final fx = (dx / dist) * force;
         final fy = (dy / dist) * force;
         
-        a.vx -= fx; // a moves left if b is right
+        a.vx -= fx;
         a.vy -= fy;
-        b.vx += fx; // b moves right if b is right
+        b.vx += fx;
         b.vy += fy;
       }
     }
@@ -948,22 +998,24 @@ class _GraphCanvasState extends State<_GraphCanvas>
     for (final l in _layouts) {
       if (l == _draggedNode) continue;
       
+      // Global gravity pull towards center (400, 300)
       l.vx += (400 - l.x) * centerStrength * alpha;
       l.vy += (300 - l.y) * centerStrength * alpha;
 
-      // Speed limit
+      // Prevent explosion/NaNs with a high speed limit
       final speedSq = l.vx * l.vx + l.vy * l.vy;
-      if (speedSq > 50 * 50) {
+      if (speedSq > 200 * 200) {
         final speed = math.sqrt(speedSq);
-        l.vx = (l.vx / speed) * 50;
-        l.vy = (l.vy / speed) * 50;
+        l.vx = (l.vx / speed) * 200;
+        l.vy = (l.vy / speed) * 200;
       }
 
-      l.x += l.vx;
-      l.y += l.vy;
+      l.x += l.vx * 0.6;
+      l.y += l.vy * 0.6;
       
-      l.vx *= 0.85; // Slightly higher damping for floaty movement
-      l.vy *= 0.85;
+      // Smooth Obsidian-style damping (gliding momentum instead of rigid stop)
+      l.vx *= 0.88; 
+      l.vy *= 0.88;
     }
     if (mounted) setState(() {});
   }
@@ -1013,6 +1065,15 @@ class _GraphCanvasState extends State<_GraphCanvas>
         }
       },
       onScaleEnd: (d) {
+        if (_draggedNode != null) {
+          // Gently re-heat the simulation so it rearranges around the new position
+          // without exploding the entire graph
+          setState(() {
+            _ticks = math.max(0, _ticks - 100); 
+            _settled = false;
+          });
+          if (!_ticker.isAnimating) _ticker.repeat();
+        }
         _draggedNode = null;
         _panStart = null;
       },
@@ -1033,21 +1094,23 @@ class _GraphCanvasState extends State<_GraphCanvas>
             : SystemMouseCursors.grab,
         child: Container(
           color: AppColors.background,
-          child: CustomPaint(
-            painter: _ObsidianPainter(
-                layouts: _layouts,
-                edges: widget.edges,
-                hiddenCommunities: widget.hiddenCommunities,
-                searchLower: searchLower,
-                selectedId: widget.selectedId,
-                hoveredId: _hoveredId,
-                scale: _scale,
-                pan: _pan,
-                showLabels: widget.showLabels,
-                nodeSize: widget.nodeSize,
-                linkThickness: widget.linkThickness,
-                showArrows: widget.showArrows),
-            size: Size.infinite,
+          child: ClipRect(
+            child: CustomPaint(
+              painter: _ObsidianPainter(
+                  layouts: _layouts,
+                  edges: widget.edges,
+                  hiddenCommunities: widget.hiddenCommunities,
+                  searchLower: searchLower,
+                  selectedId: widget.selectedId,
+                  hoveredId: _hoveredId,
+                  scale: _scale,
+                  pan: _pan,
+                  showLabels: widget.showLabels,
+                  nodeSize: widget.nodeSize,
+                  linkThickness: widget.linkThickness,
+                  showArrows: widget.showArrows),
+              size: Size.infinite,
+            ),
           ),
         ),
       ),
@@ -1152,10 +1215,13 @@ class _ObsidianPainter extends CustomPainter {
         _drawArrow(canvas, posA, posB, (isHighlighted ? AppColors.accent : AppColors.border).withOpacity(opacity), scale * linkThickness);
       }
 
-      // Relationship label
-      if ((scale > 1.4 || isHighlighted) && edge.type != 'direct') {
-        final mid = (posA + posB) / 2;
-        _drawText(canvas, mid, edge.type, (9 * scale).clamp(6, 12), Colors.white.withOpacity(opacity * 0.7));
+      // Relationship label: Only show when highlighted for a cleaner 'Obsidian' aesthetic
+      if (isHighlighted && edge.type != 'direct' && !edge.type.toLowerCase().contains('wikilink')) {
+        final label = edge.type.replaceAll('[[', '').replaceAll(']]', '').trim();
+        if (label.isNotEmpty) {
+          final mid = (posA + posB) / 2;
+          _drawText(canvas, mid, label, (10 * scale).clamp(8, 14), AppColors.accent);
+        }
       }
     }
 
@@ -1263,16 +1329,16 @@ class _ObsidianPainter extends CustomPainter {
   bool shouldRepaint(CustomPainter oldDelegate) => true;
 }
 
-class _FloatingNodeInfo extends StatefulWidget {
+class _FloatingNodeInfo extends ConsumerStatefulWidget {
   final KGNode node;
   final VoidCallback onClose;
   const _FloatingNodeInfo({required this.node, required this.onClose});
 
   @override
-  State<_FloatingNodeInfo> createState() => _FloatingNodeInfoState();
+  ConsumerState<_FloatingNodeInfo> createState() => _FloatingNodeInfoState();
 }
 
-class _FloatingNodeInfoState extends State<_FloatingNodeInfo> {
+class _FloatingNodeInfoState extends ConsumerState<_FloatingNodeInfo> {
   Offset _pos = const Offset(80, 60);
 
   @override
@@ -1387,7 +1453,10 @@ class _FloatingNodeInfoState extends State<_FloatingNodeInfo> {
                             elevation: 0,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                           ),
-                          onPressed: () => context.push('/vault'),
+                          onPressed: () {
+                            ref.read(vaultProvider.notifier).selectNoteById(node.id);
+                            context.push('/vault');
+                          },
                           child: const Text('Open in Vault', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                         ),
                       ),
@@ -1451,7 +1520,7 @@ class _GraphSidebarControls extends StatelessWidget {
             label: 'Node size',
             value: state.nodeSize,
             min: 0.1,
-            max: 3.0,
+            max: 10.0,
             onChanged: notifier.setNodeSize,
             isDark: isDark,
           ),
@@ -1476,7 +1545,7 @@ class _GraphSidebarControls extends StatelessWidget {
           _SliderRow(
             label: 'Repel force',
             value: state.repelForce,
-            min: -20000.0,
+            min: -100000.0,
             max: -100.0,
             onChanged: notifier.setRepelForce,
             isDark: isDark,

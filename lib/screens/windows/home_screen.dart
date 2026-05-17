@@ -1,9 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../theme/paperclip_theme.dart';
 import '../../../core/services/health_edu_service.dart';
 import 'health_screen.dart';
 import 'education_screen.dart';
+
+// Local shim so existing AppColors references resolve without rewriting every line
+class AppColors {
+  static const Color backgroundMain    = PaperclipTheme.backgroundDark;
+  static const Color backgroundSidebar = PaperclipTheme.sidebarDark;
+  static const Color backgroundSurface = PaperclipTheme.surfaceDark;
+  static const Color backgroundInput   = PaperclipTheme.surfaceElevatedDark;
+  static const Color borderDefault     = PaperclipTheme.borderDark;
+  static const Color borderHover       = PaperclipTheme.borderBrightDark;
+  static const Color textPrimary       = PaperclipTheme.foregroundDark;
+  static const Color textSecondary     = PaperclipTheme.mutedDark;
+  static const Color textTertiary      = PaperclipTheme.mutedFgDark;
+  static const Color textMuted         = PaperclipTheme.mutedFgDark;
+  static const Color accentBlue        = PaperclipTheme.accentCyan;
+  static const Color accentBlueHover   = Color(0xFF00A0D6);
+  static const Color accent            = PaperclipTheme.accentCyan;
+  static const Color accentPurple      = PaperclipTheme.accentPurple;
+  static const Color accentGreen       = PaperclipTheme.accentGreen;
+  static const Color accentRed         = PaperclipTheme.accentRed;
+  static const Color accentOrange      = PaperclipTheme.accentAmber;
+  static const Color accentYellow      = PaperclipTheme.accentAmber;
+  static const Color success           = PaperclipTheme.accentGreen;
+  static const Color warning           = PaperclipTheme.accentAmber;
+  static const Color error             = PaperclipTheme.accentRed;
+  static const Color info              = PaperclipTheme.accentCyan;
+  static const Color surface           = PaperclipTheme.surfaceDark;
+  static const Color surfaceVariant    = PaperclipTheme.surfaceElevatedDark;
+  static const Color background        = PaperclipTheme.backgroundDark;
+  static const Color border            = PaperclipTheme.borderDark;
+  static const LinearGradient accentGradient = LinearGradient(
+    colors: [PaperclipTheme.accentGreen, PaperclipTheme.accentCyan],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+}
 
 class HomeDesktop extends StatefulWidget {
   const HomeDesktop({super.key});
@@ -62,16 +97,16 @@ class _HomeDesktopState extends State<HomeDesktop> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundMain,
+      backgroundColor: PaperclipTheme.backgroundDark,
       body: Row(
         children: [
           // 🔹 SIDEBAR - LM Studio Style
           Container(
             width: 260,
             decoration: BoxDecoration(
-              color: AppColors.backgroundSidebar,
+              color: PaperclipTheme.sidebarDark,
               border: Border(
-                right: BorderSide(color: AppColors.borderDefault, width: 1),
+                right: BorderSide(color: PaperclipTheme.borderDark, width: 1),
               ),
             ),
             child: Column(
@@ -86,7 +121,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          gradient: AppColors.accentGradient,
+                          gradient: PaperclipTheme.accentCyanGradient,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(Icons.smart_toy,
@@ -96,7 +131,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                       const Text(
                         "CYBORG",
                         style: TextStyle(
-                          color: AppColors.textPrimary,
+                          color: PaperclipTheme.foregroundDark,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.5,
@@ -138,10 +173,10 @@ class _HomeDesktopState extends State<HomeDesktop> {
                   margin: const EdgeInsets.all(12),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundSurface,
+                    color: PaperclipTheme.surfaceDark,
                     borderRadius: BorderRadius.circular(10),
                     border:
-                        Border.all(color: AppColors.borderDefault, width: 1),
+                        Border.all(color: PaperclipTheme.borderDark, width: 1),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,7 +187,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                             width: 8,
                             height: 8,
                             decoration: const BoxDecoration(
-                              color: AppColors.success,
+                              color: PaperclipTheme.accentGreen,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -160,7 +195,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                           const Text(
                             "Online",
                             style: TextStyle(
-                              color: AppColors.textPrimary,
+                              color: PaperclipTheme.foregroundDark,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),
@@ -171,7 +206,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                       const Text(
                         "RTX 5060 • 12GB",
                         style: TextStyle(
-                          color: AppColors.textTertiary,
+                          color: PaperclipTheme.mutedFgDark,
                           fontSize: 11,
                         ),
                       ),
@@ -192,10 +227,10 @@ class _HomeDesktopState extends State<HomeDesktop> {
                   height: 56,
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundMain,
+                    color: PaperclipTheme.backgroundDark,
                     border: Border(
                       bottom:
-                          BorderSide(color: AppColors.borderDefault, width: 1),
+                          BorderSide(color: PaperclipTheme.borderDark, width: 1),
                     ),
                   ),
                   child: Row(
@@ -205,14 +240,14 @@ class _HomeDesktopState extends State<HomeDesktop> {
                         children: [
                           Icon(
                             _getIconForTab(selectedTab),
-                            color: AppColors.accentBlue,
+                            color: PaperclipTheme.accentCyan,
                             size: 18,
                           ),
                           const SizedBox(width: 10),
                           Text(
                             selectedTab,
                             style: const TextStyle(
-                              color: AppColors.textPrimary,
+                              color: PaperclipTheme.foregroundDark,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -223,24 +258,24 @@ class _HomeDesktopState extends State<HomeDesktop> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: AppColors.backgroundSurface,
+                          color: PaperclipTheme.surfaceDark,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: AppColors.borderDefault, width: 1),
+                              color: PaperclipTheme.borderDark, width: 1),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(
                               Icons.cloud_done,
-                              color: AppColors.success,
+                              color: PaperclipTheme.accentGreen,
                               size: 14,
                             ),
                             const SizedBox(width: 6),
                             const Text(
                               "All Systems Operational",
                               style: TextStyle(
-                                color: AppColors.textSecondary,
+                                color: PaperclipTheme.mutedDark,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -264,9 +299,9 @@ class _HomeDesktopState extends State<HomeDesktop> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundMain,
+                    color: PaperclipTheme.backgroundDark,
                     border: Border(
-                      top: BorderSide(color: AppColors.borderDefault, width: 1),
+                      top: BorderSide(color: PaperclipTheme.borderDark, width: 1),
                     ),
                   ),
                   child: Row(
@@ -274,26 +309,26 @@ class _HomeDesktopState extends State<HomeDesktop> {
                       Expanded(
                         child: Container(
                           decoration: BoxDecoration(
-                            color: AppColors.backgroundInput,
+                            color: PaperclipTheme.surfaceElevatedDark,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                                color: AppColors.borderDefault, width: 1),
+                                color: PaperclipTheme.borderDark, width: 1),
                           ),
                           child: TextField(
                             controller: _controller,
                             style: const TextStyle(
-                              color: AppColors.textPrimary,
+                              color: PaperclipTheme.foregroundDark,
                               fontSize: 14,
                             ),
                             decoration: InputDecoration(
                               hintText: "Enter command...",
                               hintStyle: const TextStyle(
-                                color: AppColors.textTertiary,
+                                color: PaperclipTheme.mutedFgDark,
                                 fontSize: 14,
                               ),
                               prefixIcon: const Icon(
                                 Icons.terminal,
-                                color: AppColors.textTertiary,
+                                color: PaperclipTheme.mutedFgDark,
                                 size: 18,
                               ),
                               filled: false,
@@ -368,7 +403,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
             child: Text(
               output,
               style: const TextStyle(
-                color: AppColors.textPrimary,
+                color: PaperclipTheme.foregroundDark,
                 fontSize: 16,
               ),
             ),
@@ -394,14 +429,14 @@ class _HomeDesktopState extends State<HomeDesktop> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant,
+                  color: PaperclipTheme.surfaceElevatedDark,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: PaperclipTheme.borderDark),
                 ),
                 child: Text(
                   output,
                   style: const TextStyle(
-                    color: AppColors.textPrimary,
+                    color: PaperclipTheme.foregroundDark,
                     fontSize: 14,
                   ),
                   textAlign: TextAlign.center,
@@ -443,7 +478,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
               Text(
                 output,
                 style: const TextStyle(
-                  color: AppColors.textPrimary,
+                  color: PaperclipTheme.foregroundDark,
                   fontSize: 14,
                 ),
               ),
@@ -458,7 +493,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
               ? Center(
                   child: Text(
                     "No logs yet",
-                    style: TextStyle(color: AppColors.textMuted),
+                    style: TextStyle(color: PaperclipTheme.mutedFgDark),
                   ),
                 )
               : ListView.builder(
@@ -471,7 +506,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                     decoration: BoxDecoration(
                       border: Border(
                         bottom: BorderSide(
-                          color: AppColors.border,
+                          color: PaperclipTheme.borderDark,
                           width: 1,
                         ),
                       ),
@@ -480,7 +515,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                       children: [
                         const Icon(
                           Icons.terminal,
-                          color: AppColors.success,
+                          color: PaperclipTheme.accentGreen,
                           size: 16,
                         ),
                         const SizedBox(width: 8),
@@ -488,7 +523,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                           child: Text(
                             logs[i],
                             style: const TextStyle(
-                              color: AppColors.textPrimary,
+                              color: PaperclipTheme.foregroundDark,
                               fontSize: 13,
                               fontFamily: 'monospace',
                             ),
@@ -552,9 +587,9 @@ class _HomeDesktopState extends State<HomeDesktop> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.backgroundSurface,
+                  color: PaperclipTheme.surfaceDark,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.borderDefault),
+                  border: Border.all(color: PaperclipTheme.borderDark),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -562,7 +597,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                     const Text(
                       "⚠️ Medical Disclaimer",
                       style: TextStyle(
-                        color: AppColors.accentOrange,
+                        color: PaperclipTheme.accentAmber,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
@@ -573,7 +608,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                       "It is NOT a substitute for professional medical advice, diagnosis, or treatment. "
                       "Always consult qualified healthcare providers for medical concerns.",
                       style: TextStyle(
-                        color: AppColors.textSecondary,
+                        color: PaperclipTheme.mutedDark,
                         fontSize: 12,
                       ),
                     ),
@@ -636,9 +671,9 @@ class _HomeDesktopState extends State<HomeDesktop> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.backgroundSurface,
+                  color: PaperclipTheme.surfaceDark,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.borderDefault),
+                  border: Border.all(color: PaperclipTheme.borderDark),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -646,7 +681,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                     const Text(
                       "🌍 Supported Languages",
                       style: TextStyle(
-                        color: AppColors.accentBlue,
+                        color: PaperclipTheme.accentCyan,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
@@ -656,7 +691,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                       "English • Español • हिन्दी\n"
                       "Optimized for rural/low-resource deployment on edge devices.",
                       style: TextStyle(
-                        color: AppColors.textSecondary,
+                        color: PaperclipTheme.mutedDark,
                         fontSize: 12,
                       ),
                     ),
@@ -676,7 +711,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
               const Text(
                 "Upload chest X-ray for MedGemma 4B analysis",
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: PaperclipTheme.foregroundDark,
                   fontSize: 16,
                 ),
               ),
@@ -701,9 +736,9 @@ class _HomeDesktopState extends State<HomeDesktop> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundSurface,
+                    color: PaperclipTheme.surfaceDark,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.borderDefault),
+                    border: Border.all(color: PaperclipTheme.borderDark),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -711,12 +746,12 @@ class _HomeDesktopState extends State<HomeDesktop> {
                       Row(
                         children: [
                           const Icon(Icons.analytics,
-                              color: AppColors.accentBlue, size: 20),
+                              color: PaperclipTheme.accentCyan, size: 20),
                           const SizedBox(width: 8),
                           Text(
                             "Analysis Results",
                             style: TextStyle(
-                              color: AppColors.textPrimary,
+                              color: PaperclipTheme.foregroundDark,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -735,7 +770,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                         Text(
                           "Recommendations:",
                           style: TextStyle(
-                            color: AppColors.textPrimary,
+                            color: PaperclipTheme.foregroundDark,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
@@ -744,28 +779,28 @@ class _HomeDesktopState extends State<HomeDesktop> {
                         Text(
                           _xrayResult!['recommendations']?.toString() ?? "",
                           style: TextStyle(
-                              color: AppColors.textSecondary, fontSize: 12),
+                              color: PaperclipTheme.mutedDark, fontSize: 12),
                         ),
                       ],
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.accentOrange.withOpacity(0.1),
+                          color: PaperclipTheme.accentAmber.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: AppColors.accentOrange.withOpacity(0.3)),
+                              color: PaperclipTheme.accentAmber.withValues(alpha: 0.3)),
                         ),
                         child: Row(
                           children: [
                             const Icon(Icons.warning_amber,
-                                color: AppColors.accentOrange, size: 16),
+                                color: PaperclipTheme.accentAmber, size: 16),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 "⚠️ Not a diagnosis. Consult a healthcare professional.",
                                 style: TextStyle(
-                                  color: AppColors.accentOrange,
+                                  color: PaperclipTheme.accentAmber,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -789,12 +824,12 @@ class _HomeDesktopState extends State<HomeDesktop> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.folder_shared,
-                  size: 64, color: AppColors.accentPurple),
+                  size: 64, color: PaperclipTheme.accentPurple),
               const SizedBox(height: 20),
               const Text(
                 "FHIR-compatible EHR function calling with safety guardrails",
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: PaperclipTheme.foregroundDark,
                   fontSize: 16,
                 ),
                 textAlign: TextAlign.center,
@@ -826,7 +861,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
               const Text(
                 "Upload homework for OCR + rubric-based evaluation",
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: PaperclipTheme.foregroundDark,
                   fontSize: 16,
                 ),
               ),
@@ -852,9 +887,9 @@ class _HomeDesktopState extends State<HomeDesktop> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundSurface,
+                    color: PaperclipTheme.surfaceDark,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.borderDefault),
+                    border: Border.all(color: PaperclipTheme.borderDark),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -862,12 +897,12 @@ class _HomeDesktopState extends State<HomeDesktop> {
                       Row(
                         children: [
                           const Icon(Icons.assignment_turned_in,
-                              color: AppColors.success, size: 20),
+                              color: PaperclipTheme.accentGreen, size: 20),
                           const SizedBox(width: 8),
                           Text(
                             "Grading Results",
                             style: TextStyle(
-                              color: AppColors.textPrimary,
+                              color: PaperclipTheme.foregroundDark,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -886,7 +921,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                         Text(
                           "Feedback:",
                           style: TextStyle(
-                            color: AppColors.textPrimary,
+                            color: PaperclipTheme.foregroundDark,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
@@ -895,7 +930,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                         Text(
                           _homeworkResult!['feedback']?.toString() ?? "",
                           style: TextStyle(
-                              color: AppColors.textSecondary, fontSize: 12),
+                              color: PaperclipTheme.mutedDark, fontSize: 12),
                         ),
                       ],
                     ],
@@ -915,7 +950,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
               const Text(
                 "Generate adaptive quizzes with cultural relevance",
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: PaperclipTheme.foregroundDark,
                   fontSize: 16,
                 ),
               ),
@@ -941,9 +976,9 @@ class _HomeDesktopState extends State<HomeDesktop> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundSurface,
+                    color: PaperclipTheme.surfaceDark,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.borderDefault),
+                    border: Border.all(color: PaperclipTheme.borderDark),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -951,12 +986,12 @@ class _HomeDesktopState extends State<HomeDesktop> {
                       Row(
                         children: [
                           const Icon(Icons.quiz,
-                              color: AppColors.accentOrange, size: 20),
+                              color: PaperclipTheme.accentAmber, size: 20),
                           const SizedBox(width: 8),
                           Text(
                             "Quiz Generated",
                             style: TextStyle(
-                              color: AppColors.textPrimary,
+                              color: PaperclipTheme.foregroundDark,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -975,7 +1010,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                         Text(
                           "Questions:",
                           style: TextStyle(
-                            color: AppColors.textPrimary,
+                            color: PaperclipTheme.foregroundDark,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
@@ -989,7 +1024,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                             child: Text(
                               "${i + 1}. ${_quizResult!['quiz']?['questions'][i]['question'] ?? ""}",
                               style: TextStyle(
-                                  color: AppColors.textSecondary, fontSize: 12),
+                                  color: PaperclipTheme.mutedDark, fontSize: 12),
                             ),
                           ),
                         )),
@@ -1012,19 +1047,19 @@ class _HomeDesktopState extends State<HomeDesktop> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
+        color: PaperclipTheme.surfaceElevatedDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderDefault),
+        border: Border.all(color: PaperclipTheme.borderDark),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.backgroundSurface,
+              color: PaperclipTheme.surfaceDark,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 32, color: AppColors.accentBlue),
+            child: Icon(icon, size: 32, color: PaperclipTheme.accentCyan),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -1034,7 +1069,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                 Text(
                   title,
                   style: const TextStyle(
-                    color: AppColors.textPrimary,
+                    color: PaperclipTheme.foregroundDark,
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1043,7 +1078,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
                 Text(
                   description,
                   style: const TextStyle(
-                    color: AppColors.textSecondary,
+                    color: PaperclipTheme.mutedDark,
                     fontSize: 13,
                   ),
                 ),
@@ -1061,9 +1096,9 @@ class _HomeDesktopState extends State<HomeDesktop> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
+        color: PaperclipTheme.surfaceElevatedDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: PaperclipTheme.borderDark),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1071,7 +1106,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
           Text(
             label,
             style: const TextStyle(
-              color: AppColors.textSecondary,
+              color: PaperclipTheme.mutedDark,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -1080,7 +1115,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
           Text(
             value,
             style: const TextStyle(
-              color: AppColors.textPrimary,
+              color: PaperclipTheme.foregroundDark,
               fontSize: 28,
               fontWeight: FontWeight.w700,
             ),
@@ -1089,7 +1124,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
           Text(
             subtitle,
             style: const TextStyle(
-              color: AppColors.textTertiary,
+              color: PaperclipTheme.mutedFgDark,
               fontSize: 12,
             ),
           ),
@@ -1098,9 +1133,9 @@ class _HomeDesktopState extends State<HomeDesktop> {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: percentage / 100,
-              backgroundColor: AppColors.borderDefault,
+              backgroundColor: PaperclipTheme.borderDark,
               valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.accentBlue),
+                  const AlwaysStoppedAnimation<Color>(PaperclipTheme.accentCyan),
               minHeight: 6,
             ),
           ),
@@ -1114,9 +1149,9 @@ class _HomeDesktopState extends State<HomeDesktop> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.backgroundSurface,
+        color: PaperclipTheme.surfaceDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderDefault, width: 1),
+        border: Border.all(color: PaperclipTheme.borderDark, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1125,14 +1160,14 @@ class _HomeDesktopState extends State<HomeDesktop> {
             children: [
               Icon(
                 _getIconForTab(title),
-                color: AppColors.accentBlue,
+                color: PaperclipTheme.accentCyan,
                 size: 18,
               ),
               const SizedBox(width: 10),
               Text(
                 title,
                 style: const TextStyle(
-                  color: AppColors.textPrimary,
+                  color: PaperclipTheme.foregroundDark,
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1140,7 +1175,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
             ],
           ),
           const SizedBox(height: 14),
-          const Divider(color: AppColors.borderDefault, height: 1),
+          const Divider(color: PaperclipTheme.borderDark, height: 1),
           const SizedBox(height: 14),
           Expanded(child: child),
         ],
@@ -1176,11 +1211,11 @@ class _HomeDesktopState extends State<HomeDesktop> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: isCategory
-              ? AppColors.backgroundSurface.withOpacity(0.3)
-              : (isSelected ? AppColors.backgroundSurface : Colors.transparent),
+              ? PaperclipTheme.surfaceDark.withValues(alpha: 0.3)
+              : (isSelected ? PaperclipTheme.surfaceDark : Colors.transparent),
           borderRadius: BorderRadius.circular(8),
           border: isSelected
-              ? Border.all(color: AppColors.borderDefault, width: 1)
+              ? Border.all(color: PaperclipTheme.borderDark, width: 1)
               : null,
         ),
         child: Row(
@@ -1188,10 +1223,10 @@ class _HomeDesktopState extends State<HomeDesktop> {
             Icon(
               icon,
               color: isCategory
-                  ? AppColors.accentPurple
+                  ? PaperclipTheme.accentPurple
                   : (isSelected
-                      ? AppColors.accentBlue
-                      : AppColors.textSecondary),
+                      ? PaperclipTheme.accentCyan
+                      : PaperclipTheme.mutedDark),
               size: isCategory ? 16 : 18,
             ),
             const SizedBox(width: 10),
@@ -1200,10 +1235,10 @@ class _HomeDesktopState extends State<HomeDesktop> {
                 text,
                 style: TextStyle(
                   color: isCategory
-                      ? AppColors.accentPurple
+                      ? PaperclipTheme.accentPurple
                       : (isSelected
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary),
+                          ? PaperclipTheme.foregroundDark
+                          : PaperclipTheme.mutedDark),
                   fontSize: isCategory ? 12 : 13,
                   fontWeight: isCategory
                       ? FontWeight.w700
@@ -1230,7 +1265,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
             child: Text(
               "$label:",
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: PaperclipTheme.mutedDark,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -1240,7 +1275,7 @@ class _HomeDesktopState extends State<HomeDesktop> {
             child: Text(
               value,
               style: const TextStyle(
-                color: AppColors.textPrimary,
+                color: PaperclipTheme.foregroundDark,
                 fontSize: 12,
               ),
             ),

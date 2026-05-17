@@ -3,7 +3,7 @@ Health & Education API Routes
 Gemma 4 multimodal endpoints for X-ray analysis, EHR, homework grading, and quiz generation
 """
 
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse
 from typing import Optional, Dict, Any, List
 import os
@@ -15,8 +15,8 @@ router = APIRouter()
 
 # Import health services
 try:
-    from ..services.health.inference import MedGemmaPipeline
-    from ..services.health.ehr_functions import EHRFunctionCaller
+    from services.health.inference import MedGemmaPipeline
+    from services.health.ehr_functions import EHRFunctionCaller
     HEALTH_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️ Health services not available: {e}")
@@ -26,9 +26,9 @@ except ImportError as e:
 
 # Import education services
 try:
-    from ..services.education.grader import HomeworkGrader
-    from ..services.education.quiz_generator import QuizGenerator as AdaptiveQuizGenerator
-    from ..services.education.progress_tracker import ProgressTracker
+    from services.education.grader import HomeworkGrader
+    from services.education.quiz_generator import QuizGenerator as AdaptiveQuizGenerator
+    from services.education.progress_tracker import ProgressTracker
     EDUCATION_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️ Education services not available: {e}")
@@ -56,20 +56,15 @@ async def get_health_status():
 
 @router.post("/health/analyze-xray")
 async def analyze_xray(
+    request: Request,
     image: UploadFile = File(..., description="Chest X-ray image (PNG/JPG)"),
     age: Optional[int] = Form(None, description="Patient age"),
     symptoms: Optional[str] = Form(None, description="Comma-separated symptoms"),
     language: Optional[str] = Form("en", description="Language code (en, es, hi)")
 ):
     """
-    Analyze chest X-ray using MedGemma 4B
-
-    Returns structured analysis with:
-    - Findings and confidence levels
-    - Plain-language explanation
-    - Risk factors
-    - Recommendations
-    - Medical disclaimer
+    Analyze chest X-ray using MedGemma 4B.
+    Now integrates personal medical history from the RAG system.
     """
     if not HEALTH_AVAILABLE:
         raise HTTPException(status_code=503, detail="Health services not initialized")
@@ -84,8 +79,24 @@ async def analyze_xray(
             # Initialize pipeline
             pipeline = MedGemmaPipeline.get_instance()
 
+            # Retrieve RAG context (medical history)
+            rag_context = ""
+            if hasattr(request.app.state, "rag_service"):
+                rag_svc = request.app.state.rag_service
+                if rag_svc.is_ready:
+                    # Search for patient's medical history or related context
+                    retrieval = await rag_svc.retrieve(f"Patient medical history symptoms: {symptoms}", top_k=3)
+                    retrieved_context = retrieval.get("context", "")
+                    
+                    # Ignore context if it contains prominent machine learning slides keywords
+                    ml_keywords = ["logistic regression", "decision tree", "supervised learning", "unsupervised learning", "k-means", "clustering", "gradient descent", "vector machine", "neural network"]
+                    if retrieved_context and not any(kw in retrieved_context.lower() for kw in ml_keywords):
+                        rag_context = retrieved_context
+
             # Build patient context
-            patient_context = {}
+            patient_context = {
+                "rag_history": rag_context
+            }
             if age:
                 patient_context["age"] = age
             if symptoms:
@@ -93,13 +104,17 @@ async def analyze_xray(
             if language:
                 patient_context["language"] = language
 
+            # Get global LLM service
+            llm_svc = request.app.state.llm_service if hasattr(request.app.state, "llm_service") else None
+
             # Run analysis
-            result = pipeline.analyze_xray(tmp_path, patient_context=patient_context)
+            result = await pipeline.analyze_xray(tmp_path, patient_context=patient_context, llm_svc=llm_svc)
 
             # Add metadata
             result["timestamp"] = datetime.utcnow().isoformat()
             result["image_name"] = image.filename
             result["language"] = language
+            result["rag_augmented"] = bool(rag_context)
 
             return JSONResponse(content=result)
 
@@ -198,6 +213,7 @@ async def get_education_status():
 
 @router.post("/education/grade-homework")
 async def grade_homework(
+    request: Request,
     image: UploadFile = File(..., description="Homework image (PNG/JPG)"),
     subject: str = Form(..., description="Subject: math, science, english, history"),
     grade_level: int = Form(..., description="Grade level (1-12)"),
@@ -205,8 +221,8 @@ async def grade_homework(
     language: Optional[str] = Form("en", description="Language: en, es, hi")
 ):
     """
-    Grade homework using OCR + adaptive evaluation
-    Supports multiple subjects and languages
+    Grade homework using OCR + adaptive evaluation.
+    Now supports RAG context from the user's vault for personalized grading.
     """
     if not EDUCATION_AVAILABLE:
         raise HTTPException(status_code=503, detail="Education services not initialized")
@@ -219,6 +235,15 @@ async def grade_homework(
 
         try:
             grader = HomeworkGrader.get_instance()
+            
+            # Retrieve RAG context if available
+            rag_context = ""
+            if hasattr(request.app.state, "rag_service"):
+                rag_svc = request.app.state.rag_service
+                if rag_svc.is_ready:
+                    # Search for subject/grade related context in the vault
+                    retrieval = await rag_svc.retrieve(f"{subject} syllabus grade {grade_level}", top_k=3)
+                    rag_context = retrieval.get("context", "")
 
             # Parse rubric if provided
             rubric_dict = None
@@ -226,17 +251,23 @@ async def grade_homework(
                 import json
                 rubric_dict = json.loads(rubric)
 
-            # Grade homework
+            # Get global LLM service
+            llm_svc = request.app.state.llm_service if hasattr(request.app.state, "llm_service") else None
+
+            # Grade homework with RAG context
             result = await grader.grade_submission(
                 image_path=tmp_path,
                 subject=subject,
                 grade_level=grade_level,
                 rubric=rubric_dict,
-                language=language
+                language=language,
+                context=rag_context, # Pass RAG context here
+                llm_svc=llm_svc
             )
 
             result["timestamp"] = datetime.utcnow().isoformat()
             result["image_name"] = image.filename
+            result["rag_augmented"] = bool(rag_context)
 
             return JSONResponse(content=result)
 
@@ -250,6 +281,7 @@ async def grade_homework(
 
 @router.post("/education/generate-quiz")
 async def generate_quiz(
+    request: Request,
     topic: str = Form(..., description="Quiz topic"),
     grade_level: int = Form(..., description="Grade level (1-12)"),
     num_questions: int = Form(5, description="Number of questions (1-20)"),
@@ -258,14 +290,22 @@ async def generate_quiz(
     language: Optional[str] = Form("en", description="Language: en, es, hi")
 ):
     """
-    Generate adaptive quiz with cultural relevance
-    Questions adapt to student's performance history
+    Generate adaptive quiz with cultural relevance.
+    Now pulls from the user's Knowledge Graph / Vault for topic-specific questions.
     """
     if not EDUCATION_AVAILABLE:
         raise HTTPException(status_code=503, detail="Education services not initialized")
 
     try:
         generator = AdaptiveQuizGenerator.get_instance()
+        
+        # Retrieve RAG context if available
+        rag_context = ""
+        if hasattr(request.app.state, "rag_service"):
+            rag_svc = request.app.state.rag_service
+            if rag_svc.is_ready:
+                retrieval = await rag_svc.retrieve(topic, top_k=5)
+                rag_context = retrieval.get("context", "")
 
         # Parse question types
         types = [t.strip() for t in question_types.split(",")] if question_types else ["multiple_choice"]
@@ -276,12 +316,14 @@ async def generate_quiz(
             num_questions=num_questions,
             question_types=types,
             cultural_context=cultural_context,
-            language=language
+            language=language,
+            context=rag_context # Pass RAG context
         )
 
         return JSONResponse(content={
             "success": True,
             "quiz": quiz,
+            "rag_augmented": bool(rag_context),
             "timestamp": datetime.utcnow().isoformat()
         })
 

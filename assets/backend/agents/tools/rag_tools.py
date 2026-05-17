@@ -20,29 +20,19 @@ def set_app_state(state):
 
 
 @tool
-def rag_search(query: str) -> str:
+async def rag_search(query: str) -> str:
     """Search the user's knowledge base using hybrid RAG (embeddings + graph + vault).
     This is the primary search tool — use it for any knowledge-related questions.
 
     Args:
         query: The search query or question.
     """
-    import asyncio
-
     if not _app_state or not hasattr(_app_state, "rag_service"):
         return "RAG service not available."
 
     try:
         rag = _app_state.rag_service
-
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                future = pool.submit(asyncio.run, rag.retrieve(query, top_k=8))
-                result = future.result(timeout=15)
-        else:
-            result = asyncio.run(rag.retrieve(query, top_k=8))
+        result = await rag.retrieve(query, top_k=8)
 
         context = result.get("context", "")
         sources = result.get("sources", [])
@@ -59,6 +49,7 @@ def rag_search(query: str) -> str:
         return output
 
     except Exception as e:
+        log.error(f"RAG search error: {e}")
         return f"RAG search error: {e}"
 
 

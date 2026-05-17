@@ -1,13 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'dart:io';
 import 'package:dio/dio.dart';
-import '../../../core/theme/app_theme.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import '../../../theme/paperclip_theme.dart';
+import '../../../core/theme/app_theme.dart' show Responsive;
 import '../../../core/constants/api_constants.dart';
 import '../../../core/services/api_service.dart';
 import '../../github/screens/github_screen.dart';
 import '../widgets/vault_sidebar.dart';
+import '../repositories/vault_repository.dart';
+
+
 
 // ── Models ────────────────────────────────────────────────────────────────────
 class VaultNote {
@@ -100,36 +105,32 @@ class VaultState {
 }
 
 class VaultNotifier extends StateNotifier<VaultState> {
-  VaultNotifier() : super(const VaultState()) {
+  final VaultRepository _repo;
+
+  VaultNotifier() : _repo = (Platform.isWindows) ? RemoteVaultRepository() : LocalVaultRepository(),
+                    super(const VaultState()) {
     _init();
   }
-  final _dio = apiDio;
 
   Future<void> _init() async {
     state = state.copyWith(loading: true);
-    await Future.wait([loadNotes(), loadFolders()]);
+    try {
+      await Future.wait([loadNotes(), loadFolders()]);
+    } catch (_) {}
     state = state.copyWith(loading: false);
   }
 
   Future<void> loadNotes({String? folder}) async {
     try {
-      final params = <String, dynamic>{};
-      if (folder != null && folder != 'all') params['folder'] = folder;
-      final r =
-          await _dio.get(ApiConstants.vaultNotes, queryParameters: params);
-      final notes = (r.data['notes'] as List)
-          .map((n) => VaultNote.fromJson(n as Map))
-          .toList();
+      final notes = await _repo.getNotes(folder: folder);
       state = state.copyWith(notes: notes);
     } catch (_) {}
   }
 
   Future<void> loadFolders() async {
     try {
-      final r = await _dio.get(ApiConstants.vaultFolders);
-      state = state.copyWith(
-          folders: List<Map<String, dynamic>>.from(
-              r.data['folders'] as List? ?? []));
+      final folders = await _repo.getFolders();
+      state = state.copyWith(folders: folders);
     } catch (_) {}
   }
 
@@ -140,12 +141,8 @@ class VaultNotifier extends StateNotifier<VaultState> {
       return;
     }
     try {
-      final r = await _dio
-          .get(ApiConstants.vaultSearch, queryParameters: {'q': query});
-      final notes = (r.data['results'] as List)
-          .map((n) => VaultNote.fromJson(n as Map))
-          .toList();
-      state = state.copyWith(notes: notes);
+      final results = await _repo.search(query);
+      state = state.copyWith(notes: results);
     } catch (_) {}
   }
 
@@ -156,6 +153,24 @@ class VaultNotifier extends StateNotifier<VaultState> {
         editContent: note.content,
         editTitle: note.title,
         editTags: note.tags);
+  }
+
+  Future<void> selectNoteById(String id) async {
+    // 1. Check if already loaded
+    final existing = state.notes.where((n) => n.id == id).firstOrNull;
+    if (existing != null) {
+      selectNote(existing);
+      return;
+    }
+
+    // 2. Load from API if not in list
+    try {
+      final note = await _repo.getNote(id);
+      state = state.copyWith(notes: [note, ...state.notes]);
+      selectNote(note);
+    } catch (_) {
+      // If failed, just go to vault
+    }
   }
 
   void startEditing() => state = state.copyWith(
@@ -171,12 +186,10 @@ class VaultNotifier extends StateNotifier<VaultState> {
     if (note == null) return;
     state = state.copyWith(saving: true);
     try {
-      final r =
-          await _dio.patch('${ApiConstants.vaultNotes}/${note.id}', data: {
-        'title': state.editTitle,
-        'content': state.editContent,
-      });
-      final updated = VaultNote.fromJson(r.data as Map);
+      final updated = await _repo.updateNote(note.id, 
+          title: state.editTitle, 
+          content: state.editContent);
+      
       state = state.copyWith(
           saving: false,
           editing: false,
@@ -192,9 +205,7 @@ class VaultNotifier extends StateNotifier<VaultState> {
   Future<void> createNote(
       {String title = 'Untitled', String folder = 'inbox'}) async {
     try {
-      final r = await _dio.post(ApiConstants.vaultNotes,
-          data: {'title': title, 'folder': folder});
-      final note = VaultNote.fromJson(r.data as Map);
+      final note = await _repo.createNote(title: title, folder: folder);
       state = state.copyWith(notes: [note, ...state.notes]);
       selectNote(note);
       startEditing();
@@ -203,7 +214,7 @@ class VaultNotifier extends StateNotifier<VaultState> {
 
   Future<void> deleteNote(String id) async {
     try {
-      await _dio.delete('${ApiConstants.vaultNotes}/$id');
+      await _repo.deleteNote(id);
       state = state.copyWith(
           notes: state.notes.where((n) => n.id != id).toList(),
           activeNote: state.activeNote?.id == id ? null : state.activeNote);
@@ -212,9 +223,7 @@ class VaultNotifier extends StateNotifier<VaultState> {
 
   Future<void> moveNote(String id, String folder) async {
     try {
-      final r = await _dio.post('${ApiConstants.vaultNotes}/$id/move',
-          data: {'target_folder': folder});
-      final updated = VaultNote.fromJson(r.data as Map);
+      final updated = await _repo.moveNote(id, folder);
       state = state.copyWith(
           notes: state.notes.map((n) => n.id == id ? updated : n).toList());
     } catch (_) {}
@@ -237,15 +246,50 @@ class VaultScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(vaultProvider);
     final n = ref.read(vaultProvider.notifier);
+    final isMobile = Responsive.isMobile(context);
+    final scaffoldKey = GlobalKey<ScaffoldState>();
+
+    final editor = s.activeNote == null
+        ? _VaultEmpty(onCreate: n.createNote)
+        : _NoteEditor(state: s, notifier: n);
+
+    if (isMobile) {
+      return Scaffold(
+        key: scaffoldKey,
+        backgroundColor: PaperclipTheme.backgroundDark,
+        drawer: Drawer(
+          width: 280,
+          backgroundColor: PaperclipTheme.sidebarDark,
+          child: VaultSidebar(
+            showHeader: true,
+            onClose: () => scaffoldKey.currentState?.closeDrawer(),
+          ),
+        ),
+        appBar: AppBar(
+          toolbarHeight: 40,
+          backgroundColor: PaperclipTheme.sidebarDark,
+          leading: IconButton(
+            icon: const Icon(Icons.folder_outlined, size: 18),
+            onPressed: () => scaffoldKey.currentState?.openDrawer(),
+          ),
+          title: Text(
+            s.activeNote?.title ?? 'Vault Explorer',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add, size: 18),
+              onPressed: n.createNote,
+            ),
+          ],
+        ),
+        body: editor,
+      );
+    }
 
     return Row(children: [
-      // ── Sidebar ──────────────────────────────────────────────────────────
       const VaultSidebar(showHeader: true),
-      // ── Editor/Viewer ────────────────────────────────────────────────────
-      Expanded(
-          child: s.activeNote == null
-              ? _VaultEmpty(onCreate: n.createNote)
-              : _NoteEditor(state: s, notifier: n)),
+      Expanded(child: editor),
     ]);
   }
 }
@@ -298,7 +342,7 @@ class _NoteEditorState extends ConsumerState<_NoteEditor> {
       // Note toolbar
       Container(
         height: 48,
-        color: AppColors.surface,
+        color: PaperclipTheme.surfaceDark,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(children: [
           Expanded(
@@ -307,14 +351,14 @@ class _NoteEditorState extends ConsumerState<_NoteEditor> {
                       controller: _titleCtrl,
                       onChanged: n.updateEditTitle,
                       style: const TextStyle(
-                          color: AppColors.textPrimary,
+                          color: PaperclipTheme.foregroundDark,
                           fontSize: 15,
                           fontWeight: FontWeight.w600),
                       decoration: const InputDecoration(
                           border: InputBorder.none, isDense: true))
                   : Text(note.title,
                       style: const TextStyle(
-                          color: AppColors.textPrimary,
+                          color: PaperclipTheme.foregroundDark,
                           fontSize: 15,
                           fontWeight: FontWeight.w600))),
           if (note.tags.isNotEmpty)
@@ -324,11 +368,11 @@ class _NoteEditorState extends ConsumerState<_NoteEditor> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
-                        color: AppColors.accent.withOpacity(0.1),
+                        color: PaperclipTheme.accentCyan.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10)),
                     child: Text('#$t',
                         style: const TextStyle(
-                            fontSize: 10, color: AppColors.accent))))),
+                            fontSize: 10, color: PaperclipTheme.accentCyan))))),
           const SizedBox(width: 12),
           if (s.editing) ...[
             if (s.saving)
@@ -357,7 +401,7 @@ class _NoteEditorState extends ConsumerState<_NoteEditor> {
                 tooltip: 'Edit'),
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_horiz, size: 16),
-              color: AppColors.surfaceVariant,
+              color: PaperclipTheme.surfaceElevatedDark,
               onSelected: (v) {
                 if (v == 'delete')
                   n.deleteNote(note.id);
@@ -369,18 +413,18 @@ class _NoteEditorState extends ConsumerState<_NoteEditor> {
                     value: 'delete',
                     child: Row(children: [
                       Icon(Icons.delete_outline,
-                          size: 14, color: AppColors.accentRed),
+                          size: 14, color: PaperclipTheme.accentRed),
                       SizedBox(width: 8),
                       Text('Delete',
                           style: TextStyle(
-                              color: AppColors.accentRed, fontSize: 12))
+                              color: PaperclipTheme.accentRed, fontSize: 12))
                     ])),
                 const PopupMenuDivider(),
                 const PopupMenuItem(
                     enabled: false,
                     child: Text('Move to folder',
                         style: TextStyle(
-                            color: AppColors.textMuted, fontSize: 11))),
+                            color: PaperclipTheme.mutedFgDark, fontSize: 11))),
                 ...[
                   'inbox',
                   'projects',
@@ -392,7 +436,7 @@ class _NoteEditorState extends ConsumerState<_NoteEditor> {
                     value: f,
                     child: Text(f,
                         style: const TextStyle(
-                            fontSize: 12, color: AppColors.textSecondary)))),
+                            fontSize: 12, color: PaperclipTheme.mutedDark)))),
               ],
             ),
           ],
@@ -403,29 +447,29 @@ class _NoteEditorState extends ConsumerState<_NoteEditor> {
       if (!s.editing)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          color: AppColors.surfaceVariant,
+          color: PaperclipTheme.surfaceElevatedDark,
           child: Row(children: [
-            const Icon(Icons.access_time, size: 12, color: AppColors.textMuted),
+            const Icon(Icons.access_time, size: 12, color: PaperclipTheme.mutedFgDark),
             const SizedBox(width: 4),
             Text(
                 note.modified.length > 10
                     ? note.modified.substring(0, 10)
                     : note.modified,
                 style:
-                    const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                    const TextStyle(color: PaperclipTheme.mutedFgDark, fontSize: 11)),
             const SizedBox(width: 12),
-            const Icon(Icons.text_fields, size: 12, color: AppColors.textMuted),
+            const Icon(Icons.text_fields, size: 12, color: PaperclipTheme.mutedFgDark),
             const SizedBox(width: 4),
             Text('${note.wordCount} words',
                 style:
-                    const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                    const TextStyle(color: PaperclipTheme.mutedFgDark, fontSize: 11)),
             if (note.links.isNotEmpty) ...[
               const SizedBox(width: 12),
-              const Icon(Icons.link, size: 12, color: AppColors.textMuted),
+              const Icon(Icons.link, size: 12, color: PaperclipTheme.mutedFgDark),
               const SizedBox(width: 4),
               Text('${note.links.length} links',
                   style: const TextStyle(
-                      color: AppColors.textMuted, fontSize: 11)),
+                      color: PaperclipTheme.mutedFgDark, fontSize: 11)),
             ],
           ]),
         ),
@@ -440,7 +484,7 @@ class _NoteEditorState extends ConsumerState<_NoteEditor> {
                     expands: true,
                     onChanged: n.updateEditContent,
                     style: const TextStyle(
-                        color: AppColors.textPrimary,
+                        color: PaperclipTheme.foregroundDark,
                         fontSize: 14,
                         height: 1.7,
                         fontFamily: 'monospace'),
@@ -453,35 +497,35 @@ class _NoteEditorState extends ConsumerState<_NoteEditor> {
                   data: note.content,
                   styleSheet: MarkdownStyleSheet(
                     p: const TextStyle(
-                        color: AppColors.textPrimary,
+                        color: PaperclipTheme.foregroundDark,
                         fontSize: 14,
                         height: 1.7),
                     h1: const TextStyle(
-                        color: AppColors.textPrimary,
+                        color: PaperclipTheme.foregroundDark,
                         fontSize: 22,
                         fontWeight: FontWeight.w700),
                     h2: const TextStyle(
-                        color: AppColors.textPrimary,
+                        color: PaperclipTheme.foregroundDark,
                         fontSize: 18,
                         fontWeight: FontWeight.w600),
                     h3: const TextStyle(
-                        color: AppColors.textSecondary,
+                        color: PaperclipTheme.mutedDark,
                         fontSize: 15,
                         fontWeight: FontWeight.w600),
                     code: const TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 13,
-                        color: AppColors.accentGreen,
-                        backgroundColor: AppColors.surfaceVariant),
+                        color: PaperclipTheme.accentGreen,
+                        backgroundColor: PaperclipTheme.surfaceElevatedDark),
                     codeblockDecoration: BoxDecoration(
-                        color: AppColors.surfaceVariant,
+                        color: PaperclipTheme.surfaceElevatedDark,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.border)),
+                        border: Border.all(color: PaperclipTheme.borderDark)),
                     blockquoteDecoration: const BoxDecoration(
                         border: Border(
                             left:
-                                BorderSide(color: AppColors.accent, width: 3))),
-                    listBullet: const TextStyle(color: AppColors.accent),
+                                BorderSide(color: PaperclipTheme.accentCyan, width: 3))),
+                    listBullet: const TextStyle(color: PaperclipTheme.accentCyan),
                   ),
                 )),
     ]);
@@ -497,21 +541,21 @@ class _VaultEmpty extends StatelessWidget {
         Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(0.08),
+                color: PaperclipTheme.accentCyan.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(20)),
             child: const Icon(Icons.edit_note_outlined,
-                size: 48, color: AppColors.accent)),
+                size: 48, color: PaperclipTheme.accentCyan)),
         const SizedBox(height: 20),
         const Text('Cyborg Vault',
             style: TextStyle(
-                color: AppColors.textPrimary,
+                color: PaperclipTheme.foregroundDark,
                 fontSize: 20,
                 fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         const Text(
             'Your Obsidian-compatible local knowledge base.\nSelect or create a note to start.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            style: TextStyle(color: PaperclipTheme.mutedDark, fontSize: 13)),
         const SizedBox(height: 24),
         ElevatedButton.icon(
             icon: const Icon(Icons.add, size: 16),

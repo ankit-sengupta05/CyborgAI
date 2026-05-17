@@ -31,9 +31,11 @@ class IngestionService:
     Multimodal Ingestion Pipeline.
     Monitors Inbox/ and processes images, video, audio, and documents.
     """
-    def __init__(self, vault_service: VaultService, voice_service: VoiceService):
+    def __init__(self, vault_service: VaultService, voice_service: VoiceService, graph_service: 'GraphService', llm_service: 'LLMService'):
         self.vault_service = vault_service
         self.voice_service = voice_service
+        self.graph_service = graph_service
+        self.llm_svc = llm_service
         self.inbox_root = settings.brain_dir / "Inbox"
         self._is_running = False
         self._observer: Optional[Observer] = None
@@ -82,22 +84,66 @@ class IngestionService:
                 return
 
             if content:
-                # Create corresponding markdown note
-                note_title = f"Ingested: {path.stem}"
-                tags = ["ingested", metadata["type"]]
+                # 1. Categorize via LLM for AI OS Structure
+                cat_prompt = f"""Categorize the following content into the AI OS ACE structure.
+                ACE Structure:
+                - Atlas/Concepts: Permanent knowledge, technical concepts, theoretical framework.
+                - Atlas/People: Contact info, bios, social relationships.
+                - Atlas/Resources: Generic references, papers, documentations.
+                - Calendar: Time-based logs, journals, dates.
+                - Efforts/Projects: Specific active project names (e.g. Project_Alpha).
+                - AI_OS/Skills: Process documentation, AI workflow instructions.
 
-                # Organize into ACE structure or keep in Inbox?
-                # PRD says ACE structure for permanent, but Inbox for staging.
-                # Let's put in ACE/Atlas/Resources as default
+                Content Snippet: {content[:1000]}
+                
+                Return ONLY the folder path (e.g. ACE/Atlas/Concepts) and a suggested note title.
+                Format: FOLDER: <path> | TITLE: <title>
+                """
+                cat_res = await self.llm_svc.generate(cat_prompt)
+                
+                folder_path = "ACE/Atlas/Resources" # Default
+                note_title = f"Ingested {path.stem}"
+                
+                if "FOLDER:" in cat_res and "TITLE:" in cat_res:
+                    try:
+                        folder_path = cat_res.split("FOLDER:")[1].split("|")[0].strip()
+                        note_title = cat_res.split("TITLE:")[1].strip()
+                    except:
+                        pass
+
+                tags = ["ingested", metadata["type"]]
+                
+                # Create corresponding markdown note
                 note = await self.vault_service.create_note(
                     title=note_title,
                     content=f"## Extracted Content from [[{path.name}]]\n\n{content}",
-                    folder="atlas",  # ACE/Atlas
+                    folder=folder_path,
                     tags=tags,
-                    note_type="ingestion",
-                    area="Resources"
+                    note_type="ingestion"
                 )
-                log.info(f"Ingestion complete: created note {note['id']}")
+                
+                # 2. Update AI OS Indexing
+                await self.vault_service.register_note_in_index(note["id"])
+                log.info(f"AI OS Ingestion complete: categorized to {folder_path}")
+
+                # 3. Add to Knowledge Graph for RAG availability
+                try:
+                    note_path = self.vault_service.vault_root / note["path"]
+                    await self.graph_service._ingest_single_file(note_path)
+                    log.info(f"Graph ingestion complete for note {note['id']}")
+                except Exception as ge:
+                    log.error(f"Graph ingestion failed for {note['id']}: {ge}")
+
+                # 4. Universal Content Indexing (BM25 + Semantic)
+                try:
+                    from services.cyborg_content_index import ContentIndex
+                    if not hasattr(self, '_content_index'):
+                        self._content_index = ContentIndex()
+                    # index the original file
+                    chunks_indexed = self._content_index.index_file(str(path.absolute()))
+                    log.info(f"Content index (BM25) ingestion complete: {chunks_indexed} chunks indexed.")
+                except Exception as e:
+                    log.error(f"Content index ingestion failed: {e}")
 
         except Exception as e:
             log.error(f"Ingestion failed for {path.name}: {e}")

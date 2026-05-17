@@ -14,6 +14,72 @@ from config.settings import settings
 log = structlog.get_logger(__name__)
 router = APIRouter()
 
+# ── LM Studio model scanner ───────────────────────────────────────────────────
+
+def _scan_lmstudio_models() -> list[dict]:
+    """
+    Scan LM Studio's model directory recursively and group by folder.
+    """
+    lmstudio_dir = settings.lmstudio_models_dir
+    results: list[dict] = []
+
+    if not lmstudio_dir.exists():
+        return results
+
+    try:
+        dir_to_files: dict[Path, list[Path]] = {}
+        for gguf_path in lmstudio_dir.rglob("*.gguf"):
+            parent = gguf_path.parent
+            if parent not in dir_to_files:
+                dir_to_files[parent] = []
+            dir_to_files[parent].append(gguf_path)
+
+        for model_dir, files in dir_to_files.items():
+            mmproj_files = [f for f in files if settings.mmproj_suffix in f.name.lower()]
+            main_files = [f for f in files if settings.mmproj_suffix not in f.name.lower()]
+
+            if not main_files:
+                continue
+
+            # Pick largest GGUF as primary
+            main_file = max(main_files, key=lambda f: f.stat().st_size)
+            mmproj_path = str(mmproj_files[0]) if mmproj_files else None
+
+            # Display metadata
+            rel_parts = main_file.relative_to(lmstudio_dir).parts
+            publisher = rel_parts[0] if len(rel_parts) > 1 else "unknown"
+            
+            # Use folder name for ID/Display if nested enough
+            if len(rel_parts) > 2:
+                model_family = rel_parts[1]
+                model_id = f"lmstudio-{model_family.lower()}"
+                display_name = model_family
+            else:
+                model_id = f"lmstudio-{main_file.stem.lower()}"
+                display_name = main_file.stem
+
+            total_size = sum(f.stat().st_size for f in files)
+
+            results.append({
+                "id": model_id,
+                "name": f"{display_name} ({publisher})",
+                "publisher": publisher,
+                "model_family": display_name,
+                "size_gb": round(total_size / (1024 ** 3), 2),
+                "quantization": "GGUF",
+                "task_type": "text-generation",
+                "path": str(main_file),
+                "mmproj_path": mmproj_path,
+                "downloaded": True,
+                "loaded": False,
+                "source": "lmstudio",
+                "supports_vision": mmproj_path is not None,
+            })
+    except Exception as e:
+        log.warning(f"LM Studio scan error: {e}")
+
+    return results
+
 # Model catalog for browsing
 MODEL_CATALOG = [
     {
@@ -89,12 +155,14 @@ class LoadModelRequest(BaseModel):
     n_gpu_layers: int = -1
     n_ctx: int = 4096
     n_threads: Optional[int] = None
-    n_batch: int = 512
+    n_batch: int = 2048
     quantization: int = 0
+    mmproj_path: Optional[str] = None  # CLIP projector for multimodal models
 
 
 class LoadCustomModelRequest(BaseModel):
     path: str
+    mmproj_path: Optional[str] = None  # Optional mmproj for vision support
 
 
 class ServerConfigRequest(BaseModel):
@@ -116,59 +184,79 @@ async def list_downloaded_models(request: Request):
     downloaded = []
     llm_svc: LLMService = request.app.state.llm_service
 
-    # 1. Local files
-    model_files = []
+    # 1. Local files grouped by directory
+    dir_to_files = {}
     for ext in ["*.gguf", "*.litertlm", "*.tflite", "*.bin", "*.task"]:
-        model_files.extend(models_dir.rglob(ext))
+        for model_file in models_dir.rglob(ext):
+            parent_dir = model_file.parent
+            if parent_dir not in dir_to_files:
+                dir_to_files[parent_dir] = []
+            dir_to_files[parent_dir].append(model_file)
 
-    for model_file in model_files:
-        model_id = model_file.stem.lower().replace("_", "-")
-        # Try to match against catalog
+    for model_dir, files in dir_to_files.items():
+        # Find mmproj
+        mmproj_files = [f for f in files if settings.mmproj_suffix in f.name.lower()]
+        main_files = [f for f in files if settings.mmproj_suffix not in f.name.lower()]
+
+        if not main_files:
+            continue  # Only mmproj in this folder, skip showing it standalone
+
+        # Pick the largest main file as the primary model
+        main_file = max(main_files, key=lambda f: f.stat().st_size)
+        mmproj_path = str(mmproj_files[0]) if mmproj_files else None
+
+        # Determine name and ID based on folder or file
+        if model_dir.name in ["llm", "models", "backend", "assets"]:
+            model_id = main_file.stem.lower().replace("_", "-")
+            display_name = main_file.stem
+        else:
+            model_id = model_dir.name.lower().replace("_", "-")
+            display_name = model_dir.name
+
         catalog_entry = next(
-            (m for m in MODEL_CATALOG if m["id"].lower() in model_file.stem.lower()
-             or model_file.stem.lower() in m["id"].lower()),
+            (m for m in MODEL_CATALOG if m["id"].lower() in model_id.lower()
+             or model_id.lower() in m["id"].lower()),
             None
         )
+
         loaded = False
         if hasattr(llm_svc, "current_model_path") and llm_svc.current_model_path:
-            loaded = str(Path(llm_svc.current_model_path).resolve()) == str(model_file.resolve())
+            current_path = Path(llm_svc.current_model_path).resolve()
+            loaded = any(str(current_path) == str(f.resolve()) for f in files)
+
+        total_size = sum(f.stat().st_size for f in files)
 
         downloaded.append({
             "id": model_id,
-            "name": catalog_entry["name"] if catalog_entry else model_file.stem,
-            "size_gb": round(model_file.stat().st_size / (1024**3), 2),
+            "name": catalog_entry["name"] if catalog_entry else display_name,
+            "size_gb": round(total_size / (1024**3), 2),
             "quantization": catalog_entry["quantization"] if catalog_entry else (
-                "LiteRT" if model_file.suffix in [".litertlm", ".tflite", ".task"]
+                "LiteRT" if main_file.suffix in [".litertlm", ".tflite", ".task"]
                 else "GGUF"
             ),
-            "task_type": catalog_entry["task_type"] if catalog_entry else "text-generation",
-            "path": str(model_file),
+            "task_type": catalog_entry["task_type"] if catalog_entry else ("vision" if mmproj_path else "text-generation"),
+            "path": str(main_file),
+            "mmproj_path": mmproj_path,
+            "supports_vision": mmproj_path is not None,
             "downloaded": True,
             "loaded": loaded,
             "source": "local"
         })
 
-    # 1.1 Local Directories (HF Models)
-    for model_dir in models_dir.glob("llm/*"):
-        if model_dir.is_dir() and not model_dir.name.startswith("."):
-            model_id = model_dir.name.lower().replace("_", "-")
-            loaded = False
-            if hasattr(llm_svc, "current_model_path") and llm_svc.current_model_path:
-                loaded = str(Path(llm_svc.current_model_path).resolve()) == str(model_dir.resolve())
-            
-            downloaded.append({
-                "id": model_id,
-                "name": model_dir.name,
-                "size_gb": round(sum(f.stat().st_size for f in model_dir.rglob('*') if f.is_file()) / (1024**3), 2),
-                "quantization": "HF / Raw",
-                "task_type": "text-generation",
-                "path": str(model_dir),
-                "downloaded": True,
-                "loaded": loaded,
-                "source": "local"
-            })
+    # 3. LM Studio models
+    lmstudio_models = await asyncio.to_thread(_scan_lmstudio_models)
+    for lm_model in lmstudio_models:
+        # Mark as loaded if path matches
+        if hasattr(llm_svc, "current_model_path") and llm_svc.current_model_path:
+            lm_model["loaded"] = (
+                str(Path(llm_svc.current_model_path).resolve()) ==
+                str(Path(lm_model["path"]).resolve())
+            )
+        # Only add if not already present (avoid duplicates with local copies)
+        if not any(d["path"] == lm_model["path"] for d in downloaded):
+            downloaded.append(lm_model)
 
-    # 2. External server models
+    # 4. External server models
     if llm_svc._client:
         try:
             models_page = await asyncio.wait_for(llm_svc._client.models.list(), timeout=1.0)
@@ -286,25 +374,49 @@ async def _download_model_task(model_info: dict, app_state):
 
 @router.post("/load_custom")
 async def load_custom_model(data: LoadCustomModelRequest, request: Request):
-    """Load a custom model from an absolute path."""
+    """Load a custom model from an absolute path (no copy — works for LM Studio paths)."""
     llm_svc: LLMService = request.app.state.llm_service
-    models_dir = settings.models_dir / "llm"
-    models_dir.mkdir(parents=True, exist_ok=True)
 
     model_file = Path(data.path)
     if not model_file.exists():
         raise HTTPException(404, f"Custom model file {data.path} not found.")
 
-    # If the model is not already in our models directory, copy it
-    target_path = models_dir / model_file.name
-    if str(model_file.resolve()) != str(target_path.resolve()):
-        log.info(f"Copying custom model to local storage: {model_file.name}")
-        import shutil
-        await asyncio.to_thread(shutil.copy2, str(model_file), str(target_path))
-        model_file = target_path
+    # Auto-detect mmproj if not provided
+    mmproj = data.mmproj_path
+    if not mmproj and settings.mmproj_auto_detect:
+        mmproj_candidates = list(model_file.parent.glob(f"*{settings.mmproj_suffix}*.gguf"))
+        if mmproj_candidates:
+            mmproj = str(mmproj_candidates[0])
+            log.info(f"Auto-detected mmproj: {mmproj_candidates[0].name}")
 
-    await llm_svc.load_model(str(model_file))
-    return {"status": "loaded", "model_id": model_file.stem, "path": str(model_file)}
+    await llm_svc.load_model(str(model_file), mmproj_path=mmproj)
+    return {
+        "status": "loaded",
+        "model_id": model_file.stem,
+        "path": str(model_file),
+        "mmproj_path": mmproj,
+        "supports_vision": mmproj is not None,
+    }
+
+
+@router.get("/lmstudio")
+async def list_lmstudio_models(request: Request):
+    """List all models found in the LM Studio model directory."""
+    llm_svc: LLMService = request.app.state.llm_service
+    models = await asyncio.to_thread(_scan_lmstudio_models)
+    # Mark loaded model
+    for m in models:
+        if hasattr(llm_svc, "current_model_path") and llm_svc.current_model_path:
+            m["loaded"] = (
+                str(Path(llm_svc.current_model_path).resolve()) ==
+                str(Path(m["path"]).resolve())
+            )
+    return {
+        "models": models,
+        "total": len(models),
+        "lmstudio_dir": str(settings.lmstudio_models_dir),
+        "dir_exists": settings.lmstudio_models_dir.exists(),
+    }
 
 
 @router.post("/load/{model_id:path}")
@@ -315,7 +427,7 @@ async def load_model(model_id: str, request: Request, data: Optional[LoadModelRe
     n_ctx = data.n_ctx if data else 4096
     n_gpu_layers = data.n_gpu_layers if data else -1
     n_threads = data.n_threads if data else None
-    n_batch = data.n_batch if data else 512
+    n_batch = data.n_batch if data else 2048
     quantization = data.quantization if data else 0
 
     try:
@@ -358,18 +470,33 @@ async def load_model(model_id: str, request: Request, data: Optional[LoadModelRe
 
             raise HTTPException(404, f"Model file for {model_id} not found. Download it first.")
 
+        # Auto-detect mmproj from the same folder if not provided
+        mmproj_path = data.mmproj_path if data else None
+        if not mmproj_path and model_file and settings.mmproj_auto_detect:
+            mmproj_candidates = list(model_file.parent.glob(f"*{settings.mmproj_suffix}*.gguf"))
+            if mmproj_candidates:
+                mmproj_path = str(mmproj_candidates[0])
+                log.info(f"Auto-detected mmproj: {mmproj_candidates[0].name}")
+
         await llm_svc.load_model(
             str(model_file),
             n_ctx=n_ctx,
             n_gpu_layers=n_gpu_layers,
             n_threads=n_threads,
             n_batch=n_batch,
-            quantization=quantization
+            quantization=quantization,
+            mmproj_path=mmproj_path,
         )
         if not llm_svc.is_ready:
             raise HTTPException(500, "Model failed to load. Check backend logs for details.")
 
-        return {"status": "loaded", "model_id": model_id, "path": str(model_file)}
+        return {
+            "status": "loaded",
+            "model_id": model_id,
+            "path": str(model_file),
+            "mmproj_path": mmproj_path,
+            "supports_vision": mmproj_path is not None,
+        }
     except HTTPException:
         raise
     except Exception as e:

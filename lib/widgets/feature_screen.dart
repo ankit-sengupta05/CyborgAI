@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../core/theme/app_theme.dart';
+import '../theme/paperclip_theme.dart';
 
-/// Public shared widget for feature placeholder screens.
+/// Shared feature placeholder screen — used when a module is present
+/// but hasn't launched yet. Uses the Cyborg AGI PaperclipTheme.
 class FeatureScreen extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -20,33 +21,40 @@ class FeatureScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       children: [
         // Header bar
         Container(
           height: 52,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          color: AppColors.surface,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            border: Border(bottom: BorderSide(color: theme.dividerColor)),
+          ),
           child: Row(
             children: [
-              Icon(icon, color: color, size: 18),
-              const SizedBox(width: 8),
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: Icon(icon, color: color, size: 14),
+              ),
+              const SizedBox(width: 10),
               Text(
                 title,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
         ),
-        const Divider(height: 1),
         Expanded(
           child: Center(
             child: Container(
-              constraints: const BoxConstraints(maxWidth: 460),
+              constraints: const BoxConstraints(maxWidth: 480),
               padding: const EdgeInsets.all(32),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -54,63 +62,59 @@ class FeatureScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.08),
+                      color: color.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: color.withValues(alpha: 0.2)),
                     ),
                     child: Icon(icon, size: 52, color: color),
                   ),
                   const SizedBox(height: 24),
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: theme.textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w700),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text(
                     subtitle,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
                     ),
                   ),
                   const SizedBox(height: 28),
                   Container(
+                    width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border),
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(PaperclipTheme.radius),
+                      border: Border.all(color: theme.dividerColor),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'FEATURES',
+                        Text(
+                          'CAPABILITIES',
                           style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.35),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.9,
                           ),
                         ),
                         const SizedBox(height: 10),
                         ...features.map(
                           (f) => Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
+                            padding: const EdgeInsets.only(bottom: 7),
                             child: Row(
                               children: [
-                                Icon(Icons.check_circle_outline,
-                                    size: 14, color: color),
+                                Icon(Icons.check_circle_rounded, size: 13, color: color),
                                 const SizedBox(width: 8),
-                                Text(
-                                  f,
-                                  style: const TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 12,
+                                Expanded(
+                                  child: Text(
+                                    f,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
                                   ),
                                 ),
                               ],
@@ -122,24 +126,20 @@ class FeatureScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: AppColors.accentYellow.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: AppColors.accentYellow.withOpacity(0.25)),
+                      color: PaperclipTheme.accentAmber.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(PaperclipTheme.radiusSm),
+                      border: Border.all(color: PaperclipTheme.accentAmber.withValues(alpha: 0.25)),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.construction,
-                            size: 14, color: AppColors.accentYellow),
+                        Icon(Icons.construction_rounded, size: 13, color: PaperclipTheme.accentAmber),
                         SizedBox(width: 8),
                         Text(
                           'Connect backend to activate this module',
-                          style: TextStyle(
-                              color: AppColors.accentYellow, fontSize: 12),
+                          style: TextStyle(color: PaperclipTheme.accentAmber, fontSize: 12),
                         ),
                       ],
                     ),

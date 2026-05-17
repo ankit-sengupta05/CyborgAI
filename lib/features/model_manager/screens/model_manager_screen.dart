@@ -8,12 +8,47 @@ import 'package:dio/dio.dart' as hf_dio;
 import 'dart:io' if (dart.library.html) 'package:cyborg/core/services/io_stubs.dart';
 import 'dart:convert';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../theme/paperclip_theme.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/services/api_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../core/providers/app_providers.dart';
+
+// Local shim so existing AppColors references resolve without rewriting every line
+class AppColors {
+  static const Color backgroundMain    = PaperclipTheme.backgroundDark;
+  static const Color backgroundSidebar = PaperclipTheme.sidebarDark;
+  static const Color backgroundSurface = PaperclipTheme.surfaceDark;
+  static const Color backgroundInput   = PaperclipTheme.surfaceElevatedDark;
+  static const Color borderDefault     = PaperclipTheme.borderDark;
+  static const Color borderHover       = PaperclipTheme.borderBrightDark;
+  static const Color textPrimary       = PaperclipTheme.foregroundDark;
+  static const Color textSecondary     = PaperclipTheme.mutedDark;
+  static const Color textTertiary      = PaperclipTheme.mutedFgDark;
+  static const Color textMuted         = PaperclipTheme.mutedFgDark;
+  static const Color accentBlue        = PaperclipTheme.accentCyan;
+  static const Color accentBlueHover   = Color(0xFF00A0D6);
+  static const Color accent            = PaperclipTheme.accentCyan;
+  static const Color accentPurple      = PaperclipTheme.accentPurple;
+  static const Color accentGreen       = PaperclipTheme.accentGreen;
+  static const Color accentRed         = PaperclipTheme.accentRed;
+  static const Color accentOrange      = PaperclipTheme.accentAmber;
+  static const Color accentYellow      = PaperclipTheme.accentAmber;
+  static const Color success           = PaperclipTheme.accentGreen;
+  static const Color warning           = PaperclipTheme.accentAmber;
+  static const Color error             = PaperclipTheme.accentRed;
+  static const Color info              = PaperclipTheme.accentCyan;
+  static const Color surface           = PaperclipTheme.surfaceDark;
+  static const Color surfaceVariant    = PaperclipTheme.surfaceElevatedDark;
+  static const Color background        = PaperclipTheme.backgroundDark;
+  static const Color border            = PaperclipTheme.borderDark;
+  static const LinearGradient accentGradient = LinearGradient(
+    colors: [PaperclipTheme.accentGreen, PaperclipTheme.accentCyan],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+}
 
 enum DownloadStatus { notDownloaded, downloading, downloaded }
 
@@ -32,7 +67,9 @@ class ModelInfo {
   final bool isLoaded;
   final bool isLoading;
   final String? path;
-  final String source; // 'local', 'external', 'catalog'
+  final String? mmproj_path;    // CLIP projector for vision models
+  final bool supportsVision;    // true when mmproj is present
+  final String source; // 'local', 'external', 'catalog', 'lmstudio'
 
   const ModelInfo({
     required this.id,
@@ -47,6 +84,8 @@ class ModelInfo {
     this.isLoaded = false,
     this.isLoading = false,
     this.path,
+    this.mmproj_path,
+    this.supportsVision = false,
     this.source = 'catalog',
   });
 
@@ -63,6 +102,8 @@ class ModelInfo {
             : DownloadStatus.notDownloaded,
         isLoaded: json['loaded'] ?? false,
         path: json['path'],
+        mmproj_path: json['mmproj_path'],
+        supportsVision: json['supports_vision'] ?? false,
         source: json['source'] ?? 'catalog',
       );
 
@@ -77,6 +118,9 @@ class ModelInfo {
         'downloaded': downloadStatus == DownloadStatus.downloaded,
         'loaded': isLoaded,
         'path': path,
+        'mmproj_path': mmproj_path,
+        'supports_vision': supportsVision,
+        'source': source,
       };
 
   ModelInfo copyWith({
@@ -85,6 +129,8 @@ class ModelInfo {
     bool? isLoaded,
     bool? isLoading,
     String? path,
+    String? mmproj_path,
+    bool? supportsVision,
   }) =>
       ModelInfo(
         id: id,
@@ -99,6 +145,8 @@ class ModelInfo {
         isLoaded: isLoaded ?? this.isLoaded,
         isLoading: isLoading ?? this.isLoading,
         path: path ?? this.path,
+        mmproj_path: mmproj_path ?? this.mmproj_path,
+        supportsVision: supportsVision ?? this.supportsVision,
         source: source,
       );
 }
@@ -129,7 +177,7 @@ class ModelManagerState {
     this.nCtx = 4096,
     this.nGpuLayers = -1,
     this.nThreads = 0, // 0 = auto
-    this.nBatch = 512,
+    this.nBatch = 2048,
   });
 
   ModelManagerState copyWith({
@@ -296,6 +344,39 @@ class ModelManagerNotifier extends StateNotifier<ModelManagerState> {
       'hf_repo': 'litert-community/gemma-4-E2B-it-litert-lm',
       'filename': 'gemma-4-E2B-it.litertlm'
     },
+    {
+      'id': 'qwen2.5-coder-14b',
+      'name': 'Qwen 2.5 Coder 14B',
+      'size_gb': 8.5,
+      'quantization': 'Q4_K_M',
+      'task_type': 'code',
+      'rating': 4.9,
+      'downloads': 125000,
+      'hf_repo': 'Qwen/Qwen2.5-Coder-14B-Instruct-GGUF',
+      'filename': 'qwen2.5-coder-14b-instruct-q4_k_m.gguf'
+    },
+    {
+      'id': 'qwen2.5-coder-32b',
+      'name': 'Qwen 2.5 Coder 32B',
+      'size_gb': 18.5,
+      'quantization': 'Q4_K_M',
+      'task_type': 'code',
+      'rating': 5.0,
+      'downloads': 85000,
+      'hf_repo': 'Qwen/Qwen2.5-Coder-32B-Instruct-GGUF',
+      'filename': 'qwen2.5-coder-32b-instruct-q4_k_m.gguf'
+    },
+    {
+      'id': 'qwen2.5-coder-72b',
+      'name': 'Qwen 2.5 Coder 72B',
+      'size_gb': 42.0,
+      'quantization': 'Q4_K_M',
+      'task_type': 'code',
+      'rating': 5.0,
+      'downloads': 45000,
+      'hf_repo': 'Qwen/Qwen2.5-Coder-72B-Instruct-GGUF',
+      'filename': 'qwen2.5-coder-72b-instruct-q4_k_m.gguf'
+    },
   ];
 
   void _saveLocalModels(List<ModelInfo> models) {
@@ -449,8 +530,8 @@ class ModelManagerNotifier extends StateNotifier<ModelManagerState> {
           await ref.read(inferenceBackendProvider).loadModel(model.path!);
         }
       } else {
-        // On Windows, use path if source is local, otherwise use id
-        final loadId = (model.source == 'local' && model.path != null)
+        // On Windows, use path if available, otherwise use id
+        final loadId = (model.source != 'external' && model.path != null)
             ? model.path!
             : model.id;
         final resp =
@@ -625,7 +706,7 @@ class _ModelManagerScreenState extends ConsumerState<ModelManagerScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -643,18 +724,18 @@ class _ModelManagerScreenState extends ConsumerState<ModelManagerScreen>
           height: 52,
           padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: const BoxDecoration(
-            color: AppColors.backgroundSidebar,
+            color: PaperclipTheme.sidebarDark,
             border: Border(
-                bottom: BorderSide(color: AppColors.border, width: 1)),
+                bottom: BorderSide(color: PaperclipTheme.borderDark, width: 1)),
           ),
           child: Row(
             children: [
               const Icon(Icons.memory_outlined,
-                  color: AppColors.accent, size: 17),
+                  color: PaperclipTheme.accentCyan, size: 17),
               const SizedBox(width: 8),
               const Text('Models',
                   style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: PaperclipTheme.foregroundDark,
                       fontSize: 15,
                       fontWeight: FontWeight.w600)),
               const Spacer(),
@@ -674,12 +755,12 @@ class _ModelManagerScreenState extends ConsumerState<ModelManagerScreen>
         ),
         // ── Tab bar ────────────────────────────────────────────
         Container(
-          color: AppColors.backgroundSidebar,
+          color: PaperclipTheme.sidebarDark,
           child: TabBar(
             controller: _tabController,
-            labelColor: AppColors.accent,
-            unselectedLabelColor: AppColors.textTertiary,
-            indicatorColor: AppColors.accent,
+            labelColor: PaperclipTheme.accentCyan,
+            unselectedLabelColor: PaperclipTheme.mutedFgDark,
+            indicatorColor: PaperclipTheme.accentCyan,
             indicatorWeight: 2,
             indicatorSize: TabBarIndicatorSize.tab,
             labelStyle: const TextStyle(
@@ -688,17 +769,19 @@ class _ModelManagerScreenState extends ConsumerState<ModelManagerScreen>
                 fontSize: 12, fontWeight: FontWeight.w400),
             tabs: const [
               Tab(text: 'My Models'),
+              Tab(text: 'LM Studio'),
               Tab(text: 'Server'),
               Tab(text: 'Settings'),
             ],
           ),
         ),
-        const Divider(height: 1, color: AppColors.border),
+        const Divider(height: 1, color: PaperclipTheme.borderDark),
         Expanded(
           child: TabBarView(
             controller: _tabController,
             children: const [
               _MyModelsTab(),
+              _LmStudioTab(),
               _ServerTab(),
               _SettingsTab(),
             ],
@@ -734,11 +817,11 @@ class _ModelManagerScreenState extends ConsumerState<ModelManagerScreen>
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: const Row(children: [
               Icon(Icons.check_circle,
-                  color: AppColors.accentGreen, size: 16),
+                  color: PaperclipTheme.accentGreen, size: 16),
               SizedBox(width: 8),
               Text('Model loaded'),
             ]),
-            backgroundColor: AppColors.backgroundSurface,
+            backgroundColor: PaperclipTheme.surfaceDark,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8)),
@@ -748,7 +831,7 @@ class _ModelManagerScreenState extends ConsumerState<ModelManagerScreen>
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text('Failed: $e'),
-              backgroundColor: AppColors.accentRed));
+              backgroundColor: PaperclipTheme.accentRed));
         }
       }
     } else {
@@ -791,21 +874,21 @@ class _HdrBtnState extends State<_HdrBtn> {
               const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: _h
-                ? AppColors.backgroundSurface
-                : AppColors.backgroundInput.withOpacity(0.6),
+                ? PaperclipTheme.surfaceDark
+                : PaperclipTheme.surfaceElevatedDark.withOpacity(0.6),
             borderRadius: BorderRadius.circular(7),
-            border: Border.all(color: AppColors.border, width: 1),
+            border: Border.all(color: PaperclipTheme.borderDark, width: 1),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(widget.icon,
-                  size: 14, color: AppColors.textSecondary),
+                  size: 14, color: PaperclipTheme.mutedDark),
               const SizedBox(width: 6),
               Text(widget.label,
                   style: const TextStyle(
                       fontSize: 12,
-                      color: AppColors.textSecondary)),
+                      color: PaperclipTheme.mutedDark)),
             ],
           ),
         ),
@@ -833,24 +916,24 @@ class _MyModelsTab extends ConsumerWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: AppColors.backgroundSurface,
+                color: PaperclipTheme.surfaceDark,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: PaperclipTheme.borderDark),
               ),
               child: const Icon(Icons.inbox_outlined,
-                  size: 30, color: AppColors.textTertiary),
+                  size: 30, color: PaperclipTheme.mutedFgDark),
             ),
             const SizedBox(height: 16),
             const Text('No models loaded',
                 style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: PaperclipTheme.mutedDark,
                     fontSize: 14,
                     fontWeight: FontWeight.w500)),
             const SizedBox(height: 6),
             const Text(
                 'Browse HuggingFace or load a local .gguf file',
                 style: TextStyle(
-                    color: AppColors.textTertiary, fontSize: 12)),
+                    color: PaperclipTheme.mutedFgDark, fontSize: 12)),
           ],
         ),
       );
@@ -872,14 +955,14 @@ class _MyModelsTab extends ConsumerWidget {
           decoration: const BoxDecoration(
               border: Border(
                   bottom:
-                      BorderSide(color: AppColors.border, width: 1))),
+                      BorderSide(color: PaperclipTheme.borderDark, width: 1))),
           child: Row(
             children: [
               const Expanded(
                   child: Text('Model',
                       style: TextStyle(
                           fontSize: 11,
-                          color: AppColors.textTertiary,
+                          color: PaperclipTheme.mutedFgDark,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.5))),
               SizedBox(
@@ -887,14 +970,21 @@ class _MyModelsTab extends ConsumerWidget {
                   child: Text('Quant',
                       style: const TextStyle(
                           fontSize: 11,
-                          color: AppColors.textTertiary,
+                          color: PaperclipTheme.mutedFgDark,
+                          fontWeight: FontWeight.w600))),
+              SizedBox(
+                  width: 60,
+                  child: Text('Vision',
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: PaperclipTheme.mutedFgDark,
                           fontWeight: FontWeight.w600))),
               SizedBox(
                   width: 70,
                   child: Text('Size',
                       style: const TextStyle(
                           fontSize: 11,
-                          color: AppColors.textTertiary,
+                          color: PaperclipTheme.mutedFgDark,
                           fontWeight: FontWeight.w600))),
               const SizedBox(width: 90),
             ],
@@ -906,7 +996,7 @@ class _MyModelsTab extends ConsumerWidget {
             itemCount: state.downloadedModels.length,
             separatorBuilder: (_, __) => const Divider(
                 height: 1,
-                color: AppColors.border,
+                color: PaperclipTheme.borderDark,
                 indent: 16,
                 endIndent: 16),
             itemBuilder: (context, i) {
@@ -937,20 +1027,20 @@ class _LoadedBanner extends StatelessWidget {
       padding:
           const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.accentGreen.withOpacity(0.07),
+        color: PaperclipTheme.accentGreen.withOpacity(0.07),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-            color: AppColors.accentGreen.withOpacity(0.3)),
+            color: PaperclipTheme.accentGreen.withOpacity(0.3)),
       ),
       child: Row(
         children: [
           const Icon(Icons.play_circle_filled,
-              color: AppColors.accentGreen, size: 16),
+              color: PaperclipTheme.accentGreen, size: 16),
           const SizedBox(width: 10),
           Expanded(
             child: Text('Active: ${model.name}',
                 style: const TextStyle(
-                    color: AppColors.accentGreen,
+                    color: PaperclipTheme.accentGreen,
                     fontSize: 13,
                     fontWeight: FontWeight.w600)),
           ),
@@ -959,7 +1049,7 @@ class _LoadedBanner extends StatelessWidget {
             child: const Text('Eject',
                 style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textSecondary)),
+                    color: PaperclipTheme.mutedDark)),
           ),
         ],
       ),
@@ -996,9 +1086,9 @@ class _ModelRowState extends State<_ModelRow> {
         padding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         color: isLoaded
-            ? AppColors.accentGreen.withOpacity(0.04)
+            ? PaperclipTheme.accentGreen.withOpacity(0.04)
             : _hovered
-                ? AppColors.backgroundSurface
+                ? PaperclipTheme.surfaceDark
                 : Colors.transparent,
         child: Row(
           children: [
@@ -1008,8 +1098,8 @@ class _ModelRowState extends State<_ModelRow> {
               height: 34,
               decoration: BoxDecoration(
                 color: (isLoaded
-                        ? AppColors.accentGreen
-                        : AppColors.textTertiary)
+                        ? PaperclipTheme.accentGreen
+                        : PaperclipTheme.mutedFgDark)
                     .withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -1018,8 +1108,8 @@ class _ModelRowState extends State<_ModelRow> {
                     ? Icons.play_circle_filled
                     : Icons.smart_toy_outlined,
                 color: isLoaded
-                    ? AppColors.accentGreen
-                    : AppColors.textTertiary,
+                    ? PaperclipTheme.accentGreen
+                    : PaperclipTheme.mutedFgDark,
                 size: 18,
               ),
             ),
@@ -1031,14 +1121,14 @@ class _ModelRowState extends State<_ModelRow> {
                 children: [
                   Text(m.name,
                       style: const TextStyle(
-                          color: AppColors.textPrimary,
+                          color: PaperclipTheme.foregroundDark,
                           fontSize: 13,
                           fontWeight: FontWeight.w500),
                       overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 2),
                   Text(m.source,
                       style: const TextStyle(
-                          color: AppColors.textTertiary,
+                          color: PaperclipTheme.mutedFgDark,
                           fontSize: 11)),
                 ],
               ),
@@ -1047,7 +1137,20 @@ class _ModelRowState extends State<_ModelRow> {
             SizedBox(
               width: 80,
               child: _Chip(m.quantization,
-                  color: AppColors.accentBlue),
+                  color: PaperclipTheme.accentCyan),
+            ),
+            // Vision
+            SizedBox(
+              width: 60,
+              child: m.supportsVision
+                  ? const Row(
+                      children: [
+                        Icon(Icons.remove_red_eye, size: 14, color: PaperclipTheme.accentPurple),
+                        SizedBox(width: 4),
+                        Text('Yes', style: TextStyle(color: PaperclipTheme.accentPurple, fontSize: 12)),
+                      ],
+                    )
+                  : const Text('-', style: TextStyle(color: PaperclipTheme.mutedFgDark, fontSize: 12)),
             ),
             // Size
             SizedBox(
@@ -1056,20 +1159,21 @@ class _ModelRowState extends State<_ModelRow> {
                   ? Text(
                       '${m.sizeGb.toStringAsFixed(1)} GB',
                       style: const TextStyle(
-                          color: AppColors.textSecondary,
+                          color: PaperclipTheme.mutedDark,
                           fontSize: 12))
                   : const SizedBox.shrink(),
             ),
             // Actions (shown on hover or when loaded)
-            SizedBox(
+            Container(
               width: 90,
+              alignment: Alignment.centerRight,
               child: m.isLoading
                   ? const SizedBox(
-                      width: 16,
-                      height: 16,
+                      width: 18,
+                      height: 18,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.accent))
+                          strokeWidth: 2.5,
+                          color: PaperclipTheme.accentCyan))
                   : (_hovered || isLoaded)
                       ? Row(
                           mainAxisSize: MainAxisSize.min,
@@ -1078,13 +1182,13 @@ class _ModelRowState extends State<_ModelRow> {
                               _ActionBtn(
                                   icon: Icons.play_arrow,
                                   label: 'Load',
-                                  color: AppColors.accent,
+                                  color: PaperclipTheme.accentCyan,
                                   onTap: widget.onLoad)
                             else
                               _ActionBtn(
                                   icon: Icons.eject,
                                   label: 'Eject',
-                                  color: AppColors.textSecondary,
+                                  color: PaperclipTheme.mutedDark,
                                   onTap: widget.onUnload),
                           ],
                         )
@@ -1181,9 +1285,9 @@ class _ServerTabState extends ConsumerState<_ServerTab> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.backgroundSurface,
+              color: PaperclipTheme.surfaceDark,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: PaperclipTheme.borderDark),
             ),
             child: Row(
               children: [
@@ -1202,10 +1306,10 @@ class _ServerTabState extends ConsumerState<_ServerTab> {
                                 : 'Server Stopped',
                         style: TextStyle(
                             color: isRunning
-                                ? AppColors.accentGreen
+                                ? PaperclipTheme.accentGreen
                                 : isStarting
-                                    ? AppColors.accentYellow
-                                    : AppColors.textSecondary,
+                                    ? PaperclipTheme.accentAmber
+                                    : PaperclipTheme.mutedDark,
                             fontSize: 14,
                             fontWeight: FontWeight.w600),
                       ),
@@ -1213,7 +1317,7 @@ class _ServerTabState extends ConsumerState<_ServerTab> {
                         Text(
                             '${state.serverUrl}:${state.serverPort}',
                             style: const TextStyle(
-                                color: AppColors.textTertiary,
+                                color: PaperclipTheme.mutedFgDark,
                                 fontSize: 12,
                                 fontFamily: 'monospace')),
                     ],
@@ -1224,7 +1328,7 @@ class _ServerTabState extends ConsumerState<_ServerTab> {
                     onPressed:
                         isStarting ? null : notifier.startServer,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accentGreen,
+                      backgroundColor: PaperclipTheme.accentGreen,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(7)),
@@ -1236,9 +1340,9 @@ class _ServerTabState extends ConsumerState<_ServerTab> {
                   OutlinedButton(
                     onPressed: notifier.stopServer,
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.accentRed,
+                      foregroundColor: PaperclipTheme.accentRed,
                       side: const BorderSide(
-                          color: AppColors.accentRed),
+                          color: PaperclipTheme.accentRed),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(7)),
                     ),
@@ -1274,7 +1378,7 @@ class _ServerTabState extends ConsumerState<_ServerTab> {
           if (state.downloadedModels.isEmpty)
             const Text('No downloaded models.',
                 style: TextStyle(
-                    color: AppColors.textTertiary, fontSize: 12))
+                    color: PaperclipTheme.mutedFgDark, fontSize: 12))
           else
             Wrap(
               spacing: 8,
@@ -1289,21 +1393,21 @@ class _ServerTabState extends ConsumerState<_ServerTab> {
                         horizontal: 12, vertical: 7),
                     decoration: BoxDecoration(
                       color: sel
-                          ? AppColors.accent.withOpacity(0.12)
-                          : AppColors.backgroundSurface,
+                          ? PaperclipTheme.accentCyan.withOpacity(0.12)
+                          : PaperclipTheme.surfaceDark,
                       borderRadius: BorderRadius.circular(7),
                       border: Border.all(
                           color: sel
-                              ? AppColors.accent
-                              : AppColors.border,
+                              ? PaperclipTheme.accentCyan
+                              : PaperclipTheme.borderDark,
                           width: 1),
                     ),
                     child: Text(m.name,
                         style: TextStyle(
                             fontSize: 12,
                             color: sel
-                                ? AppColors.accent
-                                : AppColors.textSecondary,
+                                ? PaperclipTheme.accentCyan
+                                : PaperclipTheme.mutedDark,
                             fontWeight: sel
                                 ? FontWeight.w600
                                 : FontWeight.w400)),
@@ -1323,13 +1427,13 @@ class _ServerTabState extends ConsumerState<_ServerTab> {
     return TextField(
       controller: ctrl,
       style: const TextStyle(
-          color: AppColors.textPrimary, fontSize: 13),
+          color: PaperclipTheme.foregroundDark, fontSize: 13),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(
-            color: AppColors.textTertiary, fontSize: 13),
+            color: PaperclipTheme.mutedFgDark, fontSize: 13),
         filled: true,
-        fillColor: AppColors.backgroundInput,
+        fillColor: PaperclipTheme.surfaceElevatedDark,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         border: OutlineInputBorder(
@@ -1338,7 +1442,7 @@ class _ServerTabState extends ConsumerState<_ServerTab> {
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(7),
             borderSide: const BorderSide(
-                color: AppColors.accent, width: 1.5)),
+                color: PaperclipTheme.accentCyan, width: 1.5)),
       ),
       onSubmitted: onSubmit,
     );
@@ -1353,10 +1457,10 @@ class _StatusDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = running
-        ? AppColors.accentGreen
+        ? PaperclipTheme.accentGreen
         : starting
-            ? AppColors.accentYellow
-            : AppColors.textTertiary;
+            ? PaperclipTheme.accentAmber
+            : PaperclipTheme.mutedFgDark;
     return Container(
       width: 10,
       height: 10,
@@ -1382,7 +1486,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(text,
         style: const TextStyle(
-            color: AppColors.textTertiary,
+            color: PaperclipTheme.mutedFgDark,
             fontSize: 10,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.2));
@@ -1402,11 +1506,260 @@ class _CfgRow extends StatelessWidget {
             width: 110,
             child: Text(label,
                 style: const TextStyle(
-                    color: AppColors.textSecondary,
+                    color: PaperclipTheme.mutedDark,
                     fontSize: 13))),
         const SizedBox(width: 12),
         Expanded(child: child),
       ],
+    );
+  }
+}
+
+// ─── LM Studio Tab ─────────────────────────────────────────────────────────────
+
+class _LmStudioTab extends ConsumerStatefulWidget {
+  const _LmStudioTab();
+
+  @override
+  ConsumerState<_LmStudioTab> createState() => _LmStudioTabState();
+}
+
+class _LmStudioTabState extends ConsumerState<_LmStudioTab> {
+  bool _isLoading = true;
+  String? _error;
+  List<ModelInfo> _models = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLmStudioModels();
+  }
+
+  Future<void> _fetchLmStudioModels() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final res = await apiDio.get(ApiConstants.modelsLmStudio);
+      final list = List<Map<String, dynamic>>.from(res.data['models'] ?? []);
+      setState(() {
+        _models = list.map((m) => ModelInfo.fromJson(m)).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load LM Studio models: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: PaperclipTheme.accentCyan));
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 40, color: PaperclipTheme.accentRed),
+            const SizedBox(height: 16),
+            Text(_error!, style: const TextStyle(color: PaperclipTheme.mutedDark)),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _fetchLmStudioModels,
+              style: ElevatedButton.styleFrom(backgroundColor: PaperclipTheme.surfaceDark),
+              child: const Text('Retry', style: TextStyle(color: PaperclipTheme.foregroundDark)),
+            )
+          ],
+        ),
+      );
+    }
+
+    if (_models.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.folder_off_outlined, size: 40, color: PaperclipTheme.mutedFgDark),
+            SizedBox(height: 16),
+            Text('No models found in LM Studio directory',
+                style: TextStyle(color: PaperclipTheme.mutedDark)),
+            SizedBox(height: 8),
+            Text('Ensure models are downloaded via LM Studio to ~/.lmstudio/models',
+                style: TextStyle(color: PaperclipTheme.mutedFgDark, fontSize: 12)),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+          decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: PaperclipTheme.borderDark, width: 1))),
+          child: Row(
+            children: [
+              const Expanded(
+                  child: Text('Model',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: PaperclipTheme.mutedFgDark,
+                          fontWeight: FontWeight.w600))),
+              SizedBox(
+                  width: 80,
+                  child: const Text('Quant',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: PaperclipTheme.mutedFgDark,
+                          fontWeight: FontWeight.w600))),
+              SizedBox(
+                  width: 80,
+                  child: const Text('Vision',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: PaperclipTheme.mutedFgDark,
+                          fontWeight: FontWeight.w600))),
+              const SizedBox(width: 90),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            itemCount: _models.length,
+            separatorBuilder: (_, __) => const Divider(
+                height: 1, color: PaperclipTheme.borderDark, indent: 16, endIndent: 16),
+            itemBuilder: (context, i) {
+              final m = _models[i];
+              return _LmStudioModelRow(
+                model: m,
+                onLoad: () async {
+                  await ref.read(modelManagerProvider.notifier).loadCustomModel(m.path!);
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LmStudioModelRow extends ConsumerStatefulWidget {
+  final ModelInfo model;
+  final VoidCallback onLoad;
+  const _LmStudioModelRow({required this.model, required this.onLoad});
+
+  @override
+  ConsumerState<_LmStudioModelRow> createState() => _LmStudioModelRowState();
+}
+
+class _LmStudioModelRowState extends ConsumerState<_LmStudioModelRow> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = widget.model;
+    
+    // Check if this model is currently loaded in the manager state
+    final globalState = ref.watch(modelManagerProvider);
+    final isLoaded = globalState.downloadedModels
+        .where((g) => g.isLoaded && g.path == m.path)
+        .isNotEmpty;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        color: isLoaded
+            ? PaperclipTheme.accentGreen.withOpacity(0.04)
+            : _hovered
+                ? PaperclipTheme.surfaceDark
+                : Colors.transparent,
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: (isLoaded ? PaperclipTheme.accentGreen : PaperclipTheme.mutedFgDark).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                isLoaded ? Icons.play_circle_filled : Icons.folder_shared_outlined,
+                color: isLoaded ? PaperclipTheme.accentGreen : PaperclipTheme.mutedFgDark,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(m.name,
+                      style: const TextStyle(
+                          color: PaperclipTheme.foregroundDark,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500),
+                      overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 2),
+                  Text(m.id, style: const TextStyle(color: PaperclipTheme.mutedFgDark, fontSize: 11)),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: 80,
+              child: _Chip(m.quantization, color: PaperclipTheme.accentCyan),
+            ),
+            SizedBox(
+              width: 80,
+              child: m.supportsVision
+                  ? const Row(
+                      children: [
+                        Icon(Icons.remove_red_eye, size: 14, color: PaperclipTheme.accentPurple),
+                        SizedBox(width: 4),
+                        Text('Yes', style: TextStyle(color: PaperclipTheme.accentPurple, fontSize: 12)),
+                      ],
+                    )
+                  : const Text('-', style: TextStyle(color: PaperclipTheme.mutedFgDark, fontSize: 12)),
+            ),
+            Container(
+              width: 90,
+              alignment: Alignment.centerRight,
+              child: _hovered || isLoaded
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!isLoaded)
+                          _ActionBtn(
+                              icon: Icons.play_arrow,
+                              label: 'Load',
+                              color: PaperclipTheme.accentCyan,
+                              onTap: widget.onLoad)
+                        else
+                          _ActionBtn(
+                              icon: Icons.eject,
+                              label: 'Eject',
+                              color: PaperclipTheme.mutedDark,
+                              onTap: () {
+                                ref.read(modelManagerProvider.notifier).unloadModel(m.id);
+                              }),
+                      ],
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1487,33 +1840,33 @@ class _ParamCard extends StatelessWidget {
       width: 180,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.backgroundSurface,
+        color: PaperclipTheme.surfaceDark,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: PaperclipTheme.borderDark),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
               style: const TextStyle(
-                  color: AppColors.textTertiary,
+                  color: PaperclipTheme.mutedFgDark,
                   fontSize: 10,
                   fontWeight: FontWeight.w600)),
           if (hint != null)
             Text(hint!,
                 style: const TextStyle(
-                    color: AppColors.textTertiary, fontSize: 10)),
+                    color: PaperclipTheme.mutedFgDark, fontSize: 10)),
           const SizedBox(height: 6),
           TextField(
             controller: TextEditingController(text: value),
             style: const TextStyle(
-                color: AppColors.textPrimary,
+                color: PaperclipTheme.foregroundDark,
                 fontSize: 13,
                 fontFamily: 'monospace'),
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               filled: true,
-              fillColor: AppColors.backgroundInput,
+              fillColor: PaperclipTheme.surfaceElevatedDark,
               contentPadding: const EdgeInsets.symmetric(
                   horizontal: 8, vertical: 6),
               border: OutlineInputBorder(
@@ -1522,7 +1875,7 @@ class _ParamCard extends StatelessWidget {
               focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(5),
                   borderSide: const BorderSide(
-                      color: AppColors.accent, width: 1.5)),
+                      color: PaperclipTheme.accentCyan, width: 1.5)),
             ),
             onSubmitted: onChanged,
           ),
@@ -1638,9 +1991,9 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
           width: 860,
           height: MediaQuery.of(context).size.height * 0.82,
           decoration: BoxDecoration(
-            color: AppColors.backgroundSidebar,
+            color: PaperclipTheme.sidebarDark,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: PaperclipTheme.borderDark),
             boxShadow: [
               BoxShadow(
                   color: Colors.black.withOpacity(0.5),
@@ -1653,7 +2006,7 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
               children: [
                 _buildHeader(),
                 const Divider(
-                    height: 1, color: AppColors.border),
+                    height: 1, color: PaperclipTheme.borderDark),
                 Expanded(child: _buildBody()),
               ],
             ),
@@ -1667,22 +2020,22 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
     return Container(
       padding: const EdgeInsets.symmetric(
           horizontal: 16, vertical: 10),
-      color: AppColors.backgroundSidebar,
+      color: PaperclipTheme.sidebarDark,
       child: Row(
         children: [
           Container(
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(0.15),
+                color: PaperclipTheme.accentCyan.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(6)),
             child: const Icon(Icons.search,
-                color: AppColors.accent, size: 16),
+                color: PaperclipTheme.accentCyan, size: 16),
           ),
           const SizedBox(width: 10),
           const Text('Browse HuggingFace',
               style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: PaperclipTheme.foregroundDark,
                   fontSize: 14,
                   fontWeight: FontWeight.w600)),
           const SizedBox(width: 16),
@@ -1692,22 +2045,22 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
               onChanged: _onChanged,
               autofocus: true,
               style: const TextStyle(
-                  color: AppColors.textPrimary, fontSize: 13),
+                  color: PaperclipTheme.foregroundDark, fontSize: 13),
               decoration: InputDecoration(
                 hintText:
                     'Search models (mistral, llama, gemma, phi…)',
                 hintStyle: const TextStyle(
-                    color: AppColors.textTertiary,
+                    color: PaperclipTheme.mutedFgDark,
                     fontSize: 13),
                 filled: true,
-                fillColor: AppColors.backgroundInput,
+                fillColor: PaperclipTheme.surfaceElevatedDark,
                 contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 8),
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(7),
                     borderSide: BorderSide.none),
                 prefixIcon: const Icon(Icons.search,
-                    color: AppColors.textTertiary, size: 16),
+                    color: PaperclipTheme.mutedFgDark, size: 16),
                 suffixIcon: _loading
                     ? const Padding(
                         padding: EdgeInsets.all(10),
@@ -1716,7 +2069,7 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
                             height: 14,
                             child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: AppColors.accent)))
+                                color: PaperclipTheme.accentCyan)))
                     : null,
               ),
             ),
@@ -1725,7 +2078,7 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: const Icon(Icons.close,
-                color: AppColors.textTertiary, size: 20),
+                color: PaperclipTheme.mutedFgDark, size: 20),
           ),
         ],
       ),
@@ -1740,7 +2093,7 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
           decoration: const BoxDecoration(
               border: Border(
                   right: BorderSide(
-                      color: AppColors.border, width: 1))),
+                      color: PaperclipTheme.borderDark, width: 1))),
           child: _buildList(),
         ),
         Expanded(child: _buildDetail()),
@@ -1755,19 +2108,19 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
               padding: const EdgeInsets.all(20),
               child: Text(_error!,
                   style: const TextStyle(
-                      color: AppColors.accentRed,
+                      color: PaperclipTheme.accentRed,
                       fontSize: 13))));
     }
     if (_loading && _results.isEmpty) {
       return const Center(
           child: CircularProgressIndicator(
-              color: AppColors.accent, strokeWidth: 2));
+              color: PaperclipTheme.accentCyan, strokeWidth: 2));
     }
     if (_results.isEmpty) {
       return const Center(
           child: Text('No results',
               style: TextStyle(
-                  color: AppColors.textTertiary)));
+                  color: PaperclipTheme.mutedFgDark)));
     }
 
     return ListView.builder(
@@ -1786,7 +2139,7 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 100),
               color: isSelected
-                  ? AppColors.accent.withOpacity(0.1)
+                  ? PaperclipTheme.accentCyan.withOpacity(0.1)
                   : Colors.transparent,
               padding: const EdgeInsets.symmetric(
                   horizontal: 14, vertical: 10),
@@ -1796,18 +2149,18 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: AppColors.backgroundSurface,
+                      color: PaperclipTheme.surfaceDark,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                           color: isSelected
-                              ? AppColors.accent.withOpacity(0.4)
-                              : AppColors.border),
+                              ? PaperclipTheme.accentCyan.withOpacity(0.4)
+                              : PaperclipTheme.borderDark),
                     ),
                     child: Icon(Icons.smart_toy_outlined,
                         size: 15,
                         color: isSelected
-                            ? AppColors.accent
-                            : AppColors.textTertiary),
+                            ? PaperclipTheme.accentCyan
+                            : PaperclipTheme.mutedFgDark),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -1821,8 +2174,8 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
                               : id,
                           style: TextStyle(
                               color: isSelected
-                                  ? AppColors.accent
-                                  : AppColors.textPrimary,
+                                  ? PaperclipTheme.accentCyan
+                                  : PaperclipTheme.foregroundDark,
                               fontSize: 13,
                               fontWeight: FontWeight.w500),
                           overflow: TextOverflow.ellipsis,
@@ -1832,7 +2185,7 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
                               ? id.split('/').first
                               : 'HuggingFace',
                           style: const TextStyle(
-                              color: AppColors.textTertiary,
+                              color: PaperclipTheme.mutedFgDark,
                               fontSize: 11),
                         ),
                       ],
@@ -1845,21 +2198,21 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
                       Row(children: [
                         const Icon(Icons.download_outlined,
                             size: 11,
-                            color: AppColors.textTertiary),
+                            color: PaperclipTheme.mutedFgDark),
                         const SizedBox(width: 2),
                         Text(_fmt(dl),
                             style: const TextStyle(
-                                color: AppColors.textTertiary,
+                                color: PaperclipTheme.mutedFgDark,
                                 fontSize: 10)),
                       ]),
                       Row(children: [
                         const Icon(Icons.favorite_outline,
                             size: 11,
-                            color: AppColors.textTertiary),
+                            color: PaperclipTheme.mutedFgDark),
                         const SizedBox(width: 2),
                         Text(_fmt(likes),
                             style: const TextStyle(
-                                color: AppColors.textTertiary,
+                                color: PaperclipTheme.mutedFgDark,
                                 fontSize: 10)),
                       ]),
                     ],
@@ -1880,11 +2233,11 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.arrow_back_ios,
-                color: AppColors.textTertiary, size: 24),
+                color: PaperclipTheme.mutedFgDark, size: 24),
             SizedBox(height: 12),
             Text('Select a model to view details',
                 style: TextStyle(
-                    color: AppColors.textTertiary,
+                    color: PaperclipTheme.mutedFgDark,
                     fontSize: 13)),
           ],
         ),
@@ -1893,7 +2246,7 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
     if (_loadingDetail) {
       return const Center(
           child: CircularProgressIndicator(
-              color: AppColors.accent, strokeWidth: 2));
+              color: PaperclipTheme.accentCyan, strokeWidth: 2));
     }
 
     final m = _selected!;
@@ -1926,7 +2279,7 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
                           ? id.split('/').last
                           : id,
                       style: const TextStyle(
-                          color: AppColors.textPrimary,
+                          color: PaperclipTheme.foregroundDark,
                           fontSize: 18,
                           fontWeight: FontWeight.w700),
                     ),
@@ -1947,24 +2300,24 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: AppColors.backgroundSurface,
+                        color: PaperclipTheme.surfaceDark,
                         borderRadius:
                             BorderRadius.circular(7),
                         border: Border.all(
-                            color: AppColors.border),
+                            color: PaperclipTheme.borderDark),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.open_in_new,
                               size: 13,
-                              color: AppColors.textTertiary),
+                              color: PaperclipTheme.mutedFgDark),
                           SizedBox(width: 5),
                           Text('Copy URL',
                               style: TextStyle(
                                   fontSize: 11,
                                   color:
-                                      AppColors.textTertiary)),
+                                      PaperclipTheme.mutedFgDark)),
                         ],
                       ),
                     ),
@@ -1977,7 +2330,7 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
                     ? id.split('/').first
                     : 'HuggingFace',
                 style: const TextStyle(
-                    color: AppColors.accent, fontSize: 12),
+                    color: PaperclipTheme.accentCyan, fontSize: 12),
               ),
               const SizedBox(height: 10),
               Row(children: [
@@ -2009,7 +2362,7 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
             ],
           ),
         ),
-        const Divider(height: 1, color: AppColors.border),
+        const Divider(height: 1, color: PaperclipTheme.borderDark),
         // GGUF files list
         Expanded(
           child: ListView(
@@ -2019,11 +2372,11 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
                 const Row(children: [
                   Icon(Icons.download_outlined,
                       size: 14,
-                      color: AppColors.textSecondary),
+                      color: PaperclipTheme.mutedDark),
                   SizedBox(width: 6),
                   Text('GGUF Files',
                       style: TextStyle(
-                          color: AppColors.textPrimary,
+                          color: PaperclipTheme.foregroundDark,
                           fontSize: 13,
                           fontWeight: FontWeight.w600)),
                 ]),
@@ -2039,10 +2392,10 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: const BoxDecoration(
-              color: AppColors.backgroundSidebar,
+              color: PaperclipTheme.sidebarDark,
               border: Border(
                   top: BorderSide(
-                      color: AppColors.border, width: 1))),
+                      color: PaperclipTheme.borderDark, width: 1))),
           child: Consumer(builder: (ctx, ref, _) {
             return SizedBox(
               width: double.infinity,
@@ -2061,12 +2414,12 @@ class _HFSearchDialogState extends State<_HFSearchDialog> {
                     content: Text(
                         'Queued: ${id.split('/').last}'),
                     backgroundColor:
-                        AppColors.backgroundSurface,
+                        PaperclipTheme.surfaceDark,
                     behavior: SnackBarBehavior.floating,
                   ));
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
+                  backgroundColor: PaperclipTheme.accentCyan,
                   foregroundColor: Colors.white,
                   padding:
                       const EdgeInsets.symmetric(vertical: 12),
@@ -2130,10 +2483,10 @@ class _GGUFRowState extends State<_GGUFRow> {
             horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: _h
-              ? AppColors.backgroundSurface
-              : AppColors.backgroundInput.withOpacity(0.4),
+              ? PaperclipTheme.surfaceDark
+              : PaperclipTheme.surfaceElevatedDark.withOpacity(0.4),
           borderRadius: BorderRadius.circular(7),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: PaperclipTheme.borderDark),
         ),
         child: Row(
           children: [
@@ -2143,13 +2496,13 @@ class _GGUFRowState extends State<_GGUFRow> {
                 children: [
                   Text(name,
                       style: const TextStyle(
-                          color: AppColors.textPrimary,
+                          color: PaperclipTheme.foregroundDark,
                           fontSize: 12,
                           fontFamily: 'monospace')),
                   if (sizeStr.isNotEmpty)
                     Text(sizeStr,
                         style: const TextStyle(
-                            color: AppColors.textTertiary,
+                            color: PaperclipTheme.mutedFgDark,
                             fontSize: 11)),
                 ],
               ),
@@ -2171,7 +2524,7 @@ class _GGUFRowState extends State<_GGUFRow> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: AppColors.accent,
+                    color: PaperclipTheme.accentCyan,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Text('Download',
@@ -2198,7 +2551,7 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColors.textTertiary;
+    final c = color ?? PaperclipTheme.mutedFgDark;
     return Container(
       padding:
           const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -2226,11 +2579,11 @@ class _StatPill extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 12, color: AppColors.textTertiary),
+        Icon(icon, size: 12, color: PaperclipTheme.mutedFgDark),
         const SizedBox(width: 4),
         Text(label,
             style: const TextStyle(
-                color: AppColors.textTertiary, fontSize: 12)),
+                color: PaperclipTheme.mutedFgDark, fontSize: 12)),
       ],
     );
   }

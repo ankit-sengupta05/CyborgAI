@@ -104,6 +104,18 @@ class ApiConstants {
   static const String skillsList = 'skills/';
   static const String skillsExecute = 'skills/execute';
   static const String skillsCreate = 'skills/create';
+  static const String skillsAutoGenerate = 'skills/auto-generate';
+  static const String skillsAutoGenerateToggle = 'skills/auto-generate/toggle';
+  static const String skillsCategories = 'skills/categories';
+
+  // Chat — Multimodal
+  static const String chatMultimodal = 'chat/multimodal';
+
+  // Models — LM Studio
+  static const String modelsLmStudio = 'models/lmstudio';
+
+  // Vector DB stats
+  static const String vectorDbStats = 'system/vector-db/stats';
 
   // Chat Sync
   static const String chatSyncStatus = 'chat/sync/status';

@@ -158,10 +158,15 @@ DISCLAIMER: AI assistance only - not a substitute for professional medical evalu
 
         prompt_template = templates.get(template, templates["explain_like_im_5"])
 
-        return prompt_template.format(
+        prompt_text = prompt_template.format(
             age=context.get("age", "N/A") if context else "N/A",
             symptoms=", ".join(context.get("symptoms", [])) if context and context.get("symptoms") else "None reported"
         )
+
+        if context and context.get("rag_history"):
+            prompt_text = f"RELEVANT MEDICAL HISTORY:\n{context['rag_history']}\n\n" + prompt_text
+
+        return prompt_text
 
     def _safe_generate(self,
                       prompt: str,
@@ -260,45 +265,50 @@ Based on the information provided, there are no immediate risk factors visible i
 
         return result
 
-    def analyze_xray(self,
+    async def analyze_xray(self,
                     image_path: str,
-                    patient_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                    patient_context: Optional[Dict[str, Any]] = None,
+                    llm_svc=None) -> Dict[str, Any]:
         """
         Main entry point for X-ray analysis
 
         Args:
             image_path: Path to chest X-ray image (PNG/JPG/DICOM)
             patient_context: Optional dict with age, symptoms, language
+            llm_svc: Global LLMService instance from FastAPI state
 
         Returns:
             Structured analysis results
         """
-        self.initialize()
+        # If no global service provided, try to mock
+        if not llm_svc or not llm_svc.is_ready:
+            print("Running in mock mode for development (no global LLM provided)")
+            prompt = self._build_medical_prompt(None, context=patient_context, template="explain_like_im_5")
+            response = self._generate_mock_response(prompt)
+            result = self._parse_medical_response(response)
+            if "⚠️" not in result.get("full_response", ""):
+                result["full_response"] += "\n\n⚠️ This is not a diagnosis. Please consult a healthcare professional for medical advice."
+            return result
 
         # Validate input
         if not os.path.exists(image_path):
             raise FileNotFoundError(f"Image not found: {image_path}")
 
-        # Encode image
-        try:
-            image_features = self._encode_image(image_path)
-        except Exception as e:
-            print(f"Warning: Vision encoding failed ({e}), proceeding with text-only analysis")
-            image_features = None
-
         # Build prompt
         prompt = self._build_medical_prompt(
-            image_features,
+            None,
             context=patient_context,
             template="explain_like_im_5"
         )
 
-        # Generate response with safety constraints
-        response = self._safe_generate(
-            prompt,
-            max_new_tokens=512,
-            stop_sequences=["###", "Patient should", "[INST]"]
-        )
+        response = ""
+        async for chunk in llm_svc.stream_chat_multimodal(
+            text_prompt=prompt,
+            image_paths=[image_path],
+            temperature=0.3,
+            max_tokens=512
+        ):
+            response += chunk
 
         # Parse and return structured results
         result = self._parse_medical_response(response)

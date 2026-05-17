@@ -110,38 +110,62 @@ class WorldMonitorService:
 
             metrics = {
                 "timestamp": datetime.utcnow().isoformat(),
-                "cpu": {
+                "cpu": {"total": 0, "per_core": [], "count": 0, "freq_mhz": 0},
+                "memory": {"total_gb": 0, "used_gb": 0, "percent": 0},
+                "disk": {"total_gb": 0, "used_gb": 0, "percent": 0},
+                "network": {"bytes_sent_mb": 0, "bytes_recv_mb": 0, "interfaces": []},
+                "processes": procs,
+                "gpu": [],
+                "temperatures": {},
+            }
+
+            try:
+                metrics["cpu"] = {
                     "total": sum(cpu_per_core) / len(cpu_per_core) if cpu_per_core else 0,
                     "per_core": cpu_per_core,
                     "count": psutil.cpu_count(),
                     "freq_mhz": getattr(psutil.cpu_freq(), "current", 0),
-                },
-                "memory": {
+                }
+            except Exception: pass
+
+            try:
+                metrics["memory"] = {
                     "total_gb": round(mem.total / 1e9, 2),
                     "used_gb": round(mem.used / 1e9, 2),
                     "available_gb": round(mem.available / 1e9, 2),
                     "percent": mem.percent,
                     "swap_used_gb": round(swap.used / 1e9, 2),
                     "swap_total_gb": round(swap.total / 1e9, 2),
-                },
-                "disk": {
+                }
+            except Exception: pass
+
+            try:
+                metrics["disk"] = {
                     "total_gb": round(disk.total / 1e9, 2),
                     "used_gb": round(disk.used / 1e9, 2),
                     "free_gb": round(disk.free / 1e9, 2),
                     "percent": disk.percent,
-                },
-                "network": {
+                }
+            except Exception: pass
+
+            try:
+                metrics["network"] = {
                     "bytes_sent_mb": round(net.bytes_sent / 1e6, 2),
                     "bytes_recv_mb": round(net.bytes_recv / 1e6, 2),
                     "interfaces": interfaces,
-                },
-                "processes": procs,
-                "gpu": await self._get_gpu_info(),
-                "temperatures": {
+                }
+            except Exception: pass
+
+            try:
+                metrics["gpu"] = await self._get_gpu_info()
+            except Exception: pass
+
+            try:
+                metrics["temperatures"] = {
                     k: [{"label": t.label, "current": t.current, "high": t.high}
                         for t in v[:3]] for k, v in list(temps.items())[:3]
-                },
-            }
+                }
+            except Exception: pass
 
             # Keep rolling 60-point history
             self._metrics_history.append({

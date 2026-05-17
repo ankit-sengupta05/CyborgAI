@@ -59,11 +59,13 @@ class _HomeworkScannerScreenState extends State<HomeworkScannerScreen> {
           subject: _subject,
           gradeLevel: _gradeLevel,
           language: _language);
+      if (!mounted) return;
       setState(() => _result = r);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
-      setState(() => _grading = false);
+      if (mounted) setState(() => _grading = false);
     }
   }
 

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
@@ -8,16 +9,40 @@ import 'package:markdown/markdown.dart' as md;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:uuid/uuid.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../core/theme/app_theme.dart'; // FIX: was ../../core
-import '../../../core/constants/api_constants.dart'; // FIX: was ../../core
-import '../../../core/services/backend_service.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/constants/api_constants.dart';
+// dart:io is conditionally imported — on web, a stub is used.
+// We never call File() directly; all bytes come through att.bytes (withData:true).
 import 'dart:io' if (dart.library.html) 'package:cyborg/core/services/io_stubs.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/services/api_service.dart';
-
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-
 import 'package:hive_flutter/hive_flutter.dart';
+
+// ─── Attachment Model ─────────────────────────────────────────────────────────
+
+enum AttachmentType { image, document, audio }
+
+class ChatAttachment {
+  final String id;
+  final String path;         // absolute local path
+  final String name;         // display name
+  final AttachmentType type;
+  final Uint8List? bytes;    // pre-loaded bytes for image preview
+
+  ChatAttachment({
+    required this.id,
+    required this.path,
+    required this.name,
+    required this.type,
+    this.bytes,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id, 'path': path, 'name': name, 'type': type.name,
+  };
+}
 
 // ─── Models ──────────────────────────────────────────────────────────────────
 
@@ -31,6 +56,7 @@ class ChatMessage {
   final int? totalTokens;
   final double? duration;
   final String? stopReason;
+  final List<ChatAttachment> attachments;
 
   ChatMessage({
     required this.id,
@@ -42,6 +68,7 @@ class ChatMessage {
     this.totalTokens,
     this.duration,
     this.stopReason,
+    this.attachments = const [],
   });
 
   ChatMessage copyWith({
@@ -62,6 +89,7 @@ class ChatMessage {
         totalTokens: totalTokens ?? this.totalTokens,
         duration: duration ?? this.duration,
         stopReason: stopReason ?? this.stopReason,
+        attachments: attachments,
       );
 
   Map<String, dynamic> toJson() => {
@@ -282,14 +310,15 @@ class ChatNotifier extends StateNotifier<ChatState> {
     _saveState(newSessions);
   }
 
-  Future<void> sendMessage(String content) async {
-    if (content.trim().isEmpty || state.isGenerating) return;
+  Future<void> sendMessage(String content, {List<ChatAttachment> attachments = const []}) async {
+    if (content.trim().isEmpty && attachments.isEmpty || state.isGenerating) return;
 
     final userMsg = ChatMessage(
         id: _uuid.v4(),
         role: 'user',
         content: content.trim(),
-        timestamp: DateTime.now());
+        timestamp: DateTime.now(),
+        attachments: attachments);
     final assistantMsg = ChatMessage(
         id: _uuid.v4(),
         role: 'assistant',
@@ -304,7 +333,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     final useVoice = ref.read(voiceEnabledProvider);
 
     try {
-      await _streamResponse(assistantMsg.id, content, useVoice: useVoice);
+      await _streamResponse(assistantMsg.id, content, attachments: attachments, useVoice: useVoice);
     } catch (e) {
       _updateMessage(assistantMsg.id, 'Error: $e', isStreaming: false);
     } finally {
@@ -339,10 +368,20 @@ class ChatNotifier extends StateNotifier<ChatState> {
   }
 
   Future<void> _streamResponse(String assistantMsgId, String content,
-      {bool useVoice = false}) async {
-    final isPureLocalAndroid = !kIsWeb &&
-        Platform.isAndroid &&
-        ApiConstants.wsBaseUrl.contains('127.0.0.1');
+      {List<ChatAttachment> attachments = const [], bool useVoice = false}) async {
+    // On web, Platform.isAndroid is not available — always use WebSocket path.
+    // On Android+local, we could use the on-device inference backend.
+    final bool isPureLocalAndroid = !kIsWeb &&
+        const bool.fromEnvironment('dart.library.io') &&
+        ApiConstants.wsBaseUrl.contains('127.0.0.1') &&
+        // Check at runtime only on native; defaultValue keeps it false on web
+        (() {
+          try {
+            return Platform.isAndroid;
+          } catch (_) {
+            return false;
+          }
+        }());
 
     final history = state.activeSession?.messages
             .where((m) => m.id != assistantMsgId && !m.isStreaming)
@@ -362,7 +401,6 @@ class ChatNotifier extends StateNotifier<ChatState> {
         return;
       }
 
-      // Simple stringify history
       final promptBuf = StringBuffer();
       for (var msg in history) {
         promptBuf.writeln("${msg['role']}: ${msg['content']}");
@@ -376,7 +414,6 @@ class ChatNotifier extends StateNotifier<ChatState> {
       await for (final token in stream) {
         tokenCount++;
         accumulated += token;
-
         if (uiStopwatch.elapsedMilliseconds > 40) {
           _updateMessage(assistantMsgId, accumulated, isStreaming: true);
           uiStopwatch.reset();
@@ -385,7 +422,6 @@ class ChatNotifier extends StateNotifier<ChatState> {
       stopwatch.stop();
       final duration = stopwatch.elapsedMilliseconds / 1000.0;
       final speed = duration > 0 ? tokenCount / duration : 0.0;
-
       _updateMessage(assistantMsgId, accumulated,
           isStreaming: false,
           tokenSpeed: speed,
@@ -398,52 +434,122 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
     final user = FirebaseAuth.instance.currentUser;
     final token = await user?.getIdToken() ?? '';
-    final wsUrl =
-        '${ApiConstants.wsBaseUrl}${ApiConstants.chatStream}?token=$token';
-    _ws = WebSocketChannel.connect(Uri.parse(wsUrl));
+    final baseWsUrl = '${ApiConstants.wsBaseUrl}${ApiConstants.chatStream}';
 
-    _ws!.sink.add(jsonEncode({
-      'type': 'chat',
-      'session_id': state.activeSessionId,
-      'messages': history,
-      'model': state.selectedModel,
-      'voice': useVoice,
-      'voice_name': 'af_sarah',
-      'use_rag': true,
-    }));
+    // Prepare multimodal payload — images as base64 data URIs.
+    // We always use att.bytes (set via withData:true in _pickImage),
+    // so this is safe on both web and native.
+    final List<String> imageB64List = [];
 
-    String accumulated = '';
-    final uiStopwatch = Stopwatch()..start();
-
-    await for (final data in _ws!.stream) {
-      final parsed = jsonDecode(data as String);
-      if (parsed['type'] == 'token') {
-        tokenCount++;
-        accumulated += parsed['token'] as String;
-
-        // Throttle UI updates to 40ms for a responsive "lightning fast" feel.
-        // AXTree crashes are now mitigated by global ExcludeSemantics in main.dart.
-        if (uiStopwatch.elapsedMilliseconds > 40) {
-          _updateMessage(assistantMsgId, accumulated, isStreaming: true);
-          uiStopwatch.reset();
+    for (final att in attachments) {
+      try {
+        if (att.type == AttachmentType.image && att.bytes != null) {
+          final b64 = base64Encode(att.bytes!);
+          final ext = att.name.split('.').last.toLowerCase();
+          final mime = (ext == 'png')
+              ? 'image/png'
+              : (ext == 'gif')
+                  ? 'image/gif'
+                  : (ext == 'webp')
+                      ? 'image/webp'
+                      : 'image/jpeg';
+          imageB64List.add('data:$mime;base64,$b64');
         }
-      } else if (parsed['type'] == 'done') {
-        stopwatch.stop();
-        final duration = stopwatch.elapsedMilliseconds / 1000.0;
-        final speed = duration > 0 ? tokenCount / duration : 0.0;
+      } catch (e) {
+        debugPrint('[Chat] Image encoding failed for ${att.name}: $e');
+      }
+    }
+    
+    int retryCount = 0;
+    bool connected = false;
 
-        _updateMessage(assistantMsgId, accumulated,
-            isStreaming: false,
-            tokenSpeed: speed,
-            totalTokens: tokenCount,
-            duration: duration,
-            stopReason: 'EOS Token Found');
-        _updateSessionTitle(content);
-        break;
-      } else if (parsed['type'] == 'error') {
-        _updateMessage(assistantMsgId, 'Error: ${parsed['message']}',
-            isStreaming: false);
-        break;
+    while (retryCount < 3 && !connected) {
+      try {
+        debugPrint('[Chat] Connecting to WebSocket (attempt ${retryCount + 1})...');
+        
+        final currentToken = await user?.getIdToken() ?? token;
+        final finalWsUrl = currentToken.isNotEmpty ? '$baseWsUrl?token=$currentToken' : baseWsUrl;
+        
+        debugPrint('[Chat] WS URI: $finalWsUrl');
+        _ws = WebSocketChannel.connect(Uri.parse(finalWsUrl));
+        
+        // Wait for connection to be ready
+        await _ws!.ready;
+        debugPrint('[Chat] WS Ready');
+
+        final wsPayload = <String, dynamic>{
+          'type': 'chat',
+          'session_id': state.activeSessionId,
+          'messages': history,
+          // Always use Gemma-4 — the only model loaded by the backend
+          'model': 'gemma-4-E4B-it-Q4_K_M',
+          'voice': useVoice,
+          'voice_name': 'af_sarah',
+          'use_rag': true,
+          'use_agent': true, // Essential for enabling LangGraph tool usage
+        };
+        if (imageB64List.isNotEmpty) wsPayload['images'] = imageB64List;
+
+        _ws!.sink.add(jsonEncode(wsPayload));
+
+        final stream = _ws!.stream.handleError((error) {
+          debugPrint('[Chat] WebSocket Stream Error: $error');
+        });
+
+        String accumulated = '';
+        final uiStopwatch = Stopwatch()..start();
+
+        await for (final data in stream) {
+          final parsed = jsonDecode(data as String);
+          
+          if (parsed['type'] == 'connected') {
+            connected = true;
+            debugPrint('[Chat] WebSocket connected ✓ (Handshake Acknowledged)');
+            continue;
+          }
+
+          if (!connected) {
+            connected = true;
+            debugPrint('[Chat] WebSocket connected ✓ (First Data Received)');
+          }
+          if (parsed['type'] == 'token') {
+            tokenCount++;
+            accumulated += parsed['token'] as String;
+            if (uiStopwatch.elapsedMilliseconds > 40) {
+              _updateMessage(assistantMsgId, accumulated, isStreaming: true);
+              uiStopwatch.reset();
+            }
+          } else if (parsed['type'] == 'done') {
+            stopwatch.stop();
+            final duration = stopwatch.elapsedMilliseconds / 1000.0;
+            final speed = duration > 0 ? tokenCount / duration : 0.0;
+            _updateMessage(assistantMsgId, accumulated,
+                isStreaming: false,
+                tokenSpeed: speed,
+                totalTokens: tokenCount,
+                duration: duration,
+                stopReason: 'EOS Token Found');
+            _updateSessionTitle(content);
+            return;
+          } else if (parsed['type'] == 'error') {
+            _updateMessage(assistantMsgId, 'Error: ${parsed['message']}',
+                isStreaming: false);
+            return;
+          }
+        }
+        
+        // If we reach here, the stream ended without 'done' or 'error'
+        if (!connected) {
+          throw Exception('Stream closed before connection established');
+        }
+      } catch (e) {
+        debugPrint('[Chat] WebSocket connection failed: $e');
+        retryCount++;
+        if (retryCount >= 3) {
+          _updateMessage(assistantMsgId, 'Connection Error: $e. Please check if the backend is running on port 8765.', isStreaming: false);
+          return;
+        }
+        await Future.delayed(Duration(seconds: retryCount * 2));
       }
     }
   }
@@ -561,16 +667,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final isNarrow = MediaQuery.of(context).size.width < 800;
 
     final sessionsSidebar = _SessionsSidebar(
-      width: isNarrow ? MediaQuery.of(context).size.width * 0.78 : 210,
+      width: isNarrow ? MediaQuery.of(context).size.width * 0.8 : 220,
       sessions: chatState.sessions,
       activeId: chatState.activeSessionId,
       onNewChat: () {
         notifier.newSession();
-        if (isNarrow) Navigator.of(context).pop();
+        if (isNarrow) _scaffoldKey.currentState?.closeDrawer();
       },
       onSelectSession: (id) {
         notifier.setSession(id);
-        if (isNarrow) Navigator.of(context).pop();
+        if (isNarrow) _scaffoldKey.currentState?.closeDrawer();
       },
     );
 
@@ -593,48 +699,39 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               setState(() => _showSettings = !_showSettings);
             }
           },
-          selectedModel: chatState.selectedModel,
-          onModelChanged: notifier.setModel,
           sessionTitle: chatState.activeSession?.title,
+          isMobile: isNarrow,
         ),
         const Divider(height: 1, color: AppColors.border),
         Expanded(
           child: (chatState.activeSession?.messages.isEmpty ?? true)
               ? const _EmptyChatState()
-              : ExcludeSemantics(
-                  excluding: true,
-                  child: ListView.builder(
+              : ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.fromLTRB(0, 16, 0, 24),
                     itemCount: chatState.activeSession!.messages.length,
                     itemBuilder: (context, i) => _MessageBubble(
                         message: chatState.activeSession!.messages[i]),
                   ),
-                ),
         ),
-        SafeArea(
-          bottom: true,
-          child: _ChatInput(
-            controller: _inputController,
-            isGenerating: chatState.isGenerating,
-            onSend: () {
-              notifier.sendMessage(_inputController.text);
-              _inputController.clear();
-            },
-          ),
+        _ChatInput(
+          controller: _inputController,
+          isGenerating: chatState.isGenerating,
+          onSend: (attachments) {
+            notifier.sendMessage(_inputController.text, attachments: attachments);
+            _inputController.clear();
+          },
         ),
       ],
     );
 
     final settingsSidebar = isNarrow
         ? SizedBox(
-            width: MediaQuery.of(context).size.width * 0.78,
+            width: MediaQuery.of(context).size.width * 0.8,
             child: const _ChatSettingsPanel())
         : const _ChatSettingsPanel();
 
-    return ExcludeSemantics(
-      excluding: true,
-      child: Scaffold(
+    return Scaffold(
         key: _scaffoldKey,
         backgroundColor: AppColors.backgroundMain,
         drawer: isNarrow ? Drawer(child: sessionsSidebar) : null,
@@ -650,8 +747,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             if (!isNarrow && _showSettings) settingsSidebar,
           ],
         ),
-      ),
-    );
+      );
   }
 }
 
@@ -700,9 +796,7 @@ class _SessionsSidebar extends StatelessWidget {
           ),
           const Divider(height: 1, color: AppColors.border),
           Expanded(
-            child: ExcludeSemantics(
-              excluding: true,
-              child: ListView.builder(
+            child: ListView.builder(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 itemCount: sessions.length,
                 itemBuilder: (context, i) {
@@ -715,7 +809,6 @@ class _SessionsSidebar extends StatelessWidget {
                   );
                 },
               ),
-            ),
           ),
         ],
       ),
@@ -841,8 +934,7 @@ class _ChatHeader extends StatelessWidget {
   final VoidCallback onToggleSessions;
   final bool showSettings;
   final VoidCallback onToggleSettings;
-  final String? selectedModel;
-  final ValueChanged<String?> onModelChanged;
+  final bool isMobile;
   final String? sessionTitle;
 
   const _ChatHeader({
@@ -850,78 +942,69 @@ class _ChatHeader extends StatelessWidget {
     required this.onToggleSessions,
     required this.showSettings,
     required this.onToggleSettings,
-    required this.selectedModel,
-    required this.onModelChanged,
+    required this.isMobile,
     this.sessionTitle,
   });
 
-  static const _models = [
-    'gemma-4-e2b-it-q8-0',
-    'qwen2.5-1.5b-instruct-q4',
-    'qwen2.5-coder-14b',
-    'llama-3.2-8b',
-    'mistral-7b',
-    'deepseek-r1-7b',
-  ];
+  // Gemma-4 is the only model — locked for full multimodal performance
+  static const String _modelDisplayName = 'Gemma 4 · Vision';
 
   @override
   Widget build(BuildContext context) {
+    final canPop = Navigator.of(context).canPop();
     return Container(
       height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       color: AppColors.backgroundSidebar,
       child: Row(
         children: [
+          if (canPop) ...[
+            _HeaderIconBtn(
+                icon: Icons.arrow_back,
+                onTap: () => Navigator.of(context).pop()),
+            const SizedBox(width: 4),
+          ],
           _HeaderIconBtn(
-              icon: showSessions ? Icons.menu_open : Icons.menu,
+              icon: isMobile ? Icons.menu : (showSessions ? Icons.menu_open : Icons.menu),
               onTap: onToggleSessions),
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
           if (sessionTitle != null)
             Expanded(
               child: Text(sessionTitle!,
                   style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 13),
+                      color: AppColors.textSecondary, fontSize: 12),
                   overflow: TextOverflow.ellipsis),
             )
           else
             const Spacer(),
+          // Locked Gemma-4 model badge
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: AppColors.backgroundInput.withOpacity(0.6),
+              color: AppColors.accent.withOpacity(0.08),
               borderRadius: BorderRadius.circular(7),
-              border: Border.all(color: AppColors.border, width: 1),
+              border: Border.all(color: AppColors.accent.withOpacity(0.25), width: 1),
             ),
-            child: DropdownButton<String?>(
-              value: selectedModel,
-              hint: const Text('Select model',
-                  style: TextStyle(
-                      color: AppColors.textTertiary, fontSize: 12)),
-              dropdownColor: AppColors.backgroundSurface,
-              underline: const SizedBox(),
-              icon: const Icon(Icons.expand_more,
-                  size: 14, color: AppColors.textTertiary),
-              items: [
-                const DropdownMenuItem<String?>(
-                  value: null,
-                  child: Text('Auto',
-                      style: TextStyle(
-                          color: AppColors.textPrimary, fontSize: 12)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 7, height: 7,
+                  decoration: BoxDecoration(
+                    color: AppColors.accentGreen,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-                ..._models.map((m) => DropdownMenuItem<String?>(
-                      value: m,
-                      child: Text(m,
-                          style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 12)),
-                    )),
+                const SizedBox(width: 6),
+                const Text(_modelDisplayName,
+                    style: TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600)),
               ],
-              onChanged: onModelChanged,
-              isDense: true,
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
           _HeaderIconBtn(
               icon: showSettings ? Icons.tune : Icons.tune_outlined,
               onTap: onToggleSettings),
@@ -994,19 +1077,25 @@ class _EmptyChatState extends StatelessWidget {
                       blurRadius: 24)
                 ],
               ),
-              child:
-                  const Icon(Icons.android, size: 34, color: Colors.white),
+              child: const Icon(Icons.auto_awesome, size: 30, color: Colors.white),
             ),
             const SizedBox(height: 20),
-            const Text('CYBORG AI',
+            const Text('GEMMA 4',
                 style: TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 2)),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
+            const Text('Vision  ·  Chat  ·  RAG',
+                style: TextStyle(
+                    color: AppColors.accent,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 2.5)),
+            const SizedBox(height: 12),
             const Text(
-              'Your local-first AI assistant.\nWhat can I help you with today?',
+              'Ask anything. Attach an image to use vision.\nAll inference is local and private.',
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: AppColors.textSecondary,
@@ -1020,17 +1109,17 @@ class _EmptyChatState extends StatelessWidget {
               alignment: WrapAlignment.center,
               children: const [
                 _SuggestionPill(
+                    text: 'Describe this image',
+                    icon: Icons.image_search_outlined),
+                _SuggestionPill(
                     text: 'Analyze my codebase',
                     icon: Icons.code),
                 _SuggestionPill(
-                    text: 'Create a project plan',
-                    icon: Icons.assignment_outlined),
-                _SuggestionPill(
-                    text: 'Search my documents',
+                    text: 'Search my knowledge',
                     icon: Icons.search),
                 _SuggestionPill(
-                    text: 'Build a knowledge graph',
-                    icon: Icons.hub_outlined),
+                    text: 'Read a document',
+                    icon: Icons.description_outlined),
               ],
             ),
           ],
@@ -1259,11 +1348,65 @@ class _MessageBubble extends StatelessWidget {
                     width: 1,
                   ),
                 ),
-                child: ExcludeSemantics(
-                  excluding: true,
-                  child: Column(
+                child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // ── Attachments (images / doc chips) ─────────────────────
+                      if (message.attachments.isNotEmpty) ...[
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: message.attachments.map((att) {
+                            if (att.type == AttachmentType.image) {
+                              return ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: att.bytes != null
+                                    ? Image.memory(att.bytes!,
+                                        width: 220,
+                                        height: 160,
+                                        fit: BoxFit.cover)
+                                    : (kIsWeb
+                                        ? Container(
+                                            width: 220, height: 160,
+                                            color: AppColors.backgroundSurface,
+                                            child: const Icon(Icons.image,
+                                                size: 40, color: AppColors.textTertiary))
+                                        : Image.network(att.path,
+                                            width: 220,
+                                            height: 160,
+                                            fit: BoxFit.cover)),
+                              );
+                            } else {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.backgroundSurface,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: AppColors.border),
+                                ),
+                                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                  Icon(
+                                    att.type == AttachmentType.audio
+                                        ? Icons.audiotrack_outlined
+                                        : Icons.description_outlined,
+                                    size: 13,
+                                    color: AppColors.accent,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(att.name,
+                                      style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.textSecondary)),
+                                ]),
+                              );
+                            }
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      // ── Message content ─────────────────────────────────
                       if (message.isStreaming && message.content.isEmpty)
                         const _TypingIndicator()
                       else
@@ -1305,7 +1448,6 @@ class _MessageBubble extends StatelessWidget {
                         ),
                     ],
                   ),
-                ),
               ),
             ),
           ),
@@ -1408,7 +1550,7 @@ class _TypingIndicatorState extends State<_TypingIndicator>
 class _ChatInput extends ConsumerStatefulWidget {
   final TextEditingController controller;
   final bool isGenerating;
-  final VoidCallback onSend;
+  final void Function(List<ChatAttachment>) onSend;
 
   const _ChatInput({
     required this.controller,
@@ -1422,12 +1564,47 @@ class _ChatInput extends ConsumerStatefulWidget {
 
 class _ChatInputState extends ConsumerState<_ChatInput> {
   bool _thinkEnabled = false;
-  bool _visionEnabled = false;
+  final List<ChatAttachment> _attachments = [];
+  final _uuid = const Uuid();
+
+  /// Pick an image — works on web (withData:true) and desktop/mobile (path).
+  Future<void> _pickImage() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+        withData: true, // Always load bytes for web + preview
+      );
+      if (result == null) return;
+      final file = result.files.single;
+      // On web, path is null — use bytes only
+      final att = ChatAttachment(
+        id: _uuid.v4(),
+        path: file.path ?? file.name,
+        name: file.name,
+        type: AttachmentType.image,
+        bytes: file.bytes,
+      );
+      setState(() => _attachments.add(att));
+    } catch (e) {
+      debugPrint('[Chat] Image pick failed: $e');
+    }
+  }
+
+  void _removeAttachment(String id) =>
+      setState(() => _attachments.removeWhere((a) => a.id == id));
+
+  void _send() {
+    if (widget.isGenerating) return;
+    widget.onSend(List.from(_attachments));
+    setState(() => _attachments.clear());
+  }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(chatProvider);
     final notifier = ref.read(chatProvider.notifier);
+    final hasImages = _attachments.any((a) => a.type == AttachmentType.image);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
@@ -1440,67 +1617,130 @@ class _ChatInputState extends ConsumerState<_ChatInput> {
         decoration: BoxDecoration(
           color: AppColors.backgroundInput,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.border, width: 1),
+          border: Border.all(
+            color: hasImages ? AppColors.accent.withOpacity(0.35) : AppColors.border,
+            width: 1,
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // ── Attached image thumbnails row ───────────────────────────────
+            if (_attachments.isNotEmpty) ...
+              [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _attachments.map((att) {
+                      if (att.type == AttachmentType.image) {
+                        return Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: att.bytes != null
+                                  ? Image.memory(att.bytes!,
+                                      width: 72, height: 72, fit: BoxFit.cover)
+                                  : (kIsWeb
+                                      ? Container(
+                                          width: 72, height: 72,
+                                          color: AppColors.backgroundSurface,
+                                          child: const Icon(Icons.image,
+                                              color: AppColors.textTertiary))
+                                      : Image.network(att.path,
+                                          width: 72, height: 72, fit: BoxFit.cover)),
+                            ),
+                            Positioned(
+                              top: -6,
+                              right: -6,
+                              child: GestureDetector(
+                                onTap: () => _removeAttachment(att.id),
+                                child: Container(
+                                  width: 18, height: 18,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accentRed,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.close,
+                                      size: 11, color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    }).toList(),
+                  ),
+                ),
+              ],
+            // ── Text field row ───────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.add,
-                        color: AppColors.textTertiary, size: 18),
-                    offset: const Offset(0, -180),
-                    color: AppColors.backgroundSurface,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side:
-                          const BorderSide(color: AppColors.border),
+                  // Clean image upload button (replaces paperclip popup)
+                  Tooltip(
+                    message: 'Attach image',
+                    child: GestureDetector(
+                      onTap: _pickImage,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 120),
+                        width: 32, height: 32,
+                        margin: const EdgeInsets.only(bottom: 5),
+                        decoration: BoxDecoration(
+                          color: hasImages
+                              ? AppColors.accent.withOpacity(0.12)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(7),
+                          border: hasImages
+                              ? Border.all(
+                                  color: AppColors.accent.withOpacity(0.4), width: 1)
+                              : null,
+                        ),
+                        child: Icon(
+                          Icons.add_photo_alternate_outlined,
+                          size: 17,
+                          color: hasImages
+                              ? AppColors.accent
+                              : AppColors.textTertiary,
+                        ),
+                      ),
                     ),
-                    itemBuilder: (_) => [
-                      _menuItem('pic', Icons.image_outlined, 'Image'),
-                      _menuItem('doc', Icons.description_outlined,
-                          'Document'),
-                      _menuItem('audio', Icons.audiotrack_outlined,
-                          'Audio'),
-                      _menuItem('file',
-                          Icons.insert_drive_file_outlined, 'File'),
-                    ],
-                    onSelected: (_) {},
                   ),
+                  // Text field
                   Expanded(
                     child: TextField(
                       controller: widget.controller,
                       maxLines: 6,
                       minLines: 1,
                       style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 13.5),
-                      decoration: const InputDecoration(
-                        hintText: 'Message the model…',
-                        hintStyle: TextStyle(
-                            color: AppColors.textTertiary,
-                            fontSize: 13.5),
+                          color: AppColors.textPrimary, fontSize: 13.5),
+                      decoration: InputDecoration(
+                        hintText: _attachments.isEmpty
+                            ? 'Message Gemma 4…'
+                            : 'Ask about the image…',
+                        hintStyle: const TextStyle(
+                            color: AppColors.textTertiary, fontSize: 13.5),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
                         contentPadding:
-                            EdgeInsets.symmetric(vertical: 10),
+                            const EdgeInsets.symmetric(vertical: 10),
                       ),
-                      onSubmitted: (_) =>
-                          widget.isGenerating ? null : widget.onSend(),
+                      onSubmitted: (_) => _send(),
                       textInputAction: TextInputAction.newline,
                     ),
                   ),
+                  // Send / Stop button
                   Padding(
                     padding:
                         const EdgeInsets.only(bottom: 6, right: 6),
                     child: GestureDetector(
-                      onTap:
-                          widget.isGenerating ? null : widget.onSend,
+                      onTap: _send,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         width: 34,
@@ -1515,8 +1755,7 @@ class _ChatInputState extends ConsumerState<_ChatInput> {
                             ? const Padding(
                                 padding: EdgeInsets.all(9),
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white))
+                                    strokeWidth: 2, color: Colors.white))
                             : const Icon(Icons.arrow_upward,
                                 color: Colors.white, size: 17),
                       ),
@@ -1525,6 +1764,7 @@ class _ChatInputState extends ConsumerState<_ChatInput> {
                 ],
               ),
             ),
+            // ── Bottom toolbar ───────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(6, 0, 6, 6),
               child: Row(
@@ -1538,13 +1778,24 @@ class _ChatInputState extends ConsumerState<_ChatInput> {
                         setState(() => _thinkEnabled = !_thinkEnabled),
                   ),
                   const SizedBox(width: 6),
+                  // Vision chip — auto-lights when image attached
                   _ToggleChip(
                     icon: Icons.remove_red_eye_outlined,
                     label: 'Vision',
-                    active: _visionEnabled,
+                    active: hasImages,
                     activeColor: AppColors.accentYellow,
-                    onTap: () => setState(
-                        () => _visionEnabled = !_visionEnabled),
+                    onTap: hasImages ? _pickImage : _pickImage,
+                  ),
+                  const SizedBox(width: 6),
+                  _ToggleChip(
+                    icon: Icons.task_alt_outlined,
+                    label: 'Task',
+                    active: false,
+                    activeColor: AppColors.accentBlue,
+                    onTap: () {
+                      widget.controller.text = "Analyze my current tasks and suggest the next best action.";
+                      _send();
+                    },
                   ),
                   const Spacer(),
                   GestureDetector(
@@ -1573,21 +1824,6 @@ class _ChatInputState extends ConsumerState<_ChatInput> {
           ],
         ),
       ),
-    );
-  }
-
-  PopupMenuItem<String> _menuItem(
-      String val, IconData icon, String label) {
-    return PopupMenuItem(
-      value: val,
-      height: 38,
-      child: Row(children: [
-        Icon(icon, size: 15, color: AppColors.textSecondary),
-        const SizedBox(width: 10),
-        Text(label,
-            style: const TextStyle(
-                color: AppColors.textPrimary, fontSize: 13)),
-      ]),
     );
   }
 }

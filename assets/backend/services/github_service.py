@@ -44,22 +44,22 @@ class VaultFileWatcher(FileSystemEventHandler):
         self.loop = asyncio.get_event_loop()
 
     def on_modified(self, event):
-        if not event.is_directory:
-            log.info(f"Local vault modified: {event.src_path}")
+        if not event.is_directory and ".git" not in event.src_path:
+            log.debug(f"Local vault modified: {event.src_path}")
             self.loop.call_soon_threadsafe(
                 lambda: asyncio.create_task(self.service.queue_push(event.src_path))
             )
 
     def on_created(self, event):
-        if not event.is_directory:
-            log.info(f"Local vault file created: {event.src_path}")
+        if not event.is_directory and ".git" not in event.src_path:
+            log.debug(f"Local vault file created: {event.src_path}")
             self.loop.call_soon_threadsafe(
                 lambda: asyncio.create_task(self.service.queue_push(event.src_path))
             )
 
     def on_moved(self, event):
-        if not event.is_directory:
-            log.info(f"Local vault file moved: {event.dest_path}")
+        if not event.is_directory and ".git" not in event.dest_path:
+            log.debug(f"Local vault file moved: {event.dest_path}")
             self.loop.call_soon_threadsafe(
                 lambda: asyncio.create_task(self.service.queue_push(event.dest_path))
             )
@@ -77,6 +77,7 @@ class GitHubService:
 
     async def initialize(self, vault_service=None):
         self._vault_service = vault_service
+        self._self_heal_git()
         self._load_all_configs()
 
         # Start background sync worker
@@ -94,7 +95,52 @@ class GitHubService:
             if self.state[user_id].get("vault_repo"):
                 asyncio.create_task(self.force_sync(user_id))
 
-        log.info("GitHub Service initialized with initial sync task")
+        log.info("GitHub Service initialized with self-healing complete")
+
+    def _self_heal_git(self):
+        """Remove stale git locks and rebase states that block sync."""
+        vault_git = settings.brain_dir / ".git"
+        if not vault_git.exists():
+            return
+
+        log.info("Running Git Self-Healing...")
+        # 1. Remove lock files
+        locks = [
+            vault_git / "config.lock",
+            vault_git / "index.lock",
+            vault_git / "FETCH_HEAD.lock",
+            vault_git / "HEAD.lock",
+            vault_git / "refs" / "heads" / "main.lock",
+            vault_git / "refs" / "heads" / "master.lock",
+            vault_git / "refs" / "remotes" / "origin" / "main.lock",
+        ]
+        for lock in locks:
+            if lock.exists():
+                try:
+                    lock.unlink()
+                    log.info(f"Removed stale git lock: {lock.name}")
+                except Exception:
+                    pass
+
+        # 2. Cleanup rebase/merge states
+        rebase_dirs = [
+            vault_git / "rebase-merge",
+            vault_git / "rebase-apply",
+            vault_git / "MERGE_HEAD",
+            vault_git / "MERGE_MSG",
+            vault_git / "MERGE_MODE",
+        ]
+        for rd in rebase_dirs:
+            if rd.exists():
+                try:
+                    import shutil
+                    if rd.is_dir():
+                        shutil.rmtree(rd)
+                    else:
+                        rd.unlink()
+                    log.info(f"Cleaned up interrupted git state: {rd.name}")
+                except Exception:
+                    pass
 
     def _load_all_configs(self):
         if self.config_path.exists():
@@ -302,134 +348,110 @@ All changes are synchronized in real-time from your local Cyborg installation.
     async def queue_push(self, file_path: str):
         await self._sync_queue.put(("push", file_path))
 
+    async def _run_git_command(self, args: list[str], cwd: Path) -> str:
+        """Run a git command and return output."""
+        try:
+            process = await asyncio.create_subprocess_exec(
+                "git", *args,
+                cwd=str(cwd),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await process.communicate()
+            if process.returncode != 0:
+                err = stderr.decode().strip()
+                log.error(f"Git command failed: git {' '.join(args)}", error=err)
+                return f"ERROR: {err}"
+            return stdout.decode().strip()
+        except Exception as e:
+            log.error(f"Failed to execute git: {e}")
+            return f"ERROR: {e}"
+
+    async def _git_sync_bulk(self, user_id: str) -> bool:
+        """Perform a high-performance bulk git sync (add, commit, push)."""
+        user_state = self.state.get(user_id)
+        if not user_state or not user_state.get("vault_repo"):
+            return False
+
+        vault_root = settings.brain_dir
+        repo_name = user_state["vault_repo"]
+        token = user_state["token"]
+
+        log.info(f"Starting bulk git sync for {repo_name}")
+
+        try:
+            # 1. Initialize if not a repo
+            if not (vault_root / ".git").exists():
+                await self._run_git_command(["init"], vault_root)
+                await self._run_git_command(["checkout", "-b", "main"], vault_root)
+
+            # 2. Configure remote with token
+            remote_url = f"https://{token}@github.com/{repo_name}.git"
+            await self._run_git_command(["remote", "remove", "origin"], vault_root)
+            await self._run_git_command(["remote", "add", "origin", remote_url], vault_root)
+
+            # 3. Check for changes
+            status = await self._run_git_command(["status", "--porcelain"], vault_root)
+            if not status and "ERROR" not in status:
+                log.info("Vault is up to date, skipping push")
+                return True
+
+            # 4. Sync: Pull with rebase, then Add, Commit, Push
+            await self._run_git_command(["stash"], vault_root)
+            await self._run_git_command(["pull", "origin", "main", "--rebase", "-Xours"], vault_root)
+            await self._run_git_command(["stash", "pop"], vault_root)
+            await self._run_git_command(["add", "."], vault_root)
+            await self._run_git_command(["commit", "-m", "sync: bulk update from Cyborg AI OS"], vault_root)
+            
+            # Use --force or handle rebase? For a simple vault, push -u origin main is safest
+            # We try to push normally first
+            result = await self._run_git_command(["push", "-u", "origin", "main"], vault_root)
+            
+            if "ERROR" in result:
+                # If main fails, try master or force push if it's a dedicated vault
+                await self._run_git_command(["push", "-u", "origin", "master"], vault_root)
+            
+            log.info(f"Bulk sync complete for {repo_name}")
+            return True
+
+        except Exception as e:
+            log.error(f"Bulk sync failed: {e}")
+            return False
+
     async def _sync_worker(self):
         log.info("Starting background sync worker")
         while self._is_running:
             try:
-                # 1. Handle main queue
+                # If there are items in queue, we do a bulk sync instead of file-by-file
+                has_changes = False
                 while not self._sync_queue.empty():
-                    action, data = await self._sync_queue.get()
-                    log.debug(f"Sync worker processing: {action} {data}")
-                    if action == "push":
-                        success = await self._perform_push(data)
-                        if not success:
-                            log.warning(f"Push failed, adding to retry queue: {data}")
-                            self._retry_queue.append(("push", data, 1))
+                    await self._sync_queue.get()
+                    has_changes = True
                     self._sync_queue.task_done()
 
-                # 2. Handle retries (process one per loop to avoid flooding)
-                if self._retry_queue:
-                    retry_item = self._retry_queue.pop(0)
-                    action, data, count = retry_item
-                    log.info(f"Retrying sync (attempt {count}/5): {data}")
+                if has_changes:
+                    for user_id in self.state:
+                        await self._git_sync_bulk(user_id)
 
-                    success = await self._perform_push(data)
-                    if not success and count < 5:
-                        self._retry_queue.append((action, data, count + 1))
-                    elif not success:
-                        log.error(f"Sync failed after max retries: {data}")
+                # Periodic retries of bulk sync if state is messy
+                if self._retry_queue:
+                    self._retry_queue.clear() # Bulk sync handles everything
+                    for user_id in self.state:
+                        await self._git_sync_bulk(user_id)
 
             except Exception as e:
                 log.error(f"Sync worker loop error: {e}")
 
-            await asyncio.sleep(5)  # Throttle to save CPU and handle network gaps
-
-    async def _perform_push(self, file_path: str) -> bool:
-        """Push to all connected users. Returns True if AT LEAST ONE successful."""
-        pushed_any = False
-        connected_count = 0
-        for user_id, user_state in self.state.items():
-            if user_state.get("connected") and user_state.get("vault_repo"):
-                connected_count += 1
-                try:
-                    await self._push_file_to_repo(user_id, file_path)
-                    pushed_any = True
-                except Exception as e:
-                    log.warning(f"Push failed for {user_id}: {e}")
-
-        # If no one is connected, we don't count it as a "failure" that needs retry,
-        # unless we want to wait for connection.
-        if connected_count == 0:
-            return True  # Don't retry if no repo is even configured
-
-        return pushed_any
-
-    async def _push_file_to_repo(self, user_id: str, local_path: str):
-        user_state = self.state[user_id]
-        gh = user_state["gh"]
-        repo = gh.get_repo(user_state["vault_repo"])
-
-        vault_root = settings.brain_dir
-        rel_path = str(Path(local_path).relative_to(vault_root)).replace("\\", "/")
-
-        if not os.path.exists(local_path):
-            return
-
-        try:
-            # Detect encoding and read
-            content_bytes = Path(local_path).read_bytes()
-            try:
-                content = content_bytes.decode("utf-8")
-            except UnicodeDecodeError:
-                content = content_bytes.decode("utf-16")
-
-            try:
-                existing = repo.get_contents(rel_path)
-                # Only update if content changed
-                if existing.decoded_content.decode("utf-8", errors="ignore") != content:
-                    repo.update_file(
-                        rel_path,
-                        f"sync: update {rel_path}",
-                        content,
-                        existing.sha,
-                    )
-                    log.info(f"Pushed update to GitHub: {rel_path}")
-            except Exception:
-                repo.create_file(
-                    rel_path,
-                    f"sync: add {rel_path}",
-                    content,
-                )
-                log.info(f"Pushed new file to GitHub: {rel_path}")
-        except Exception as e:
-            err_msg = str(e)
-            if "403" in err_msg:
-                err_msg = (
-                    "403 Forbidden: Ensure your GitHub Token has 'repo' scope "
-                    "(for private repos) or 'contents:write'."
-                )
-
-            if user_id in self.state:
-                self.state[user_id]["last_error"] = err_msg
-
-            log.error(f"Push failed: {err_msg}", user=user_state.get("username"))
-            raise e
+            await asyncio.sleep(10)  # Batch changes every 10 seconds
 
     async def force_sync(self, user_id: str):
-        """Force a full sync: push all local files to GitHub."""
-        user_state = self.state.get(user_id)
-        if not user_state or not user_state.get("vault_repo"):
-            log.warning(f"Cannot force sync for {user_id}: No repo configured")
-            return
-
-        log.info(f"Forcing full vault sync to GitHub for {user_id}")
-        vault_root = settings.brain_dir
-
-        # 1. Initialize structure first
-        await self._initialize_vault_structure(user_id, user_state["vault_repo"])
-
-        # 2. Push all files recursively
-        count = 0
-        for item in vault_root.rglob("*"):
-            if item.is_file():
-                # Check for ignored files
-                if ".ai_os" in str(item) and ("cache" in str(item) or "queue" in str(item)):
-                    continue  # Skip heavy cache files
-
-                await self.queue_push(str(item))
-                count += 1
-
-        log.info(f"Queued {count} files for initial vault sync")
+        """Force a full sync using high-performance git commands."""
+        log.info(f"Forcing full vault sync for {user_id}")
+        success = await self._git_sync_bulk(user_id)
+        if success:
+            log.info(f"Force sync complete for {user_id}")
+        else:
+            log.error(f"Force sync failed for {user_id}")
 
     async def _periodic_pull(self):
         while self._is_running:
@@ -441,53 +463,44 @@ All changes are synchronized in real-time from your local Cyborg installation.
                     pass
 
     async def pull_vault(self, user_id: str):
+        """Pull changes from GitHub using high-performance git commands."""
         user_state = self.state.get(user_id)
         if not user_state or not user_state.get("vault_repo"):
             return
 
-        log.info(f"Pulling vault changes from GitHub for {user_id}")
+        log.info(f"Pulling vault changes for {user_id}")
+        vault_root = settings.brain_dir
+        
         try:
-            gh = user_state["gh"]
-            repo = gh.get_repo(user_state["vault_repo"])
-            vault_root = settings.brain_dir
+            # 1. Ensure remote is configured
+            token = user_state["token"]
+            repo_name = user_state["vault_repo"]
+            remote_url = f"https://{token}@github.com/{repo_name}.git"
+            
+            if not (vault_root / ".git").exists():
+                await self._run_git_command(["init"], vault_root)
+                await self._run_git_command(["remote", "add", "origin", remote_url], vault_root)
 
-            # Recursive pull of all .md files
-            contents = repo.get_contents("")
-            while contents:
-                file_content = contents.pop(0)
-                if file_content.type == "dir":
-                    contents.extend(repo.get_contents(file_content.path))
-                elif file_content.name.endswith(".md"):
-                    local_path = vault_root / file_content.path
-                    local_path.parent.mkdir(parents=True, exist_ok=True)
+            # 2. Pull with rebase to avoid merge commits in the knowledge base
+            # We use -Xours to prefer local changes if there's a conflict during auto-sync
+            await self._run_git_command(["stash"], vault_root)
+            result = await self._run_git_command(["pull", "origin", "main", "--rebase", "-Xours"], vault_root)
+            await self._run_git_command(["stash", "pop"], vault_root)
+            
+            if "ERROR" in result:
+                # Try master if main fails
+                await self._run_git_command(["pull", "origin", "master", "--rebase", "-Xours"], vault_root)
 
-                    remote_bytes = file_content.decoded_content
-                    try:
-                        remote_text = remote_bytes.decode("utf-8")
-                    except UnicodeDecodeError:
-                        remote_text = remote_bytes.decode("utf-16")
-
-                    # Only write if different
-                    is_diff = (
-                        not local_path.exists() or
-                        local_path.read_text(encoding="utf-8", errors="ignore") != remote_text
-                    )
-                    if is_diff:
-                        local_path.write_text(remote_text, encoding="utf-8")
-                        log.info(f"Pulled file from GitHub: {file_content.path}")
-
+            log.info(f"Pull complete for {user_id}")
+            
             if self._vault_service:
-                await self._vault_service.initialize()
+                # Lighter reload: only parse files, don't rebuild all indices
+                await self._vault_service.reload_cache()
 
         except Exception as e:
-            err_msg = str(e)
-            if "403" in err_msg:
-                err_msg = "403 Forbidden: Token lacks scopes or rate limit exceeded."
-
+            log.error(f"Pull failed for {user_id}: {e}")
             if user_id in self.state:
-                self.state[user_id]["last_error"] = err_msg
-
-            log.error(f"Pull failed for {user_id}: {err_msg}")
+                self.state[user_id]["last_error"] = str(e)
 
     async def cleanup(self):
         self._is_running = False

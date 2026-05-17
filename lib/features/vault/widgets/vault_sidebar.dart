@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../screens/vault_screen.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../theme/paperclip_theme.dart';
 import '../../github/screens/github_screen.dart';
+
+
 
 class VaultSidebar extends ConsumerWidget {
   final bool showHeader;
@@ -19,11 +21,13 @@ class VaultSidebar extends ConsumerWidget {
     final s = ref.watch(vaultProvider);
     final n = ref.read(vaultProvider.notifier);
 
+    final isDrawer = onClose != null;
+
     return Container(
-      width: 260,
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(right: BorderSide(color: AppColors.border)),
+      width: isDrawer ? double.infinity : 260,
+      decoration: BoxDecoration(
+        color: PaperclipTheme.surfaceDark,
+        border: isDrawer ? null : const Border(right: BorderSide(color: PaperclipTheme.borderDark)),
       ),
       child: Column(
         children: [
@@ -33,11 +37,11 @@ class VaultSidebar extends ConsumerWidget {
               child: Row(
                 children: [
                   const Icon(Icons.edit_note_outlined,
-                      color: AppColors.accent, size: 16),
+                      color: PaperclipTheme.accentCyan, size: 16),
                   const SizedBox(width: 6),
                   const Text('Vault Explorer',
                       style: TextStyle(
-                        color: AppColors.textPrimary,
+                        color: PaperclipTheme.foregroundDark,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       )),
@@ -59,7 +63,7 @@ class VaultSidebar extends ConsumerWidget {
             child: TextField(
               onChanged: n.search,
               style:
-                  const TextStyle(color: AppColors.textPrimary, fontSize: 12),
+                  const TextStyle(color: PaperclipTheme.foregroundDark, fontSize: 12),
               decoration: const InputDecoration(
                 hintText: 'Search notes...',
                 isDense: true,
@@ -116,14 +120,14 @@ class _SharedFolderList extends StatelessWidget {
           return ListTile(
             dense: true,
             selected: active,
-            selectedTileColor: AppColors.accent.withOpacity(0.1),
+            selectedTileColor: PaperclipTheme.accentCyan.withOpacity(0.1),
             leading: Icon(icon,
                 size: 14,
-                color: active ? AppColors.accent : AppColors.textMuted),
+                color: active ? PaperclipTheme.accentCyan : PaperclipTheme.mutedFgDark),
             title: Text(f['name'] as String,
                 style: TextStyle(
                   fontSize: 11,
-                  color: active ? AppColors.accent : AppColors.textSecondary,
+                  color: active ? PaperclipTheme.accentCyan : PaperclipTheme.mutedDark,
                 )),
             onTap: () => notifier.setFolder(f['key'] as String),
           );
@@ -144,7 +148,7 @@ class _SharedNoteList extends StatelessWidget {
     if (state.notes.isEmpty)
       return const Center(
           child: Text('No notes',
-              style: TextStyle(fontSize: 11, color: AppColors.textMuted)));
+              style: TextStyle(fontSize: 11, color: PaperclipTheme.mutedFgDark)));
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -155,16 +159,16 @@ class _SharedNoteList extends StatelessWidget {
         return ListTile(
           dense: true,
           selected: active,
-          selectedTileColor: AppColors.accent.withOpacity(0.1),
+          selectedTileColor: PaperclipTheme.accentCyan.withOpacity(0.1),
           title: Text(note.title,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                color: active ? AppColors.accent : AppColors.textPrimary,
+                color: active ? PaperclipTheme.accentCyan : PaperclipTheme.foregroundDark,
               )),
           subtitle: Text(note.folder,
-              style: const TextStyle(fontSize: 9, color: AppColors.textMuted)),
+              style: const TextStyle(fontSize: 9, color: PaperclipTheme.mutedFgDark)),
           onTap: () => notifier.selectNote(note),
         );
       },

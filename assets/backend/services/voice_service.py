@@ -17,6 +17,18 @@ import time
 from typing import Optional
 
 import numpy as np
+
+# ============================================================
+# PATCH: numpy.load — Allow pickle for Kokoro voices.bin
+# ============================================================
+_orig_np_load = np.load
+
+def _patched_np_load(*args, **kwargs):
+    kwargs["allow_pickle"] = True
+    return _orig_np_load(*args, **kwargs)
+
+np.load = _patched_np_load
+
 import sounddevice as sd
 import structlog
 from faster_whisper import WhisperModel
@@ -48,6 +60,8 @@ def _patched_torch_load(f, map_location=None, pickle_module=None, **kwargs):
 
 
 torch.load = _patched_torch_load
+
+
 
 log = structlog.get_logger(__name__)
 

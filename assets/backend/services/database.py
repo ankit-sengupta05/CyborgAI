@@ -139,6 +139,10 @@ async def get_db() -> AsyncIterator[AsyncSession]:
 
 async def init_db():
     """Create all tables and optimize SQLite."""
+    # Import Company OS models to register them with Base.metadata
+    # This must happen before create_all so all tables are created
+    import services.company_os.models  # noqa: F401
+
     async with engine.begin() as conn:
         # Optimization for speed and concurrency
         await conn.execute(text("PRAGMA journal_mode=WAL;"))

@@ -13,6 +13,58 @@ class AppShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
+    final isMobile = Responsive.isMobile(context);
+
+    if (isMobile) {
+      return Scaffold(
+        key: GlobalKey<ScaffoldState>(),
+        backgroundColor: AppColors.backgroundMain,
+        appBar: AppBar(
+          toolbarHeight: 52,
+          backgroundColor: AppColors.backgroundSidebar,
+          title: Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  gradient: AppColors.accentGradient,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.android, color: Colors.white, size: 14),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'CYBORG',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2.0,
+                ),
+              ),
+            ],
+          ),
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu, size: 20),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
+          ),
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(1),
+            child: Divider(height: 1, color: AppColors.border),
+          ),
+        ),
+        drawer: Drawer(
+          width: 260,
+          backgroundColor: AppColors.backgroundSidebar,
+          child: _CyborgSidebar(currentLocation: location, isDrawer: true),
+        ),
+        body: child,
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.backgroundMain,
       body: Row(
@@ -29,7 +81,8 @@ class AppShell extends ConsumerWidget {
 
 class _CyborgSidebar extends ConsumerStatefulWidget {
   final String currentLocation;
-  const _CyborgSidebar({required this.currentLocation});
+  final bool isDrawer;
+  const _CyborgSidebar({required this.currentLocation, this.isDrawer = false});
 
   @override
   ConsumerState<_CyborgSidebar> createState() => _CyborgSidebarState();
@@ -73,7 +126,8 @@ class _CyborgSidebarState extends ConsumerState<_CyborgSidebar> {
   @override
   Widget build(BuildContext context) {
     final backendStatus = ref.watch(backendStatusProvider);
-    final w = _expanded ? 220.0 : 56.0;
+    final isExpanded = widget.isDrawer || _expanded;
+    final w = isExpanded ? (widget.isDrawer ? double.infinity : 220.0) : 56.0;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
@@ -83,28 +137,28 @@ class _CyborgSidebarState extends ConsumerState<_CyborgSidebar> {
       color: AppColors.backgroundSidebar,
       child: Column(
         children: [
-          _buildHeader(),
+          _buildHeader(isExpanded),
           const Divider(height: 1, color: AppColors.border),
           Expanded(
             child: ScrollConfiguration(
               behavior: const ScrollBehavior().copyWith(scrollbars: false),
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 4),
-                children: _buildNavItems(),
+                children: _buildNavItems(isExpanded),
               ),
             ),
           ),
           const Divider(height: 1, color: AppColors.border),
-          _buildFooter(backendStatus),
+          _buildFooter(backendStatus, isExpanded),
         ],
       ),
     );
   }
 
-  List<Widget> _buildNavItems() {
+  List<Widget> _buildNavItems(bool expanded) {
     final items = <Widget>[];
     for (final group in _navGroups) {
-      if (_expanded && group.label != null) {
+      if (expanded && group.label != null) {
         items.add(Padding(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
           child: Text(
@@ -117,7 +171,7 @@ class _CyborgSidebarState extends ConsumerState<_CyborgSidebar> {
             ),
           ),
         ));
-      } else if (!_expanded && group.label != null) {
+      } else if (!expanded && group.label != null) {
         items.add(const SizedBox(height: 3));
         items.add(Container(
           margin: const EdgeInsets.symmetric(horizontal: 12),
@@ -131,17 +185,22 @@ class _CyborgSidebarState extends ConsumerState<_CyborgSidebar> {
         items.add(_NavTile(
           item: item,
           isActive: isActive,
-          isExpanded: _expanded,
-          onTap: () => context.go(item.path),
+          isExpanded: expanded,
+          onTap: () {
+            context.go(item.path);
+            if (widget.isDrawer) Navigator.of(context).pop();
+          },
         ));
       }
     }
     return items;
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool expanded) {
     return GestureDetector(
-      onTap: () { if (!_expanded) setState(() => _expanded = true); },
+      onTap: () {
+        if (!expanded && !widget.isDrawer) setState(() => _expanded = true);
+      },
       child: Container(
         height: 52,
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -157,7 +216,7 @@ class _CyborgSidebarState extends ConsumerState<_CyborgSidebar> {
               ),
               child: const Icon(Icons.android, color: Colors.white, size: 17),
             ),
-            if (_expanded) ...[
+            if (expanded) ...[
               const SizedBox(width: 10),
               const Expanded(
                 child: Text(
@@ -171,10 +230,12 @@ class _CyborgSidebarState extends ConsumerState<_CyborgSidebar> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              GestureDetector(
-                onTap: () => setState(() => _expanded = false),
-                child: const Icon(Icons.chevron_left, color: AppColors.textTertiary, size: 18),
-              ),
+              if (!widget.isDrawer)
+                GestureDetector(
+                  onTap: () => setState(() => _expanded = false),
+                  child: const Icon(Icons.chevron_left,
+                      color: AppColors.textTertiary, size: 18),
+                ),
             ],
           ],
         ),
@@ -182,7 +243,7 @@ class _CyborgSidebarState extends ConsumerState<_CyborgSidebar> {
     );
   }
 
-  Widget _buildFooter(AsyncValue<BackendProgress> status) {
+  Widget _buildFooter(AsyncValue<BackendProgress> status, bool expanded) {
     final user = FirebaseAuth.instance.currentUser;
     final s = status.value?.status;
     final running = s == BackendStatus.running;
@@ -193,31 +254,42 @@ class _CyborgSidebarState extends ConsumerState<_CyborgSidebar> {
         s == BackendStatus.installingTorch ||
         s == BackendStatus.installingDeps;
     final cudaActive = status.value?.cudaActive ?? false;
-    final dotColor = running ? AppColors.accentGreen : starting ? AppColors.accentYellow : AppColors.accentRed;
+    final dotColor = running
+        ? AppColors.accentGreen
+        : starting ? AppColors.accentYellow : AppColors.accentRed;
 
     return Column(
       children: [
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: _expanded ? 14 : 0, vertical: 8),
+          padding:
+              EdgeInsets.symmetric(horizontal: expanded ? 14 : 0, vertical: 8),
           child: Row(
-            mainAxisAlignment: _expanded ? MainAxisAlignment.start : MainAxisAlignment.center,
+            mainAxisAlignment:
+                expanded ? MainAxisAlignment.start : MainAxisAlignment.center,
             children: [
               _StatusDot(color: dotColor, pulse: running),
-              if (_expanded) ...[
+              if (expanded) ...[
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    running ? 'Online' : starting ? 'Starting…' : 'Offline',
-                    style: TextStyle(fontSize: 11, color: dotColor, fontWeight: FontWeight.w600),
+                    running
+                        ? 'Online'
+                        : starting ? 'Starting…' : 'Offline',
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: dotColor,
+                        fontWeight: FontWeight.w600),
                   ),
                 ),
                 if (running)
-                  _MiniChip(label: cudaActive ? 'GPU' : 'CPU', color: cudaActive ? AppColors.accent : AppColors.textMuted),
+                  _MiniChip(
+                      label: cudaActive ? 'GPU' : 'CPU',
+                      color: cudaActive ? AppColors.accent : AppColors.textMuted),
               ],
             ],
           ),
         ),
-        _UserTile(user: user, expanded: _expanded),
+        _UserTile(user: user, expanded: expanded),
         const SizedBox(height: 6),
       ],
     );

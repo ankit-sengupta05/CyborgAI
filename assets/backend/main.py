@@ -6,6 +6,11 @@ if os.name == 'nt':
     try:
         from patch_windows import apply_patches
         apply_patches()
+        
+        # Disable telemetry for dependencies (Must be before other imports)
+        os.environ["CHROMA_TELEMETRY_DISABLE"] = "1"
+        os.environ["ANONYMIZED_TELEMETRY"] = "False"
+        os.environ["CHROMA_TELEMETRY_ENABLED"] = "0"
 
         # Safely wrap system streams
         import io
@@ -42,6 +47,8 @@ from api.routes import (
     voice,
     health_edu as health_edu_router,
     skills as skills_router,
+    company_os as company_os_router,
+    voice_agent as voice_agent_router,
 )
 from api.middleware.auth import FirebaseAuthMiddleware
 from services.database import init_db
@@ -58,6 +65,8 @@ from services.ingestion_service import IngestionService
 from services.rag_service import RAGService
 from services.chat_sync_service import ChatSyncService
 from services.skills_service import SkillsService
+from services.vector_db_service import VectorDBService
+from services.citation_engine import CitationEngine
 
 # Suppress pynvml deprecation warning from torch/cuda
 warnings.filterwarnings("ignore", category=FutureWarning, module="torch.cuda")
@@ -74,17 +83,13 @@ async def lifespan(app: FastAPI):
     await init_db()
     log.info("[OK] Database ready")
 
-    # LLM service (initialize in background for responsiveness)
+    # LLM service
     llm_svc = LLMService()
-    asyncio.create_task(llm_svc.initialize())
     app.state.llm_service = llm_svc
-    log.info("[WAIT] LLM service initializing in background...")
 
     # Embedding service
     embedding_svc = EmbeddingService()
-    asyncio.create_task(embedding_svc.initialize())
     app.state.embedding_service = embedding_svc
-    log.info("[WAIT] Embeddings initializing in background...")
 
     # Vault service (AI-OS markdown file system)
     vault_svc = VaultService()
@@ -92,68 +97,108 @@ async def lifespan(app: FastAPI):
     app.state.vault_service = vault_svc
     log.info("[OK] Vault ready")
 
+    # Full sync on startup (delayed to allow faster boot)
+    async def delayed_sync():
+        await asyncio.sleep(5)
+        try:
+            await vault_svc.rebuild_all_indices()
+        except Exception as e:
+            log.warning(f"Startup vault sync failed: {e}")
+    asyncio.create_task(delayed_sync())
+
     # Graph service (requires LLM for AI ingestion and Vault for storage)
     graph_svc = GraphService(embedding_svc, llm_svc, vault_svc)
     asyncio.create_task(graph_svc.initialize())
     app.state.graph_service = graph_svc
     log.info("[WAIT] Knowledge graph initializing in background...")
 
-    # RAG service (Active Retrieval-Augmented Generation)
-    rag_svc = RAGService(graph_svc, embedding_svc, vault_svc, llm_svc)
-    await rag_svc.initialize()
+    # Initialize independent services in parallel
+    log.info("[START] Parallelizing service boot...")
+    
+    # Vector DB service (ChromaDB for fast ANN search)
+    vector_db_svc = VectorDBService()
+    app.state.vector_db_service = vector_db_svc
+
+    # RAG service (Active Retrieval-Augmented Generation + Vector DB)
+    rag_svc = RAGService(graph_svc, embedding_svc, vault_svc, llm_svc, vector_db_svc)
     app.state.rag_service = rag_svc
-    log.info("[OK] RAG service ready")
 
     # Chat Sync service (auto-ingest chat to KG)
     chat_sync_svc = ChatSyncService(graph_svc, llm_svc, vault_svc)
-    await chat_sync_svc.start()
     app.state.chat_sync_service = chat_sync_svc
-    log.info("[OK] Chat sync service ready")
 
     # Skills service (dynamic skill creation & execution)
     skills_svc = SkillsService(llm_svc)
-    await skills_svc.initialize()
     app.state.skills_service = skills_svc
-    log.info("[OK] Skills service ready")
 
     # GitHub service (Sync & Integration)
     github_svc = GitHubService()
-    await github_svc.initialize(vault_svc)
     app.state.github_service = github_svc
-    log.info("[OK] GitHub ready")
 
     # World monitor service
     world_svc = WorldMonitorService()
     app.state.world_monitor_service = world_svc
-    log.info("[OK] World monitor ready")
 
-    # CodeFlow service
-    codeflow_svc = CodeFlowService()
-    app.state.codeflow_service = codeflow_svc
-    log.info("[OK] CodeFlow ready")
-
-    # GSD execution engine
-    gsd_eng = GSDEngine()
-    app.state.gsd_engine = gsd_eng
-    log.info("[OK] GSD engine ready")
-
-    # Voice service (initialize in background)
+    # Voice service
     voice_svc = VoiceService()
-    asyncio.create_task(voice_svc.initialize())
     app.state.voice_service = voice_svc
-    log.info("[WAIT] Voice service initializing in background...")
 
     # Ingestion service
-    ingestion_service = IngestionService(vault_svc, voice_svc)
-    await ingestion_service.initialize()
+    ingestion_service = IngestionService(vault_svc, voice_svc, graph_svc, llm_svc)
     app.state.ingestion_service = ingestion_service
-    log.info("[OK] Ingestion service ready")
 
-    # Inject app.state into cross-window tools so they can access services
+    # Execute all initializations concurrently in background to allow instant server boot
+    async def _initialize_all():
+        try:
+            log.info("[BOOT] Starting background service initialization...")
+            await asyncio.gather(
+                llm_svc.initialize(),
+                embedding_svc.initialize(),
+                vector_db_svc.initialize(),
+                rag_svc.initialize(),
+                chat_sync_svc.start(),
+                skills_svc.initialize(),
+                github_svc.initialize(vault_svc),
+                ingestion_service.initialize(),
+                voice_svc.initialize(),
+            )
+            
+            # Citation Engine (smart citation injection for knowledge queries)
+            app.state.citation_engine = CitationEngine(llm_svc)
+            
+            # CodeFlow service
+            app.state.codeflow_service = CodeFlowService()
+            
+            # GSD execution engine
+            app.state.gsd_engine = GSDEngine()
+            
+            # Company OS automation engine
+            from services.company_os import CompanyOSEngine
+            app.state.company_os_engine = CompanyOSEngine(llm_service=llm_svc)
+            app.state.company_os_engine.start()
+            
+            log.info("[OK] Background initialization complete")
+        except Exception as e:
+            log.error(f"[CRITICAL] Background initialization failed: {e}")
+
+    asyncio.create_task(_initialize_all())
+
+    # Background: sync KG nodes to VectorDB once graph is initialized
+    async def _sync_kg_to_vdb():
+        await asyncio.sleep(5)  # Reduced wait time
+        try:
+            await rag_svc.sync_all_nodes_to_vector_db()
+        except Exception as e:
+            log.warning(f"KG→VectorDB background sync failed: {e}")
+    asyncio.create_task(_sync_kg_to_vdb())
+
+    # Inject app.state into cross-window tools
     from agents.tools.window_tools import set_app_state as set_window_state
     from agents.tools.rag_tools import set_app_state as set_rag_state
+    from agents.tools.visual_tools import set_services as set_visual_services
     set_window_state(app.state)
     set_rag_state(app.state)
+    set_visual_services(llm_svc, app.state)
 
     log.info("[OK] All services ready", host=settings.host, port=settings.port)
     yield
@@ -166,6 +211,9 @@ async def lifespan(app: FastAPI):
         log.info("[SYNC] Syncing pending chats to Knowledge Graph...")
         await app.state.chat_sync_service.stop()
         log.info("[OK] Chat sync complete")
+        
+    if hasattr(app.state, "company_os_engine"):
+        await app.state.company_os_engine.stop()
 
     await world_svc.close()
     await llm_svc.cleanup()
@@ -221,6 +269,8 @@ def create_app() -> FastAPI:
     app.include_router(voice.router,               prefix="/api/v1/voice",        tags=["Voice"])
     app.include_router(health_edu_router.router,   prefix="/api/v1",              tags=["Health & Education"])
     app.include_router(skills_router.router,       prefix="/api/v1/skills",       tags=["Skills"])
+    app.include_router(company_os_router.router,    prefix="/api/v1",              tags=["Company OS"])
+    app.include_router(voice_agent_router.router,   prefix="/api/voice-agent",     tags=["Voice Agent"])
 
     @app.get("/api/v1/health")
     async def health():
@@ -238,16 +288,21 @@ def create_app() -> FastAPI:
             "version": settings.app_version,
             "llm_ready": llm_svc.is_ready,
             "cuda_active": llm_svc.cuda_active,
+            "supports_vision": llm_svc.supports_vision,
+            "mmproj_loaded": llm_svc.mmproj_path is not None,
             "voice_ready": voice_svc.is_ready,
             "rag_ready": rag_svc.is_ready,
             "chat_sync": chat_sync.get_sync_status(),
             "skills_count": len(app.state.skills_service.get_all_skills()),
+            "vector_db_ready": getattr(app.state, "vector_db_service", None) and app.state.vector_db_service.is_ready,
             "offline_mode": settings.offline_mode,
+            "lmstudio_dir_exists": settings.lmstudio_models_dir.exists(),
             "details": {
                 "llm": "Ready" if llm_svc.is_ready else "Initializing models...",
                 "voice": "Ready" if voice_svc.is_ready else "Loading Whisper/Kokoro...",
                 "rag": "Ready" if rag_svc.is_ready else "Initializing RAG...",
                 "chat_sync": "Running" if chat_sync._running else "Stopped",
+                "vector_db": "Ready" if getattr(app.state, "vector_db_service", None) and app.state.vector_db_service.is_ready else "Unavailable",
             }
         }
 

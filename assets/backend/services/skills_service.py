@@ -36,7 +36,7 @@ class Skill:
 
     def __init__(self, name: str, description: str, usage: str,
                  module_path: str, parameters: list[dict] = None,
-                 category: str = "general", auto_created: bool = False):
+                 category: str = "general", auto_created: bool = False, **kwargs):
         self.name = name
         self.description = description
         self.usage = usage
@@ -44,10 +44,10 @@ class Skill:
         self.parameters = parameters or []
         self.category = category
         self.auto_created = auto_created
-        self.is_active = True
-        self.created_at = None
-        self.last_used = None
-        self.use_count = 0
+        self.is_active = kwargs.get("is_active", True)
+        self.created_at = kwargs.get("created_at")
+        self.last_used = kwargs.get("last_used")
+        self.use_count = kwargs.get("use_count", 0)
 
     def to_dict(self) -> dict:
         return {
@@ -93,6 +93,7 @@ class SkillsService:
         self._skills: dict[str, Skill] = {}
         self._creation_tasks: dict[str, SkillCreationResult] = {}
         self._max_debug_iterations = 5
+        self._auto_gen_enabled = False # Default to disabled to prevent background noise
 
     async def initialize(self):
         """Discover and load existing skills."""
@@ -420,7 +421,7 @@ Requirements:
 Return ONLY the Python code, no markdown fences or explanations.'''
 
         try:
-            code = await self._llm.complete(prompt, temperature=0.3, max_tokens=2000)
+            code = await self._llm.complete(prompt, temperature=0.3, max_tokens=1024)
             # Clean up markdown fences if present
             code = code.strip()
             if code.startswith("```python"):
@@ -555,3 +556,81 @@ Make sure:
         """Get the status of a skill creation task."""
         result = self._creation_tasks.get(task_id)
         return result.to_dict() if result else None
+
+    async def auto_generate_skills(
+        self,
+        context: str = "",
+        recent_queries: list[str] = None,
+    ) -> list[dict]:
+        """
+        Auto-detect capability gaps and generate missing skills.
+
+        Analyses recent queries or a context string to identify tasks that
+        require new skills. Generates and registers each one automatically.
+
+        Args:
+            context: Free-form text describing what the user has been doing.
+            recent_queries: List of recent user messages for analysis.
+
+        Returns:
+            List of newly created skill dicts.
+        """
+        if not self._llm.is_ready or not self._auto_gen_enabled:
+            return []
+
+        # Build context for LLM analysis
+        existing_names = list(self._skills.keys())
+        query_sample = ""
+        if recent_queries:
+            query_sample = "\n".join(f"- {q}" for q in recent_queries[-10:])
+
+        prompt = f"""You are an AI OS skill manager. Based on the user's recent activity, \
+identify 1-3 SPECIFIC automation tasks that would benefit from a reusable Python skill.
+
+Existing skills: {', '.join(existing_names[:20]) if existing_names else 'none'}
+
+Recent user queries:
+{query_sample or context or 'No context provided'}
+
+Rules:
+- Only suggest skills NOT already in the existing list
+- Skills must be automatable with Python stdlib/pyautogui
+- Be specific (e.g. "summarize_text" not "general helper")
+- Return ONLY a JSON array of task descriptions, nothing else
+- Example: ["open calculator app", "search files by keyword"]
+- Return [] if no new skills are needed
+
+Response:"""
+
+        try:
+            response = await self._llm.complete(prompt, temperature=0.2, max_tokens=300)
+            import json, re
+            match = re.search(r"\[.*\]", response, re.DOTALL)
+            if not match:
+                return []
+            tasks = json.loads(match.group(0))
+            if not isinstance(tasks, list):
+                return []
+        except Exception as e:
+            log.warning(f"Auto skill analysis failed: {e}")
+            return []
+
+        created = []
+        for task_desc in tasks[:3]:  # Cap at 3 auto-generated skills per call
+            if not isinstance(task_desc, str) or not task_desc.strip():
+                continue
+            try:
+                log.info(f"Auto-generating skill for: {task_desc}")
+                result = await self.create_skill(task_desc)
+                if result.success and result.skill:
+                    created.append(result.skill.to_dict())
+                    log.info(f"Auto-generated skill: {result.skill.name}")
+            except Exception as e:
+                log.warning(f"Auto skill creation failed for '{task_desc}': {e}")
+
+        return created
+
+    def enable_auto_generation(self, enabled: bool = True):
+        """Toggle automatic skill generation."""
+        self._auto_gen_enabled = enabled
+        log.info(f"Auto skill generation {'enabled' if enabled else 'disabled'}")

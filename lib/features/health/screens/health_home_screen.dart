@@ -1,9 +1,45 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../theme/paperclip_theme.dart';
 import 'xray_analyzer_screen.dart';
+import '../../chat/screens/chat_screen.dart';
+
+// Local shim so existing AppColors references resolve without rewriting every line
+class AppColors {
+  static const Color backgroundMain    = PaperclipTheme.backgroundDark;
+  static const Color backgroundSidebar = PaperclipTheme.sidebarDark;
+  static const Color backgroundSurface = PaperclipTheme.surfaceDark;
+  static const Color backgroundInput   = PaperclipTheme.surfaceElevatedDark;
+  static const Color borderDefault     = PaperclipTheme.borderDark;
+  static const Color borderHover       = PaperclipTheme.borderBrightDark;
+  static const Color textPrimary       = PaperclipTheme.foregroundDark;
+  static const Color textSecondary     = PaperclipTheme.mutedDark;
+  static const Color textTertiary      = PaperclipTheme.mutedFgDark;
+  static const Color textMuted         = PaperclipTheme.mutedFgDark;
+  static const Color accentBlue        = PaperclipTheme.accentCyan;
+  static const Color accentBlueHover   = Color(0xFF00A0D6);
+  static const Color accent            = PaperclipTheme.accentCyan;
+  static const Color accentPurple      = PaperclipTheme.accentPurple;
+  static const Color accentGreen       = PaperclipTheme.accentGreen;
+  static const Color accentRed         = PaperclipTheme.accentRed;
+  static const Color accentOrange      = PaperclipTheme.accentAmber;
+  static const Color accentYellow      = PaperclipTheme.accentAmber;
+  static const Color success           = PaperclipTheme.accentGreen;
+  static const Color warning           = PaperclipTheme.accentAmber;
+  static const Color error             = PaperclipTheme.accentRed;
+  static const Color info              = PaperclipTheme.accentCyan;
+  static const Color surface           = PaperclipTheme.surfaceDark;
+  static const Color surfaceVariant    = PaperclipTheme.surfaceElevatedDark;
+  static const Color background        = PaperclipTheme.backgroundDark;
+  static const Color border            = PaperclipTheme.borderDark;
+  static const LinearGradient accentGradient = LinearGradient(
+    colors: [PaperclipTheme.accentGreen, PaperclipTheme.accentCyan],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+}
 
 /// Health Track Home Screen
-/// Entry point for MedGemma 4B medical assistance features
+/// Entry point for Gemma 4 medical assistance features
 class HealthHomeScreen extends StatelessWidget {
   const HealthHomeScreen({super.key});
 
@@ -12,7 +48,7 @@ class HealthHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundMain,
+      backgroundColor: PaperclipTheme.backgroundDark,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
@@ -34,29 +70,29 @@ class HealthHomeScreen extends StatelessWidget {
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Text('Health Track',
                     style: TextStyle(
-                        color: AppColors.textPrimary,
+                        color: PaperclipTheme.foregroundDark,
                         fontSize: 26,
                         fontWeight: FontWeight.w800)),
-                Text('MedGemma 4B · Offline Edge Deployment',
+                Text('Gemma 4 · Offline Edge Deployment',
                     style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: 13)),
+                        color: PaperclipTheme.mutedDark, fontSize: 13)),
               ]),
               const Spacer(),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                    color: AppColors.accentGreen.withOpacity(0.1),
+                    color: PaperclipTheme.accentGreen.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                        color: AppColors.accentGreen.withOpacity(0.4))),
+                        color: PaperclipTheme.accentGreen.withOpacity(0.4))),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   const Icon(Icons.wifi_off,
-                      color: AppColors.accentGreen, size: 13),
+                      color: PaperclipTheme.accentGreen, size: 13),
                   const SizedBox(width: 5),
                   Text('100% Offline',
                       style: TextStyle(
-                          color: AppColors.accentGreen,
+                          color: PaperclipTheme.accentGreen,
                           fontSize: 12,
                           fontWeight: FontWeight.w600)),
                 ]),
@@ -66,7 +102,7 @@ class HealthHomeScreen extends StatelessWidget {
             Text(
               'AI-assisted medical imaging analysis and patient education, optimized for offline edge deployment in low-resource settings.',
               style: TextStyle(
-                  color: AppColors.textSecondary, fontSize: 14, height: 1.5),
+                  color: PaperclipTheme.mutedDark, fontSize: 14, height: 1.5),
             ),
             const SizedBox(height: 32),
 
@@ -88,7 +124,7 @@ class HealthHomeScreen extends StatelessWidget {
                     description:
                         'Upload chest X-rays and receive AI-assisted analysis with plain-language explanations in multiple languages.',
                     tags: const [
-                      'MedGemma 4B',
+                      'Gemma 4',
                       'SigLIP Vision',
                       'Multilingual'
                     ],
@@ -108,7 +144,7 @@ class HealthHomeScreen extends StatelessWidget {
                       'Plain Language',
                       'EHR Integration'
                     ],
-                    onTap: () => _showComingSoon(context, 'Patient Educator'),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatScreen())),
                   ),
                   _FeatureCard(
                     icon: Icons.folder_special_outlined,
@@ -146,16 +182,16 @@ class HealthHomeScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.accentRed.withOpacity(0.06),
+                color: PaperclipTheme.accentRed.withOpacity(0.06),
                 borderRadius: BorderRadius.circular(10),
                 border:
-                    Border.all(color: AppColors.accentRed.withOpacity(0.25)),
+                    Border.all(color: PaperclipTheme.accentRed.withOpacity(0.25)),
               ),
               child: const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(Icons.shield_outlined,
-                        color: AppColors.accentRed, size: 18),
+                        color: PaperclipTheme.accentRed, size: 18),
                     SizedBox(width: 10),
                     Expanded(
                         child: Text(
@@ -163,7 +199,7 @@ class HealthHomeScreen extends StatelessWidget {
                       'They are NOT a substitute for professional medical diagnosis or treatment. '
                       'Always consult a qualified healthcare provider for medical decisions.',
                       style: TextStyle(
-                          color: AppColors.accentRed,
+                          color: PaperclipTheme.accentRed,
                           fontSize: 12,
                           height: 1.6),
                     )),
@@ -205,7 +241,7 @@ class HealthHomeScreen extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Performance Benchmarks',
           style: TextStyle(
-              color: AppColors.textPrimary,
+              color: PaperclipTheme.foregroundDark,
               fontSize: 14,
               fontWeight: FontWeight.w700)),
       const SizedBox(height: 12),
@@ -219,7 +255,7 @@ class HealthHomeScreen extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                            color: AppColors.backgroundSurface,
+                            color: PaperclipTheme.surfaceDark,
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                                 color:
@@ -234,12 +270,12 @@ class HealthHomeScreen extends StatelessWidget {
                                       fontWeight: FontWeight.w800)),
                               Text(s['label'] as String,
                                   style: const TextStyle(
-                                      color: AppColors.textPrimary,
+                                      color: PaperclipTheme.foregroundDark,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600)),
                               Text(s['sub'] as String,
                                   style: const TextStyle(
-                                      color: AppColors.textMuted,
+                                      color: PaperclipTheme.mutedFgDark,
                                       fontSize: 10)),
                             ]),
                       ),
@@ -252,7 +288,7 @@ class HealthHomeScreen extends StatelessWidget {
   void _showComingSoon(BuildContext context, String feature) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text('$feature — Coming Soon'),
-      backgroundColor: AppColors.backgroundSurface,
+      backgroundColor: PaperclipTheme.surfaceDark,
       behavior: SnackBarBehavior.floating,
     ));
   }
@@ -289,13 +325,13 @@ class _FeatureCardState extends State<_FeatureCard> {
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: _hovered
-                  ? AppColors.backgroundSurface.withOpacity(0.95)
-                  : AppColors.backgroundSurface,
+                  ? PaperclipTheme.surfaceDark.withOpacity(0.95)
+                  : PaperclipTheme.surfaceDark,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                   color: _hovered
                       ? widget.color.withOpacity(0.5)
-                      : AppColors.border),
+                      : PaperclipTheme.borderDark),
               boxShadow: _hovered
                   ? [
                       BoxShadow(
@@ -316,20 +352,20 @@ class _FeatureCardState extends State<_FeatureCard> {
                     child: Icon(widget.icon, color: widget.color, size: 20)),
                 const Spacer(),
                 Icon(Icons.arrow_forward_ios,
-                    color: _hovered ? widget.color : AppColors.textMuted,
+                    color: _hovered ? widget.color : PaperclipTheme.mutedFgDark,
                     size: 13),
               ]),
               const SizedBox(height: 12),
               Text(widget.title,
                   style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: PaperclipTheme.foregroundDark,
                       fontSize: 15,
                       fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               Expanded(
                   child: Text(widget.description,
                       style: const TextStyle(
-                          color: AppColors.textSecondary,
+                          color: PaperclipTheme.mutedDark,
                           fontSize: 12,
                           height: 1.5),
                       overflow: TextOverflow.fade)),

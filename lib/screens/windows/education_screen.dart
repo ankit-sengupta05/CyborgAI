@@ -614,7 +614,7 @@ class _EducationScreenState extends State<EducationScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.accentPurple.withOpacity(0.1),
+              color: AppColors.accentPurple.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppColors.accentPurple),
             ),

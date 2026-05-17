@@ -81,11 +81,13 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen>
             : _symptomsCtrl.text.trim(),
         language: _language,
       );
+      if (!mounted) return;
       setState(() => _result = r);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
-      setState(() => _analyzing = false);
+      if (mounted) setState(() => _analyzing = false);
     }
   }
 
@@ -309,7 +311,7 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen>
                   color: _healthBlue, size: 44)),
         ),
         const SizedBox(height: 20),
-        Text('MedGemma 4B',
+        Text('Gemma 4',
             style: TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 18,

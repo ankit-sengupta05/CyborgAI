@@ -9,9 +9,8 @@ import '../constants/api_constants.dart';
 import 'device_discovery_service.dart';
 
 // ── Provider ──────────────────────────────────────────────────────────────────
-final backendServiceProvider = Provider<BackendService>((ref) {
+final backendServiceProvider = StateNotifierProvider<BackendService, BackendProgress>((ref) {
   final svc = BackendService();
-  ref.onDispose(svc.dispose);
   return svc;
 });
 
@@ -46,42 +45,84 @@ class BackendProgress {
 }
 
 // ── Service ───────────────────────────────────────────────────────────────────
-class BackendService {
+class BackendService extends StateNotifier<BackendProgress> {
   Process? _backendProcess;
   BackendStatus _status = BackendStatus.stopped;
 
-  final _progressController = StreamController<BackendProgress>.broadcast();
-  BackendProgress _currentProgress = const BackendProgress(
-      BackendStatus.stopped, 'Offline', 0.0,
-      cudaActive: false, llmReady: false, voiceReady: false);
+  BackendService()
+      : super(const BackendProgress(BackendStatus.stopped, 'Offline', 0.0,
+            cudaActive: false, llmReady: false, voiceReady: false));
 
-  Stream<BackendProgress> get progressStream => _progressController.stream;
-  BackendProgress get currentProgress => _currentProgress;
+  // ── Legacy Compatibility Getters ──────────────────────────────────────────
+  BackendProgress get currentProgress => state;
+  Stream<BackendProgress> get progressStream => stream;
   BackendStatus get status => _status;
 
   final Dio _dio = Dio();
   final _discoveryResponder = CyborgDiscoveryResponder();
 
-  // ── Public entry point ─────────────────────────────────────────────────────
+  void _emit(BackendStatus status, String message, double progress,
+      {String details = '',
+      bool? cudaActive,
+      bool? llmReady,
+      bool? voiceReady}) {
+    _status = status;
+    state = BackendProgress(
+      status,
+      message,
+      progress,
+      details: details,
+      cudaActive: cudaActive ?? state.cudaActive,
+      llmReady: llmReady ?? state.llmReady,
+      voiceReady: voiceReady ?? state.voiceReady,
+    );
+    debugPrint('[Backend] $status: $message (${(progress * 100).toInt()}%)');
+  }
+
+  @override
+  void dispose() {
+    _backendProcess?.kill();
+    _discoveryResponder.stop();
+    super.dispose();
+  }
+
   Future<void> initialize() async {
     if (_status == BackendStatus.running) return;
 
     // Backend is Windows-only (local Python process).
     // On Android/iOS the app connects to a remote/cloud backend instead.
     if (!Platform.isWindows) {
-      _emit(BackendStatus.running, 'Remote backend mode (non-Windows platform)',
-          1.0);
+      _emit(BackendStatus.checkingEnv, 'Scanning for Windows Cyborg instance…',
+          0.1);
+      final discovery = DeviceDiscoveryService();
+      try {
+        final instanceUrl = await discovery.findWindowsCyborgInstance();
+        if (instanceUrl != null) {
+          _emit(BackendStatus.running,
+              'Connected to Windows Backend: $instanceUrl', 1.0);
+        } else {
+          _emit(BackendStatus.running,
+              'Stand-alone mode (Local LLM Active)', 1.0);
+        }
+      } catch (e) {
+        _emit(BackendStatus.running, 'Stand-alone mode (Local LLM Active)', 1.0);
+      } finally {
+        discovery.dispose();
+      }
       return;
     }
 
     _emit(BackendStatus.checkingEnv, 'Checking backend services…', 0.03);
 
-    // In debug mode, always kill existing backend to ensure code changes are applied
-    if (kDebugMode && Platform.isWindows) {
+    // Always kill existing backend to ensure code changes are applied and VRAM is freed
+    if (Platform.isWindows) {
       try {
         await Process.run('taskkill', ['/F', '/IM', 'python.exe', '/T']);
+        await Future.delayed(const Duration(milliseconds: 1500)); // Wait for VRAM/Ports to clear
       } catch (_) {}
-    } else if (await _isBackendAlive()) {
+    }
+
+    if (await _isBackendAlive()) {
       _emit(BackendStatus.running, 'Backend already running √', 1.0);
       return;
     }
@@ -265,6 +306,15 @@ class BackendService {
       },
     );
 
+    // Handle process exit
+    unawaited(_backendProcess!.exitCode.then((code) {
+      if (_status != BackendStatus.stopped) {
+        debugPrint('[Backend] Process exited with code $code');
+        _emit(BackendStatus.error, 'Backend process exited (code $code)', 0.0);
+        _status = BackendStatus.error;
+      }
+    }));
+
     // Watch stdout for startup confirmation
     _backendProcess!.stdout
         .transform(const Utf8Decoder(allowMalformed: true))
@@ -272,8 +322,8 @@ class BackendService {
         .listen((line) {
       debugPrint('[Backend] $line');
       if (_isServerReady(line)) {
-        _emit(BackendStatus.running, 'Backend online ✓', 1.0);
         _status = BackendStatus.running;
+        _emit(BackendStatus.running, 'Backend online ✓', 1.0);
       }
     });
 
@@ -283,8 +333,8 @@ class BackendService {
         .listen((line) {
       debugPrint('[Backend ERR] $line');
       if (_isServerReady(line)) {
-        _emit(BackendStatus.running, 'Backend online ✓', 1.0);
         _status = BackendStatus.running;
+        _emit(BackendStatus.running, 'Backend online ✓', 1.0);
       }
     });
 
@@ -295,53 +345,50 @@ class BackendService {
       line.contains('Uvicorn running') ||
       line.contains('Application startup complete') ||
       line.contains('started server process') ||
-      line.contains('Started server process');
+      line.contains('Started server process') ||
+      line.contains('All services ready');
 
   Future<void> _pollUntilAlive() async {
-    _emit(BackendStatus.starting, 'Waiting for backend to accept connections…',
-        0.65);
+    _emit(BackendStatus.starting, 'Waiting for backend to accept connections…', 0.65);
+    
     for (var i = 0; i < 600; i++) {
+      // If we already reached running status via stdout/stderr, stop polling
+      if (_status == BackendStatus.running) return;
+
       await Future.delayed(const Duration(milliseconds: 1000));
+      
+      // If we already reached running status via stdout/stderr, stop polling
+      if (_status == BackendStatus.running) return;
+
       if (await _isBackendAlive()) {
-        final ready = _currentProgress.llmReady && _currentProgress.voiceReady;
-        if (ready) {
-          _emit(BackendStatus.running, 'Backend online ✓', 1.0);
-          _status = BackendStatus.running;
-          // Start UDP discovery responder with LAN IP so remote devices can connect
-          _getLocalIp().then((lanIp) {
-            final discoveryUrl = lanIp != null
-                ? 'http://$lanIp:8765'
-                : ApiConstants.baseUrl.replaceAll('/api/v1/', '');
+        // FAIL-SAFE: If backend is alive, we transition to running.
+        // Even if LLM/Voice are still 'loading', the main app can handle it
+        // with its own local status indicators.
+        _emit(BackendStatus.running, 'Backend online ✓', 1.0);
+        _status = BackendStatus.running;
+        
+        // Start UDP discovery responder
+        _getLocalIp().then((lanIp) {
+          final discoveryUrl = lanIp != null
+              ? 'http://$lanIp:8765'
+              : ApiConstants.baseUrl.replaceAll('/api/v1/', '');
 
-            _discoveryResponder.start(apiBaseUrl: discoveryUrl).then((_) {
-              debugPrint(
-                  '[BackendService] Discovery responder active on UDP:17173 (announced: $discoveryUrl)');
-            });
+          _discoveryResponder.start(apiBaseUrl: discoveryUrl).then((_) {
+            debugPrint('[BackendService] Discovery responder active');
           });
-          return;
-        } else {
-          // Still loading models
-          String msg = 'Initializing components...';
-          String detailText = _currentProgress.details;
-
-          if (!_currentProgress.llmReady && !_currentProgress.voiceReady) {
-            msg = 'Loading LLM & Voice...';
-          } else if (!_currentProgress.llmReady) {
-            msg = 'Initializing LLM...';
-          } else if (!_currentProgress.voiceReady) {
-            msg = 'Initializing Voice...';
-          }
-
-          _emit(BackendStatus.starting, msg, 0.80 + (i / 600) * 0.15,
-              details: detailText);
-        }
+        });
+        return;
       } else {
-        final prog = 0.65 + (i / 600) * (0.75 - 0.65);
-        _emit(BackendStatus.starting, 'Starting up… (${i + 1}s)', prog);
+        // If we already reached running status, don't revert to starting
+        if (_status == BackendStatus.running) return;
+
+        // Backend not even accepting connections yet
+        final prog = 0.65 + (i / 600) * 0.15;
+        _emit(BackendStatus.starting, 'Starting server engine… (${i + 1}s)', prog);
       }
     }
-    _emit(
-        BackendStatus.error, 'Backend timed out — check logs/backend.log', 0.0);
+    
+    _emit(BackendStatus.error, 'Backend timed out — check logs/backend.log', 0.0);
     _status = BackendStatus.error;
   }
 
@@ -416,11 +463,11 @@ class BackendService {
         }
 
         // Update progress state with latest health info
-        if (_currentProgress.cudaActive != cuda ||
-            _currentProgress.llmReady != llm ||
-            _currentProgress.voiceReady != voice ||
-            _currentProgress.details != detailStr) {
-          _emit(_status, _currentProgress.message, _currentProgress.progress,
+        if (state.cudaActive != cuda ||
+            state.llmReady != llm ||
+            state.voiceReady != voice ||
+            state.details != detailStr) {
+          _emit(_status, state.message, state.progress,
               details: detailStr,
               cudaActive: cuda,
               llmReady: llm,
@@ -451,35 +498,10 @@ class BackendService {
     return null;
   }
 
-  // ── Emit helper ────────────────────────────────────────────────────────────
-  void _emit(BackendStatus status, String message, double progress,
-      {String? details, bool? cudaActive, bool? llmReady, bool? voiceReady}) {
-    _status = status;
-    final det = details ?? _currentProgress.details;
-    final cuda = cudaActive ?? _currentProgress.cudaActive;
-    final llm = llmReady ?? _currentProgress.llmReady;
-    final v = voiceReady ?? _currentProgress.voiceReady;
-
-    _currentProgress = BackendProgress(status, message, progress,
-        details: det, cudaActive: cuda, llmReady: llm, voiceReady: v);
-
-    if (!_progressController.isClosed) {
-      _progressController.add(_currentProgress);
-    }
-    debugPrint(
-        '[BackendService] $message ($det) (${(progress * 100).toStringAsFixed(0)}%) [CUDA: $cuda, LLM: $llm, Voice: $v]');
-  }
-
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   Future<void> stop() async {
     _backendProcess?.kill();
     _backendProcess = null;
     _emit(BackendStatus.stopped, 'Backend stopped', 0.0);
-  }
-
-  void dispose() {
-    stop();
-    _discoveryResponder.stop();
-    _progressController.close();
   }
 }

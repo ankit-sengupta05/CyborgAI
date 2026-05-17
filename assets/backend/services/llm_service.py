@@ -3,7 +3,7 @@ import asyncio
 import multiprocessing
 import structlog
 from pathlib import Path
-from typing import AsyncIterator, Optional
+from typing import AsyncIterator, Optional, AsyncIterator
 
 # Apply Windows-specific patches (Encoding, Stability)
 if os.name == 'nt':
@@ -29,11 +29,32 @@ if os.name == 'nt':
     _cuda_path = os.environ.get('CUDA_PATH')
     if _cuda_path:
         _bin_path = Path(_cuda_path) / "bin"
-        if _bin_path.exists():
+        _x64_path = _bin_path / "x64"
+        if _x64_path.exists():
+            try:
+                os.add_dll_directory(str(_x64_path))
+            except Exception:
+                pass
+        elif _bin_path.exists():
             try:
                 os.add_dll_directory(str(_bin_path))
             except Exception:
                 pass
+
+    # 3. Try llama-cpp-python lib directory (essential for bundled DLLs)
+    try:
+        # Check standard venv location first
+        _venv_llama_lib = Path(os.getcwd()) / ".venv" / "Lib" / "site-packages" / "llama_cpp" / "lib"
+        if _venv_llama_lib.exists():
+            os.add_dll_directory(str(_venv_llama_lib))
+        
+        # Fallback to importing (if it doesn't crash)
+        import llama_cpp
+        _llama_lib = Path(llama_cpp.__file__).parent / "lib"
+        if _llama_lib.exists() and str(_llama_lib) != str(_venv_llama_lib):
+            os.add_dll_directory(str(_llama_lib))
+    except Exception:
+        pass
 
 from huggingface_hub import hf_hub_download
 from config.settings import settings
@@ -56,6 +77,9 @@ class LLMService:
         self._interrupt_chat = False  # Flag to interrupt direct inference
         import threading
         self._inference_lock = threading.Lock()
+        
+        # New: Support for vision/multimodal if needed
+        self._mmproj_path: Optional[str] = None
 
     @property
     def is_ready(self) -> bool:
@@ -81,51 +105,75 @@ class LLMService:
         except Exception:
             return False
 
+    @property
+    def mmproj_path(self) -> Optional[str]:
+        return self._mmproj_path
+
+    @property
+    def supports_vision(self) -> bool:
+        return self._mmproj_path is not None
+
     # ── Startup ──────────────────────────────────────────────────────────────
 
     async def initialize(self) -> bool:
-        """Initialize the LLM service — try existing server first, then local models."""
+        """Initialize the LLM service — Local Gemma-4 first, then fallback to discovery/server."""
         self._is_ready = False
         self._current_model = None
         self._current_model_path = None
 
+        # ── Priority 1: Hard-coded Gemma-4 directory ──────────────────────────
+        gemma4_dir = settings.models_dir / "llm" / "gemma-4-E4B-it-GGUF"
+        if gemma4_dir.exists():
+            chat_models = [f for f in gemma4_dir.glob("*.gguf")
+                           if not any(x in f.name.lower() for x in ["mmproj", "clip", "projector"])]
+            if chat_models:
+                model_to_load = chat_models[0]
+                log.info(f"Auto-loading Gemma-4: {model_to_load.name}")
+                try:
+                    # Use load_model for robust auto-detection of mmproj and format
+                    await self.load_model(str(model_to_load.resolve()))
+                    if self._is_ready:
+                        return True
+                except Exception as e:
+                    log.error(f"Gemma-4 auto-load failed: {e}")
+
+        # ── Priority 2: External Server Fallback ──────────────────────────────
         if await self._try_connect_server():
             log.info("Connected to existing LLM server", url=settings.llm_server_url)
             return True
 
-        # Check for local models
-        all_models = list(settings.models_dir.rglob("*.gguf"))
+        # ── Priority 3: Generic local discovery ──────────────────────────────
+        all_files = list(settings.models_dir.rglob("*.gguf"))
+        all_models = [f for f in all_files if not any(x in f.name.lower() for x in ["mmproj", "clip", "projector"])]
 
         if not all_models:
-            log.info("No models found. Downloading Qwen2.5 1.5B Instruct...")
+            log.info("No LLM models found. Downloading default...")
             try:
                 model_path = await self._download_default_model()
                 if model_path:
                     await self.load_model(model_path)
             except Exception as e:
                 log.error(f"Failed to download default model: {e}")
-                log.warning("Please load a model manually in the Models tab")
         else:
-            # 1. Try to find the exact default model specified in settings
             default_match = next(
-                (m for m in all_models if settings.default_model.lower() in m.name.lower()),
-                None
+                (m for m in all_models if settings.default_model.lower() in m.name.lower()), None
             )
-
-            # 2. Fallback to Qwen if not found
-            qwen_match = next((m for m in all_models if "qwen" in m.name.lower()), None)
-
-            model_to_load = default_match or qwen_match or all_models[0]
+            instruct_match = next((m for m in all_models if any(x in m.name.lower() for x in ["instruct", "-it-", "chat"])), None)
+            model_to_load = default_match or instruct_match or all_models[0]
 
             log.info(f"Auto-loading model: {model_to_load.name}")
             try:
-                await self.load_model(str(model_to_load))
+                proj_files = [f for f in all_files if any(x in f.name.lower() for x in ["mmproj", "clip", "projector"])]
+                mmproj_path = None
+                if proj_files:
+                    match = next((p for p in proj_files if model_to_load.stem.lower() in p.name.lower()), proj_files[0])
+                    mmproj_path = str(match.resolve())
+                await self.load_model(str(model_to_load), mmproj_path=mmproj_path)
             except Exception as e:
                 log.error(f"Auto-load failed for {model_to_load.name}: {e}")
-                # Try any other model
-                if len(all_models) > 1:
-                    other_models = [m for m in all_models if m != model_to_load]
-                    await self.load_model(str(other_models[0]))
+                remaining = [m for m in all_models if m != model_to_load]
+                if remaining:
+                    await self.load_model(str(remaining[0]))
 
         return self._is_ready
 
@@ -199,7 +247,7 @@ class LLMService:
                 api_key="not-needed",
             )
             # Verify connectivity and model availability
-            models_page = await asyncio.wait_for(client.models.list(), timeout=2.0)
+            models_page = await asyncio.wait_for(client.models.list(), timeout=10.0)
             model_list = []
             async for m in models_page:
                 model_list.append(m)
@@ -214,37 +262,41 @@ class LLMService:
                             messages=[{"role": "user", "content": "hi"}],
                             max_tokens=1
                         ),
-                        timeout=3.0
+                        timeout=5.0
                     )
-                    self._client = client
-                    self._current_model = model_list[0].id
-                    self._is_ready = True
-                    self._server_running = True
-                    log.info(
-                        "Successfully connected to active LLM server",
-                        model=self._current_model
-                    )
-                    return True
                 except Exception as e:
                     log.warning(
-                        "LLM server responded but failed to generate completion. "
-                        "Might have no model loaded.",
+                        "LLM server responded but failed to generate completion (timeout or error). "
+                        "Assuming model is loaded anyway for slow visual models.",
                         error=str(e)
                     )
+                
+                self._client = client
+                self._current_model = model_list[0].id
+                self._is_ready = True
+                self._server_running = True
+                log.info(
+                    "Successfully connected to active LLM server",
+                    model=self._current_model
+                )
+                return True
             else:
                 log.warning("LLM server found but no models are available.")
         except Exception as e:
-            log.debug("No existing LLM server found or connection failed", error=str(e))
+            log.warning("LLM server connection failed", error=str(e), url=settings.llm_server_url)
         return False
 
     # ── Model loading ─────────────────────────────────────────────────────────
 
     async def load_model(
-        self, model_path: str, n_ctx: int = 4096, n_gpu_layers: int = -1,
+        self, model_path: str, n_ctx: Optional[int] = None, n_gpu_layers: int = -1,
         n_threads: Optional[int] = None, n_batch: int = 512,
-        quantization: int = 0  # 0=None, 4=4bit, 8=8bit
+        quantization: int = 0, mmproj_path: Optional[str] = None
     ):
         async with self._lock:
+            if n_ctx is None:
+                n_ctx = settings.context_length
+
             # Explicitly unload previous model to free VRAM
             if self._llm:
                 log.info(f"Unloading previous model: {self._current_model}")
@@ -262,7 +314,7 @@ class LLMService:
                 await self._load_transformers_model(model_path, quantization)
             else:
                 self._model_type = 'gguf'
-                await self._load_gguf_model(model_path, n_ctx, n_gpu_layers, n_threads, n_batch)
+                await self._load_gguf_model(model_path, n_ctx, n_gpu_layers, n_threads, n_batch, mmproj_path)
 
     async def _load_transformers_model(self, model_path: str, quantization: int):
         try:
@@ -310,8 +362,9 @@ class LLMService:
             raise
 
     async def _load_gguf_model(
-        self, model_path: str, n_ctx: int = 4096, n_gpu_layers: int = -1,
-        n_threads: Optional[int] = None, n_batch: int = 512
+        self, model_path: str, n_ctx: int = 8192, n_gpu_layers: int = -1,
+        n_threads: Optional[int] = None, n_batch: int = 512,
+        mmproj_path: Optional[str] = None
     ):
             try:
                 import llama_cpp
@@ -327,15 +380,91 @@ class LLMService:
                     cpu_cores = multiprocessing.cpu_count()
                     threads = n_threads or min(8, max(4, cpu_cores // 2))
 
-                    # Full offload for maximum speed (now safe due to serialization lock)
-                    gpu_layers = -1 if use_gpu else 0
+                    # Full GPU offload for maximum speed if requested
+                    gpu_layers = n_gpu_layers if n_gpu_layers >= 0 else (-1 if use_gpu else 0)
 
-                    # Safe context window for Qwen 1.5B
-                    context_size = 4096
+                    # Use the requested context size (not hardcoded)
+                    context_size = n_ctx
+
+                    # Optimized batch size for RTX 5060/4060 (8GB VRAM)
+                    # 1024 allows much faster prompt processing (TTFT) for RAG contexts
+                    batch_size = 1024
 
                     log.info(
-                        f"HIGH SPEED RESTORE: GPU={use_gpu}, threads={threads}, ctx={context_size}"
+                        f"LLM CONFIG: gpu_layers={gpu_layers}, threads={threads}, "
+                        f"ctx={context_size}, n_batch={batch_size}"
                     )
+
+                    # Vision support via chat handler
+                    actual_mmproj = mmproj_path
+                    if not actual_mmproj:
+                        # Auto-detect projector in the same directory as the model
+                        # Auto-detect projector: search model dir, then global models dir
+                        model_dir = Path(model_path).parent
+                        log.info(f"Scanning for vision projector in: {model_dir}")
+                        
+                        patterns = ["*mmproj*.gguf", "*clip*.gguf"]
+                        proj_files = []
+                        for pat in patterns:
+                            proj_files.extend(list(model_dir.rglob(pat)))
+                        
+                        if not proj_files:
+                            log.info(f"Projector not found in model dir, searching global models dir: {settings.models_dir}")
+                            for pat in patterns:
+                                proj_files.extend(list(settings.models_dir.rglob(pat)))
+                        
+                        # Filter out directories and keep unique paths
+                        proj_files = list(set([f.resolve() for f in proj_files if f.is_file()]))
+                        
+                        if proj_files:
+                            actual_mmproj = str(proj_files[0])
+                            log.info(f"Auto-detected vision projector: {Path(actual_mmproj).name}")
+
+                    chat_handler = None
+                    if actual_mmproj:
+                        try:
+                            from llama_cpp.llama_chat_format import Llava15ChatHandler
+                            
+                            is_gemma = "gemma" in model_path.lower()
+                            
+                            if is_gemma:
+                                class GemmaVisionChatHandler(Llava15ChatHandler):
+                                    CHAT_FORMAT = (
+                                        "{% for message in messages %}"
+                                        "{% if message.role == 'system' %}<start_of_turn>system\n{{ message.content }}<end_of_turn>\n{% endif %}"
+                                        "{% if message.role == 'user' %}<start_of_turn>user\n"
+                                        "{% if message.content is string %}{{ message.content }}"
+                                        "{% else %}"
+                                        "{% for content in message.content %}"
+                                        "{% if content.type == 'image_url' and content.image_url is string %}{{ content.image_url }}\n{% endif %}"
+                                        "{% if content.type == 'image_url' and content.image_url is mapping %}{{ content.image_url.url }}\n{% endif %}"
+                                        "{% endfor %}"
+                                        "{% for content in message.content %}"
+                                        "{% if content.type == 'text' %}{{ content.text }}{% endif %}"
+                                        "{% endfor %}"
+                                        "{% endif %}"
+                                        "<end_of_turn>\n{% endif %}"
+                                        "{% if message.role == 'assistant' and message.content is not none %}<start_of_turn>model\n{{ message.content }}<end_of_turn>\n{% endif %}"
+                                        "{% endfor %}"
+                                        "{% if add_generation_prompt %}<start_of_turn>model\n{% endif %}"
+                                    )
+                                chat_handler = GemmaVisionChatHandler(clip_model_path=actual_mmproj, verbose=False)
+                                log.info(f"Vision projector active: {Path(actual_mmproj).name} (Gemma format)")
+                            else:
+                                chat_handler = Llava15ChatHandler(clip_model_path=actual_mmproj, verbose=False)
+                                log.info(f"Vision projector active: {Path(actual_mmproj).name}")
+                        except Exception as e:
+                            log.warning(f"Failed to load vision projector: {e}")
+
+                    # Intelligent chat format detection
+                    fmt = "chatml"
+                    is_gemma = "gemma" in model_path.lower()
+                    if actual_mmproj:
+                        fmt = "gemma" if is_gemma else "llava-1-5"
+                    elif is_gemma:
+                        fmt = "gemma"
+                    elif "llama-3" in model_path.lower():
+                        fmt = "llama-3"
 
                     llm = Llama(
                         model_path=model_path,
@@ -343,28 +472,34 @@ class LLMService:
                         n_gpu_layers=gpu_layers,
                         n_threads=threads,
                         n_threads_batch=threads,
-                        n_batch=512,                 # Restore fast batching
-                        flash_attn=False,
-                        use_mmap=False,
+                        n_batch=batch_size,
+                        n_ubatch=batch_size,  # Match batch size for maximum GPU saturation during image eval
+                        flash_attn=gpu_layers != 0,
+                        use_mmap=True,
                         use_mlock=False,
+                        offload_kqv=gpu_layers != 0,  # Offload KV cache to GPU
+                        type_k=8,  # Q8_0 KV cache quantization (saves VRAM, prevents CPU fallback)
+                        type_v=8,  # Q8_0 KV cache quantization
                         logits_all=False,
                         verbose=False,
-                        chat_format="chatml",
+                        chat_format=fmt,
+                        chat_handler=chat_handler,
                     )
-                    return llm, gpu_layers
+                    return llm, gpu_layers, actual_mmproj
 
                 try:
-                    self._llm, actual_gpu_layers = await asyncio.get_event_loop().run_in_executor(
+                    self._llm, actual_gpu_layers, final_mmproj = await asyncio.get_event_loop().run_in_executor(
                         None, lambda: init_llama(use_gpu=True)
                     )
                 except Exception as e:
                     log.warning(f"GPU load failed, retrying on CPU: {e}")
-                    self._llm, actual_gpu_layers = await asyncio.get_event_loop().run_in_executor(
+                    self._llm, actual_gpu_layers, final_mmproj = await asyncio.get_event_loop().run_in_executor(
                         None, lambda: init_llama(use_gpu=False)
                     )
 
                 self._current_model = Path(model_path).stem
                 self._current_model_path = model_path
+                self._mmproj_path = final_mmproj
                 self._is_ready = True
 
                 # Verify CUDA status and log configuration
@@ -372,7 +507,7 @@ class LLMService:
                 log.info(
                     f"Model loaded: {self._current_model}",
                     cuda_supported=cuda_supported,
-                    n_ctx=4096,
+                    n_ctx=n_ctx,
                     n_gpu_layers=actual_gpu_layers if cuda_supported else 0
                 )
             except ImportError:
@@ -402,8 +537,11 @@ class LLMService:
         max_tokens: int = 2048,
     ) -> AsyncIterator[str]:
         self._interrupt_chat = False  # Reset interrupt flag
-        if model == "Auto":
-            model = None
+        # If we are currently loading a model, wait for it
+        if self._lock.locked():
+            log.info("Chat requested while model is loading, waiting...")
+            async with self._lock:
+                pass # Just wait for the lock to release
 
         use_direct = self._llm is not None and (not model or model == self._current_model)
 
@@ -418,7 +556,7 @@ class LLMService:
             async for tok in self._stream_via_server(messages, model, temperature, max_tokens):
                 yield tok
         else:
-            yield "⚠️ No LLM loaded. Please load a model in the Models tab."
+            yield "⚠️ No LLM loaded and no server connected. Please load a model in the Models tab."
 
     async def _stream_via_server(
         self, messages, model, temperature, max_tokens
@@ -509,35 +647,75 @@ class LLMService:
                 # Serialization lock to prevent concurrent CUDA access
                 with self._inference_lock:
                     log.debug("Sending messages to Llama", count=len(messages))
-                    # Log last message for context
-                    if messages:
-                        log.debug("Chat", r=messages[-1]["role"], c=messages[-1]["content"][:20])
+                    
+                    # 1. Clean history: Strip images from past turns, only keep current image
+                    clean_messages = []
+                    has_images = False
+                    
+                    for idx, msg in enumerate(messages):
+                        if isinstance(msg.get("content"), list):
+                            new_content = []
+                            for part in msg["content"]:
+                                if isinstance(part, dict) and part.get("type") == "image_url":
+                                    # Only evaluate image if it's in the very last message
+                                    if idx == len(messages) - 1:
+                                        new_content.append(part)
+                                        has_images = True
+                                    else:
+                                        # Replace old images with a lightweight text marker
+                                        new_content.append({"type": "text", "text": "[Image uploaded in previous turn]"})
+                                else:
+                                    new_content.append(part)
+                                    
+                            # If all parts are text, flatten to string to prevent format handler confusion
+                            if all(isinstance(p, dict) and p.get("type") == "text" for p in new_content):
+                                text_only = "\n".join(p.get("text", "") for p in new_content)
+                                clean_messages.append({"role": msg["role"], "content": text_only})
+                            else:
+                                clean_messages.append({"role": msg["role"], "content": new_content})
+                        else:
+                            clean_messages.append(msg)
 
-                    stream = self._llm.create_chat_completion(
-                        messages=messages,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                        stream=True,
-                        stop=["<|im_end|>", "<|endoftext|>"],
-                        repeat_penalty=1.1,
-                        top_p=0.9,
-                        top_k=40,
-                    )
+                    if clean_messages:
+                        log.debug("Chat", r=clean_messages[-1]["role"], c=str(clean_messages[-1]["content"])[:50])
 
-                    token_count = 0
-                    for chunk in stream:
-                        if self._interrupt_chat:
-                            log.info("Inference interrupted")
-                            break
-                        delta = chunk["choices"][0]["delta"].get("content", "")
-                        if delta:
-                            token_count += 1
-                            if token_count % 10 == 0:
-                                log.debug(f"Generated {token_count} tokens...")
-                            loop.call_soon_threadsafe(queue.put_nowait, delta)
+                    # 2. Prevent Llava15ChatHandler from resetting KV cache on text queries
+                    original_handler = getattr(self._llm, "chat_handler", None)
+                    if not has_images and original_handler is not None:
+                        self._llm.chat_handler = None
+                        log.debug("Disabled vision handler for text-only query (preserves KV cache)")
 
-                    log.debug("Stream finished", total_tokens=token_count)
-                    loop.call_soon_threadsafe(queue.put_nowait, None)
+                    try:
+                        stream = self._llm.create_chat_completion(
+                            messages=clean_messages,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                            stream=True,
+                            stop=["<|im_end|>", "<|endoftext|>", "<end_of_turn>", "<eos>", "<|eot_id|>", "<|end_of_text|>"],
+                            repeat_penalty=1.1,
+                            top_p=0.9,
+                            top_k=40,
+                        )
+
+                        token_count = 0
+                        for chunk in stream:
+                            if self._interrupt_chat:
+                                log.info("Inference interrupted")
+                                break
+                            delta = chunk["choices"][0]["delta"].get("content", "")
+                            if delta:
+                                token_count += 1
+                                if token_count % 10 == 0:
+                                    log.debug(f"Generated {token_count} tokens...")
+                                loop.call_soon_threadsafe(queue.put_nowait, delta)
+
+                        log.debug("Stream finished", total_tokens=token_count)
+                        loop.call_soon_threadsafe(queue.put_nowait, None)
+                    finally:
+                        # 3. Restore the vision handler for future image uploads
+                        if not has_images and original_handler is not None:
+                            self._llm.chat_handler = original_handler
+
             except Exception as e:
                 log.error("Inference thread crashed", error=str(e))
                 loop.call_soon_threadsafe(queue.put_nowait, Exception(str(e)))
@@ -557,6 +735,79 @@ class LLMService:
         """Stop current inference loop."""
         self._interrupt_chat = True
         log.info("LLM inference interrupted")
+
+    # ── Multimodal streaming ──────────────────────────────────────────────────
+
+    async def stream_chat_multimodal(
+        self,
+        text_prompt: str,
+        image_paths: list[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 2048,
+    ) -> AsyncIterator[str]:
+        """
+        Stream a multimodal chat response.
+        - If vision projector (mmproj) is loaded and image_paths provided,
+          uses LLaVA-style image+text message format.
+        - Otherwise falls back to plain text streaming.
+        """
+        self._interrupt_chat = False
+        image_paths = image_paths or []
+
+        # Build multimodal message if images provided and vision supported
+        if image_paths and self._llm is not None and self._mmproj_path:
+            messages = await self._build_vision_messages(text_prompt, image_paths)
+            async for tok in self._stream_direct_gguf(messages, temperature, max_tokens):
+                yield tok
+        elif self._client:
+            # Server-side multimodal (e.g. LM Studio with vision model)
+            # Build OpenAI-style multimodal messages
+            mm_messages = await self._build_vision_messages(text_prompt, image_paths)
+            async for tok in self._stream_via_server(
+                mm_messages,
+                None, temperature, max_tokens
+            ):
+                yield tok
+        elif self._llm is not None:
+            # Plain text fallback if no vision projector
+            async for tok in self._stream_direct_gguf(
+                [{"role": "user", "content": text_prompt}],
+                temperature, max_tokens
+            ):
+                yield tok
+        else:
+            yield "⚠️ No LLM loaded. Please load a model in the Models tab."
+
+    async def _build_vision_messages(self, prompt: str, image_paths: list[str]) -> list[dict]:
+        """Build LLaVA-style message list with base64-encoded images."""
+        import base64
+
+        content_parts = []
+        for img_path in image_paths:
+            try:
+                path = Path(img_path)
+                if not path.exists():
+                    continue
+                ext = path.suffix.lower().lstrip('.')
+                mime = {
+                    'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+                    'png': 'image/png', 'gif': 'image/gif',
+                    'webp': 'image/webp', 'bmp': 'image/bmp',
+                }.get(ext, 'image/jpeg')
+
+                with open(img_path, 'rb') as f:
+                    b64 = base64.b64encode(f.read()).decode('utf-8')
+
+                content_parts.append({
+                    'type': 'image_url',
+                    'image_url': {'url': f'data:{mime};base64,{b64}'},
+                })
+            except Exception as e:
+                log.warning(f"Failed to encode image {img_path}: {e}")
+
+        content_parts.append({'type': 'text', 'text': prompt})
+
+        return [{'role': 'user', 'content': content_parts}]
 
     # ── Non-streaming complete ─────────────────────────────────────────────────
 

@@ -3,10 +3,24 @@ System API Routes — metrics, config, device management
 """
 import platform
 import structlog
+import json
+import os
 from fastapi import APIRouter
+from pydantic import BaseModel
 
 log = structlog.get_logger(__name__)
 router = APIRouter()
+
+CRED_FILE = "data/social_credentials.json"
+
+class CredentialsUpdate(BaseModel):
+    twitter_username: str = ""
+    twitter_password: str = ""
+    instagram_username: str = ""
+    instagram_password: str = ""
+    facebook_username: str = ""
+    facebook_password: str = ""
+
 
 
 @router.get("/metrics")
@@ -133,3 +147,50 @@ async def list_processes():
         return {"processes": procs}
     except ImportError:
         return {"processes": []}
+
+
+@router.get("/credentials")
+async def get_credentials():
+    """Get saved social media credentials (passwords masked)."""
+    if not os.path.exists(CRED_FILE):
+        return {}
+    try:
+        with open(CRED_FILE, "r") as f:
+            data = json.load(f)
+            # Mask passwords
+            return {
+                "twitter_username": data.get("twitter_username", ""),
+                "twitter_password": "***" if data.get("twitter_password") else "",
+                "instagram_username": data.get("instagram_username", ""),
+                "instagram_password": "***" if data.get("instagram_password") else "",
+                "facebook_username": data.get("facebook_username", ""),
+                "facebook_password": "***" if data.get("facebook_password") else "",
+            }
+    except Exception:
+        return {}
+
+@router.post("/credentials")
+async def save_credentials(creds: CredentialsUpdate):
+    """Save social media credentials."""
+    os.makedirs(os.path.dirname(CRED_FILE), exist_ok=True)
+    
+    # Load existing to preserve unchanged fields if they come in as '***'
+    existing = {}
+    if os.path.exists(CRED_FILE):
+        try:
+            with open(CRED_FILE, "r") as f:
+                existing = json.load(f)
+        except:
+            pass
+            
+    updates = creds.model_dump()
+    for k, v in updates.items():
+        if v == "***":
+            updates[k] = existing.get(k, "")
+            
+    try:
+        with open(CRED_FILE, "w") as f:
+            json.dump(updates, f)
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

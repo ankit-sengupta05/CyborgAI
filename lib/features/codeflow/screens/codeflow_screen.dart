@@ -1,9 +1,40 @@
 import 'package:flutter/material.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/services/api_service.dart';
+
+class CodeFlowColors {
+  static const Color backgroundMain = Color(0xFF18181B);
+  static const Color backgroundSidebar = Color(0xFF202022);
+  static const Color backgroundSurface = Color(0xFF27272A);
+  static const Color backgroundInput = Color(0xFF3F3F46);
+  static const Color borderDefault = Color(0xFF3F3F46);
+  static const Color borderHover = Color(0xFF52525B);
+  static const Color textPrimary = Color(0xFFFAFAFA);
+  static const Color textSecondary = Color(0xFFA1A1AA);
+  static const Color textTertiary = Color(0xFF71717A);
+  static const Color accentBlue = Color(0xFF3B82F6);
+  static const Color accentBlueHover = Color(0xFF2563EB);
+  static const Color accent = Color(0xFF3B82F6);
+  static const Color accentPurple = Color(0xFF8B5CF6);
+  static const Color accentGreen = Color(0xFF10B981);
+  static const Color accentRed = Color(0xFFEF4444);
+  static const Color accentOrange = Color(0xFFF97316);
+  static const Color accentYellow = Color(0xFFF59E0B);
+  static const Color success = Color(0xFF10B981);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color error = Color(0xFFEF4444);
+  static const Color info = Color(0xFF3B82F6);
+  static const Color surface = Color(0xFF27272A);
+  static const Color surfaceVariant = Color(0xFF27272A);
+  static const Color background = Color(0xFF18181B);
+  static const Color border = Color(0xFF3F3F46);
+  static const Color textMuted = Color(0xFF71717A);
+}
+
 
 // ── Models ────────────────────────────────────────────────────────────────────
 class CodeNode {
@@ -164,14 +195,14 @@ class _CodeFlowScreenState extends ConsumerState<CodeFlowScreen> {
       Container(
         height: 52,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        color: AppColors.surface,
+        color: CodeFlowColors.surface,
         child: Row(children: [
           const Icon(Icons.code_outlined,
-              color: AppColors.accentPurple, size: 18),
+              color: CodeFlowColors.accentPurple, size: 18),
           const SizedBox(width: 8),
           const Text('CodeFlow',
               style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: CodeFlowColors.textPrimary,
                   fontSize: 15,
                   fontWeight: FontWeight.w600)),
           if (s.analysis != null) ...[
@@ -181,11 +212,11 @@ class _CodeFlowScreenState extends ConsumerState<CodeFlowScreen> {
             Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant,
+                    color: CodeFlowColors.surfaceVariant,
                     borderRadius: BorderRadius.circular(12)),
                 child: Text('${s.analysis!.nodes.length} nodes',
                     style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 11))),
+                        color: CodeFlowColors.textSecondary, fontSize: 11))),
           ],
           const Spacer(),
           SizedBox(
@@ -193,7 +224,7 @@ class _CodeFlowScreenState extends ConsumerState<CodeFlowScreen> {
               child: TextField(
                 controller: _pathController,
                 style:
-                    const TextStyle(color: AppColors.textPrimary, fontSize: 12),
+                    const TextStyle(color: CodeFlowColors.textPrimary, fontSize: 12),
                 decoration: const InputDecoration(
                     hintText: '/path/to/project',
                     isDense: true,
@@ -210,7 +241,7 @@ class _CodeFlowScreenState extends ConsumerState<CodeFlowScreen> {
             style: ElevatedButton.styleFrom(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                backgroundColor: AppColors.accentPurple),
+                backgroundColor: CodeFlowColors.accentPurple),
             child: s.loading
                 ? const SizedBox(
                     width: 14,
@@ -231,9 +262,9 @@ class _CodeFlowScreenState extends ConsumerState<CodeFlowScreen> {
                 Container(
                   width: 260,
                   decoration: const BoxDecoration(
-                      color: AppColors.surface,
+                      color: CodeFlowColors.surface,
                       border:
-                          Border(right: BorderSide(color: AppColors.border))),
+                          Border(right: BorderSide(color: CodeFlowColors.border))),
                   child: Column(children: [
                     Padding(
                         padding: const EdgeInsets.all(8),
@@ -241,7 +272,7 @@ class _CodeFlowScreenState extends ConsumerState<CodeFlowScreen> {
                           controller: _searchController,
                           onChanged: (v) => setState(() => _search = v),
                           style: const TextStyle(
-                              color: AppColors.textPrimary, fontSize: 12),
+                              color: CodeFlowColors.textPrimary, fontSize: 12),
                           decoration: const InputDecoration(
                               hintText: 'Filter files...',
                               isDense: true,
@@ -278,10 +309,10 @@ class _HealthBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = score > 80
-        ? AppColors.accentGreen
+        ? CodeFlowColors.accentGreen
         : score > 60
-            ? AppColors.accentYellow
-            : AppColors.accentRed;
+            ? CodeFlowColors.accentYellow
+            : CodeFlowColors.accentRed;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
@@ -312,8 +343,8 @@ class _FilterRow extends StatelessWidget {
             child: DropdownButton<String>(
           value: state.filterKind,
           isExpanded: true,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
-          dropdownColor: AppColors.surfaceVariant,
+          style: const TextStyle(color: CodeFlowColors.textSecondary, fontSize: 11),
+          dropdownColor: CodeFlowColors.surfaceVariant,
           underline: const SizedBox(),
           items: const ['all', 'file', 'class', 'function']
               .map((k) => DropdownMenuItem(value: k, child: Text(k)))
@@ -327,8 +358,8 @@ class _FilterRow extends StatelessWidget {
             child: DropdownButton<String>(
           value: state.filterLang,
           isExpanded: true,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
-          dropdownColor: AppColors.surfaceVariant,
+          style: const TextStyle(color: CodeFlowColors.textSecondary, fontSize: 11),
+          dropdownColor: CodeFlowColors.surfaceVariant,
           underline: const SizedBox(),
           items: const ['all', 'python', 'dart', 'javascript', 'typescript']
               .map((l) => DropdownMenuItem(value: l, child: Text(l)))
@@ -384,23 +415,23 @@ class _NodeList extends StatelessWidget {
       itemBuilder: (_, i) {
         final n = filtered[i];
         final isSelected = n.id == selectedId;
-        final langColor = _langColors[n.language] ?? AppColors.textMuted;
+        final langColor = _langColors[n.language] ?? CodeFlowColors.textMuted;
         return ListTile(
           dense: true,
           selected: isSelected,
-          selectedTileColor: AppColors.accent.withOpacity(0.1),
+          selectedTileColor: CodeFlowColors.accent.withOpacity(0.1),
           leading: Icon(_kindIcons[n.kind] ?? Icons.circle,
               size: 15,
-              color: isSelected ? AppColors.accent : AppColors.textSecondary),
+              color: isSelected ? CodeFlowColors.accent : CodeFlowColors.textSecondary),
           title: Text(n.name,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                   fontSize: 12,
                   color:
-                      isSelected ? AppColors.accent : AppColors.textPrimary)),
+                      isSelected ? CodeFlowColors.accent : CodeFlowColors.textPrimary)),
           subtitle: Text(n.path,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+              style: const TextStyle(fontSize: 10, color: CodeFlowColors.textMuted)),
           trailing: Row(mainAxisSize: MainAxisSize.min, children: [
             Container(
                 width: 8,
@@ -423,10 +454,10 @@ class _HealthDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = score > 80
-        ? AppColors.accentGreen
+        ? CodeFlowColors.accentGreen
         : score > 60
-            ? AppColors.accentYellow
-            : AppColors.accentRed;
+            ? CodeFlowColors.accentYellow
+            : CodeFlowColors.accentRed;
     return Container(
         width: 8,
         height: 8,
@@ -454,13 +485,13 @@ class _NodeDetail extends StatelessWidget {
                       children: [
                     Text(node.name,
                         style: const TextStyle(
-                            color: AppColors.textPrimary,
+                            color: CodeFlowColors.textPrimary,
                             fontSize: 20,
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 4),
                     Text(node.path,
                         style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 12)),
+                            color: CodeFlowColors.textMuted, fontSize: 12)),
                   ])),
               _HealthBadge(node.healthScore),
               const SizedBox(width: 12),
@@ -471,7 +502,7 @@ class _NodeDetail extends StatelessWidget {
                     ? null
                     : () => notifier.explainNode(node.path),
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accentPurple),
+                    backgroundColor: CodeFlowColors.accentPurple),
               ),
             ]),
             const SizedBox(height: 20),
@@ -486,7 +517,7 @@ class _NodeDetail extends StatelessWidget {
               const SizedBox(height: 16),
               const Text('Documentation',
                   style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: CodeFlowColors.textSecondary,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5)),
@@ -494,23 +525,23 @@ class _NodeDetail extends StatelessWidget {
               Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                      color: AppColors.surfaceVariant,
+                      color: CodeFlowColors.surfaceVariant,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.border)),
+                      border: Border.all(color: CodeFlowColors.border)),
                   child: Text(node.docstring,
                       style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12))),
+                          color: CodeFlowColors.textSecondary, fontSize: 12))),
             ],
             if (state.loadingExplanation) ...[
               const SizedBox(height: 20),
               const Center(
                   child:
-                      CircularProgressIndicator(color: AppColors.accentPurple)),
+                      CircularProgressIndicator(color: CodeFlowColors.accentPurple)),
             ] else if (state.explanation != null) ...[
               const SizedBox(height: 20),
               const Text('AI Explanation',
                   style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: CodeFlowColors.textSecondary,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5)),
@@ -518,13 +549,13 @@ class _NodeDetail extends StatelessWidget {
               Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: CodeFlowColors.surface,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                          color: AppColors.accentPurple.withOpacity(0.3))),
+                          color: CodeFlowColors.accentPurple.withOpacity(0.3))),
                   child: Text(state.explanation!,
                       style: const TextStyle(
-                          color: AppColors.textPrimary,
+                          color: CodeFlowColors.textPrimary,
                           fontSize: 13,
                           height: 1.6))),
             ],
@@ -540,15 +571,15 @@ class _InfoChip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
+          color: CodeFlowColors.surfaceVariant,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: AppColors.border)),
+          border: Border.all(color: CodeFlowColors.border)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Text('$label: ',
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+            style: const TextStyle(color: CodeFlowColors.textMuted, fontSize: 11)),
         Text(value,
             style: const TextStyle(
-                color: AppColors.textPrimary,
+                color: CodeFlowColors.textPrimary,
                 fontSize: 11,
                 fontWeight: FontWeight.w600)),
       ]));
@@ -576,29 +607,29 @@ class _ProjectOverview extends StatelessWidget {
           children: [
             Row(children: [
               _StatCard('Files', '${stats['total_files'] ?? 0}',
-                  Icons.description_outlined, AppColors.accent),
+                  Icons.description_outlined, CodeFlowColors.accent),
               const SizedBox(width: 12),
               _StatCard('Lines', '${stats['total_loc'] ?? 0}',
-                  Icons.format_list_numbered, AppColors.accentPurple),
+                  Icons.format_list_numbered, CodeFlowColors.accentPurple),
               const SizedBox(width: 12),
               _StatCard(
                   'Avg Complexity',
                   '${(stats['avg_complexity'] as num?)?.toStringAsFixed(1) ?? 0}',
                   Icons.auto_graph,
-                  AppColors.accentOrange),
+                  CodeFlowColors.accentOrange),
               const SizedBox(width: 12),
               _StatCard(
                   'Health',
                   '${analysis.healthScore.toStringAsFixed(0)}%',
                   Icons.favorite_outline,
                   analysis.healthScore > 80
-                      ? AppColors.accentGreen
-                      : AppColors.accentYellow),
+                      ? CodeFlowColors.accentGreen
+                      : CodeFlowColors.accentYellow),
             ]),
             const SizedBox(height: 24),
             const Text('Languages',
                 style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: CodeFlowColors.textSecondary,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5)),
@@ -606,7 +637,7 @@ class _ProjectOverview extends StatelessWidget {
             ...langs.entries.map((e) {
               final total = langs.values.fold<int>(0, (a, b) => a + (b as int));
               final pct = total > 0 ? (e.value as int) / total : 0.0;
-              final color = _langColors[e.key] ?? AppColors.textMuted;
+              final color = _langColors[e.key] ?? CodeFlowColors.textMuted;
               return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Row(children: [
@@ -620,20 +651,20 @@ class _ProjectOverview extends StatelessWidget {
                         width: 100,
                         child: Text(e.key,
                             style: const TextStyle(
-                                color: AppColors.textSecondary, fontSize: 12))),
+                                color: CodeFlowColors.textSecondary, fontSize: 12))),
                     Expanded(
                         child: ClipRRect(
                             borderRadius: BorderRadius.circular(3),
                             child: LinearProgressIndicator(
                                 value: pct,
                                 minHeight: 8,
-                                backgroundColor: AppColors.surfaceVariant,
+                                backgroundColor: CodeFlowColors.surfaceVariant,
                                 valueColor:
                                     AlwaysStoppedAnimation<Color>(color)))),
                     const SizedBox(width: 8),
                     Text('${e.value} files',
                         style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 11)),
+                            color: CodeFlowColors.textMuted, fontSize: 11)),
                   ]));
             }),
           ],
@@ -664,7 +695,7 @@ class _StatCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(label,
                         style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 11)),
+                            color: CodeFlowColors.textSecondary, fontSize: 11)),
                   ]))));
 }
 
@@ -677,20 +708,20 @@ class _EmptyCodeFlow extends StatelessWidget {
         Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-                color: AppColors.accentPurple.withOpacity(0.08),
+                color: CodeFlowColors.accentPurple.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(20)),
             child: const Icon(Icons.code_outlined,
-                size: 48, color: AppColors.accentPurple)),
+                size: 48, color: CodeFlowColors.accentPurple)),
         const SizedBox(height: 20),
         const Text('CodeFlow',
             style: TextStyle(
-                color: AppColors.textPrimary,
+                color: CodeFlowColors.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         const Text(
             'Enter a project path above and click Analyze\nto visualize code structure and health.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            style: TextStyle(color: CodeFlowColors.textSecondary, fontSize: 13)),
       ]));
 }

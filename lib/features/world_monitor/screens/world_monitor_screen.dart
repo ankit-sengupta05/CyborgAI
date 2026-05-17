@@ -111,22 +111,28 @@ class _WorldMonitorScreenState extends State<WorldMonitorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return _WorldMonitorBody(
-      buildPanelWidget: _buildPanelWidget,
-      sheetH: _sheetH,
-      layoutDone: _layoutDone,
-      minSheet: _minSheet,
-      maxSheet: _maxSheet,
-      onLayoutDone: (h) => setState(() {
-        _sheetH = h;
-        _layoutDone = true;
-      }),
-      onDragStart: _onDragStart,
-      onDragUpdate: _onDragUpdate,
-      onDragEnd: _onDragEnd,
-      onSnapCollapsed: () => _animateTo(_minSheet),
-      onSnapHalf: () => _animateTo(_screenH * 0.38),
-      onSnapFull: () => _animateTo(_maxSheet),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        ChangeNotifierProvider(create: (_) => DataService()),
+      ],
+      child: _WorldMonitorBody(
+        buildPanelWidget: _buildPanelWidget,
+        sheetH: _sheetH,
+        layoutDone: _layoutDone,
+        minSheet: _minSheet,
+        maxSheet: _maxSheet,
+        onLayoutDone: (h) => setState(() {
+          _sheetH = h;
+          _layoutDone = true;
+        }),
+        onDragStart: _onDragStart,
+        onDragUpdate: _onDragUpdate,
+        onDragEnd: _onDragEnd,
+        onSnapCollapsed: () => _animateTo(_minSheet),
+        onSnapHalf: () => _animateTo(_screenH * 0.38),
+        onSnapFull: () => _animateTo(_maxSheet),
+      ),
     );
   }
 }
@@ -456,7 +462,13 @@ class _PanelGridState extends State<_PanelGrid> {
                             child: SizedBox(
                                 width: 260,
                                 height: 220,
-                                child: widget.buildPanel(e.value.id)))),
+                                child: MultiProvider(
+                                  providers: [
+                                    ChangeNotifierProvider.value(value: widget.provider),
+                                    ChangeNotifierProvider.value(value: context.read<DataService>()),
+                                  ],
+                                  child: widget.buildPanel(e.value.id),
+                                )))),
                     childWhenDragging: Container(
                         decoration: BoxDecoration(
                             color: WMColors.accentGreen.withOpacity(0.04),

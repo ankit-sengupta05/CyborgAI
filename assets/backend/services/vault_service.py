@@ -73,7 +73,11 @@ class VaultNote:
         self.tags = frontmatter.get("tags", [])
         self.links = self._extract_wikilinks(content)
         self.folder = path.parent.name
-        self.relative = str(path.relative_to(settings.brain_dir))
+        self.relative = str(path.relative_to(settings.brain_dir.resolve()))
+
+    @property
+    def note_type(self) -> str:
+        return self.frontmatter.get("type", "note")
 
     def _extract_wikilinks(self, content: str) -> list[str]:
         """Extract [[wiki-links]] from content."""
@@ -112,9 +116,12 @@ class VaultNote:
 
 class VaultService:
     def __init__(self):
-        self.vault_root = settings.brain_dir
+        self.vault_root = settings.brain_dir.resolve()
         self._notes_cache: dict[str, VaultNote] = {}
         self._initialized = False
+        self._stop_ev = asyncio.Event()
+        self._indexing_task: Optional[asyncio.Task] = None
+        self._index_lock = asyncio.Lock()
 
     async def initialize(self):
         """Create vault directory structure and load all notes."""
@@ -136,7 +143,7 @@ class VaultService:
         # System Files
         ignore_file = self.vault_root / "_graphify_ignore"
         if not ignore_file.exists():
-            ignore_file.write_text(".ai_os/\nnode_modules/\n.git/\n", encoding="utf-8")
+            ignore_file.write_text(".ai_os/\nnode_modules/\n.git/\noutput/\nlogs/\ntarget/\n", encoding="utf-8")
 
         config_file = self.vault_root / ".ai_os" / "config.json"
         if not config_file.exists():
@@ -151,8 +158,30 @@ class VaultService:
         # Create starter notes
         await self._create_starter_notes()
         await self._load_all_notes()
+        
+        # SMARTER STARTUP: Only rebuild indices if specifically needed or in background
+        # We check for a marker file to see if we already did this today
+        marker = self.vault_root / ".ai_os" / ".last_indexed"
+        needs_rebuild = True
+        if marker.exists():
+            try:
+                last = datetime.fromisoformat(marker.read_text().strip())
+                if (datetime.utcnow() - last).total_seconds() < 3600: # Every hour is enough
+                    needs_rebuild = False
+            except Exception: pass
+
+        if needs_rebuild:
+            self._indexing_task = asyncio.create_task(self.rebuild_all_indices())
+            marker.write_text(datetime.utcnow().isoformat())
+        
         self._initialized = True
         log.info("Vault initialized", notes=len(self._notes_cache), root=str(self.vault_root))
+
+    async def reload_cache(self):
+        """Perform a light refresh of the notes cache without full re-indexing."""
+        log.info("Reloading vault cache...")
+        await self._load_all_notes()
+        log.info(f"Vault cache reloaded: {len(self._notes_cache)} notes.")
 
     async def _create_starter_notes(self):
         """Create README and welcome note if vault is empty."""
@@ -371,6 +400,27 @@ Your knowledge is organized using the **Atlas, Calendar, Efforts (ACE)** framewo
         }
         return f"---\n{yaml.dump(fm, default_flow_style=False, allow_unicode=True)}---\n\n{content}"
 
+    async def cleanup(self):
+        """Stop threads and release resources."""
+        log.info("Cleaning up VaultService...")
+        self._stop_ev.set()
+        
+        if self._indexing_task and not self._indexing_task.done():
+            log.info("Waiting for vault indexing to finish or cancel...")
+            try:
+                # Cancel the task if it's taking too long
+                await asyncio.wait_for(self._indexing_task, timeout=2.0)
+            except asyncio.TimeoutError:
+                self._indexing_task.cancel()
+                try:
+                    await self._indexing_task
+                except asyncio.CancelledError:
+                    pass
+            except Exception as e:
+                log.debug(f"Indexing task cleanup error: {e}")
+
+        log.info("Vault cleanup complete")
+
     async def _load_all_notes(self):
         """Load all .md files from vault into cache."""
         self._notes_cache = {}
@@ -409,13 +459,17 @@ Your knowledge is organized using the **Atlas, Calendar, Efforts (ACE)** framewo
         return VaultNote(path, frontmatter, content)
 
     async def list_notes(self, folder: str = None, tag: str = None) -> list[dict]:
-        """List all notes, optionally filtered."""
+        """List all notes with path-agnostic normalization for Windows/Unix compatibility."""
         notes = list(self._notes_cache.values())
         if folder:
-            folder_path = VAULT_DIRS.get(folder, folder)
-            notes = [n for n in notes if folder_path in str(n.path)]
+            # Normalize target folder path to forward slashes
+            folder_path = VAULT_DIRS.get(folder.lower(), folder).replace("\\", "/")
+            # Filter notes by checking normalized paths
+            notes = [n for n in notes if folder_path.lower() in str(n.path).replace("\\", "/").lower()]
+        
         if tag:
             notes = [n for n in notes if tag in n.tags]
+        
         return [n.to_dict() for n in notes]
 
     async def get_note(self, note_id: str) -> Optional[dict]:
@@ -432,18 +486,53 @@ Your knowledge is organized using the **Atlas, Calendar, Efforts (ACE)** framewo
                           folder: str = "inbox", tags: list = None,
                           note_type: str = "note", project: str = "",
                           area: str = "") -> dict:
-        folder_name = VAULT_DIRS.get(folder, "04-Inbox")
+        # Use provided folder path or map from shorthand
+        folder_path_str = VAULT_DIRS.get(folder.lower(), folder)
+        full_folder_path = self.vault_root / folder_path_str
+        full_folder_path.mkdir(parents=True, exist_ok=True)
+        
         safe_title = re.sub(r'[<>:"/\\|?*]', '-', title)
-        path = self.vault_root / folder_name / f"{safe_title}.md"
+        path = full_folder_path / f"{safe_title}.md"
 
         raw = self._make_note(title=title, note_type=note_type,
                               tags=tags or [], content=content,
                               project=project, area=area)
         path.write_text(raw, encoding="utf-8")
 
+        # Create local _index.md if it doesn't exist
+        index_file = full_folder_path / "_index.md"
+        if not index_file.exists():
+            index_file.write_text(self._make_note(f"{full_folder_path.name} Index", "map", ["index"], f"Auto-generated index for {full_folder_path.name}"), encoding="utf-8")
+
         note = self._parse_note(path)
         self._notes_cache[note.id] = note
+        
+        # AUTOMATIC INDEXING UPON CREATION
+        await self.register_note_in_index(note.id)
+        
         return note.to_dict()
+
+    async def rebuild_all_indices(self):
+        """Self-healing scan: Rebuild all ACE indices and registries in parallel."""
+        log.info("Starting Full Vault Re-indexing (Optimized)...")
+        tasks = []
+        for note_id in list(self._notes_cache.keys()):
+            note = self._notes_cache[note_id]
+            if note.note_type != "map":
+                tasks.append(self.register_note_in_index(note_id))
+        
+        # Run in chunks of 10 to avoid IO saturation
+        processed = 0
+        for i in range(0, len(tasks), 10):
+            if self._stop_ev.is_set():
+                break
+            await asyncio.gather(*tasks[i:i+10])
+            processed += len(tasks[i:i+10])
+            if processed % 50 == 0 or processed == len(tasks):
+                log.info(f"Re-indexing progress: {processed}/{len(tasks)} notes synced")
+            await asyncio.sleep(0.05) # Yield to event loop
+            
+        log.info(f"Full Vault Re-indexing complete ({len(tasks)} notes).")
 
     async def update_note(self, note_id: str, title: str = None,
                           content: str = None, tags: list = None,
@@ -481,17 +570,32 @@ Your knowledge is organized using the **Atlas, Calendar, Efforts (ACE)** framewo
         return True
 
     async def search_notes(self, query: str) -> list[dict]:
-        """Full-text search across all notes."""
+        """Full-text search across all notes with token overlap scoring."""
         query_lower = query.lower()
+        query_tokens = set(query_lower.split())
         results = []
+        
         for note in self._notes_cache.values():
             score = 0
-            if query_lower in note.title.lower():
-                score += 10
-            if query_lower in note.content.lower():
-                score += note.content.lower().count(query_lower)
-            if any(query_lower in t.lower() for t in note.tags):
-                score += 5
+            title_lower = note.title.lower()
+            content_lower = note.content.lower()
+            
+            # 1. Exact matches (High weight)
+            if query_lower in title_lower:
+                score += 50
+            if query_lower in content_lower:
+                score += 20
+                
+            # 2. Token overlap (Fuzzy weight)
+            title_tokens = set(title_lower.split())
+            content_tokens = set(content_lower.split())
+            
+            title_overlap = query_tokens.intersection(title_tokens)
+            content_overlap = query_tokens.intersection(content_tokens)
+            
+            score += len(title_overlap) * 10
+            score += len(content_overlap) * 2
+            
             if score > 0:
                 d = note.to_dict()
                 d["score"] = score
@@ -502,7 +606,8 @@ Your knowledge is organized using the **Atlas, Calendar, Efforts (ACE)** framewo
                     end = min(len(note.content), idx + 160)
                     d["snippet"] = "..." + note.content[start:end] + "..."
                 results.append(d)
-        return sorted(results, key=lambda x: x["score"], reverse=True)[:30]
+        
+        return sorted(results, key=lambda x: x["score"], reverse=True)
 
     async def get_graph_data(self) -> dict:
         """Return nodes + edges for Obsidian-style graph with clustering."""
@@ -515,7 +620,19 @@ Your knowledge is organized using the **Atlas, Calendar, Efforts (ACE)** framewo
         import networkx as nx
         G = nx.Graph()
 
+        # Limit nodes and exclude excessive chunks to prevent MemoryError
+        valid_notes = []
         for note in self._notes_cache.values():
+            if note.note_type == "knowledge_chunk":
+                continue
+            valid_notes.append(note)
+
+        if len(valid_notes) > 3000:
+            valid_notes = valid_notes[:3000]
+
+        title_to_id: dict[str, str] = {n.title: n.id for n in valid_notes}
+
+        for note in valid_notes:
             G.add_node(note.id)
             for link in note.links:
                 target_id = title_to_id.get(link)
@@ -524,9 +641,12 @@ Your knowledge is organized using the **Atlas, Calendar, Efforts (ACE)** framewo
                     edges.append({
                         "source": note.id,
                         "target": target_id,
-                        "type": "wikilink",
+                        "type": "direct",
                         "weight": 1.0,
                     })
+
+        if len(edges) > 10000:
+            edges = edges[:10000]
 
         communities = {}
         try:
@@ -539,7 +659,7 @@ Your knowledge is organized using the **Atlas, Calendar, Efforts (ACE)** framewo
 
         degrees = dict(G.degree())
 
-        for note in self._notes_cache.values():
+        for note in valid_notes:
             node_data = note.to_graph_node()
             node_data["community"] = communities.get(note.id, 0)
             node_data["degree"] = degrees.get(note.id, 0)
@@ -560,6 +680,108 @@ Your knowledge is organized using the **Atlas, Calendar, Efforts (ACE)** framewo
             })
 
         return {"nodes": nodes, "edges": edges, "communities": community_meta}
+
+    async def register_note_in_index(self, note_id: str):
+        """Recursively update all parent indices and link MOCs together with absolute path safety."""
+        async with self._index_lock:
+            try:
+                # Absolute root for comparison
+                root = self.vault_root.resolve()
+                
+                note = self._notes_cache.get(note_id)
+                if not note:
+                    log.error(f"Cannot register note: ID {note_id} not in cache. Indexing skipped.")
+                    return
+
+                # 1. Recursive Parent Index Update (_index.md)
+                current_dir = note.path.parent.resolve()
+                
+                # Skip indexing if not within the standard ACE/AI_OS hierarchy
+                is_managed = any(str(root / d).lower() in str(current_dir).lower() for d in VAULT_DIRS.values())
+                if not is_managed and current_dir != root:
+                    return
+
+                # Prepare descriptive link
+                summary = note.frontmatter.get("summary", "").split("\n")[0][:100]
+                if not summary:
+                    summary = f"Knowledge related to {note.title}"
+                
+                child_link = f"[[{note.title}]] | {summary}"
+                
+                # Loop until we hit vault root
+                while True:
+                    if current_dir == root or not str(current_dir).startswith(str(root)):
+                        break
+                    
+                    index_file = current_dir / "_index.md"
+                    
+                    # Initialize index if missing
+                    if not index_file.exists():
+                        index_file.write_text(self._make_note(f"{current_dir.name} Index", "map", ["index"]), encoding="utf-8")
+                    
+                    # Robust read with retry (Windows concurrency safety)
+                    content = ""
+                    for attempt in range(3):
+                        try:
+                            content = index_file.read_text(encoding="utf-8")
+                            break
+                        except (FileNotFoundError, PermissionError):
+                            if attempt == 2: raise
+                            await asyncio.sleep(0.1)
+
+                    # Check if we need to add the link
+                    if child_link not in content:
+                        if "## Recent Knowledge" not in content:
+                            content += "\n\n## Recent Knowledge\n"
+                        
+                        content += f"\n- {child_link}"
+                        index_file.write_text(content, encoding="utf-8")
+                        
+                        # Refresh cache for this index note
+                        updated_idx = self._parse_note(index_file)
+                        if updated_idx:
+                            self._notes_cache[updated_idx.id] = updated_idx
+
+                    # Next iteration
+                    child_link = f"[[{current_dir.name}/_index|📁 {current_dir.name} Index]] | Map of Content for {current_dir.name}"
+                    current_dir = current_dir.parent.resolve()
+
+                # 2. Update AI OS Master Index
+                ai_os_idx = root / "AI_OS" / "_index.md"
+                if ai_os_idx.exists():
+                    content = ""
+                    for attempt in range(3):
+                        try:
+                            content = ai_os_idx.read_text(encoding="utf-8")
+                            break
+                        except (FileNotFoundError, PermissionError):
+                            if attempt == 2: break # AI_OS index missing is non-critical
+                            await asyncio.sleep(0.1)
+                    
+                    if content:
+                        entry = f"[[{note.relative}]]"
+                        if entry not in content:
+                            ai_os_idx.write_text(content + f"\n- {entry} | {summary} (type: {note.note_type})", encoding="utf-8")
+                            updated_ai = self._parse_note(ai_os_idx)
+                            if updated_ai:
+                                self._notes_cache[updated_ai.id] = updated_ai
+
+                # 3. Clean Vault Map
+                v_map = root / "AI_OS" / "vault_map.md"
+                if v_map.exists():
+                    try:
+                        content = v_map.read_text(encoding="utf-8")
+                        header = "## 🧠 Recent Knowledge Ingestion"
+                        if header in content:
+                            parts = content.split(header)
+                            v_map.write_text(parts[0].strip(), encoding="utf-8")
+                            updated_vm = self._parse_note(v_map)
+                            if updated_vm:
+                                self._notes_cache[updated_vm.id] = updated_vm
+                    except Exception: pass
+
+            except Exception as e:
+                log.error(f"Hierarchical indexing failed for {note_id}: {e}")
 
     async def move_note(self, note_id: str, target_folder: str) -> Optional[dict]:
         note = self._notes_cache.get(note_id)

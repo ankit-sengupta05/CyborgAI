@@ -5,6 +5,7 @@ All secrets loaded from environment or .env file — never hardcoded.
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 from functools import lru_cache
+import os
 
 
 class Settings(BaseSettings):
@@ -53,13 +54,22 @@ class Settings(BaseSettings):
     llm_server_host: str = "127.0.0.1"
     llm_server_port: int = 1235
     llm_server_url: str = "http://127.0.0.1:1235/v1"
-    default_model: str = "Qwen2.5-1.5B-Instruct-Q4_K_M.gguf"
-    context_length: int = 4096
-    n_gpu_layers: int = -1  # -1 = auto
+    default_model: str = "gemma-4-E4B-it-Q4_K_M.gguf"
+    # Hard-coded Gemma-4 model path — both chat GGUF and vision projector
+    gemma4_model_dir: Path = models_dir / "llm" / "gemma-4-E4B-it-GGUF"
+
+    # LM Studio integration — auto-discover models from LM Studio's model directory
+    lmstudio_models_dir: Path = Path(os.path.expanduser("~")) / ".lmstudio" / "models"
+
+    # Multimodal — mmproj CLIP projector (auto-detected alongside main GGUF)
+    mmproj_auto_detect: bool = True
+    mmproj_suffix: str = "mmproj"  # files containing this string are treated as projectors
+    context_length: int = 12288    # Increased to handle complex agentic workflows
+    n_gpu_layers: int = -1         # Full GPU offload
 
     # Voice
     kokoro_model_path: str = "models/tts/kokoro-v1.0.onnx"
-    kokoro_voices_path: str = "models/tts/voices.json"
+    kokoro_voices_path: str = "models/tts/voices-v1.0.bin"
     whisper_model_dir: str = "models/stt"
     whisper_model_size: str = "small"
     wake_word: str = "jarvis"
@@ -82,6 +92,13 @@ class Settings(BaseSettings):
     def embedding_cache_dir(self) -> str:
         return str(self.cache_dir / "embeddings")
 
+    # Vector DB (ChromaDB)
+    vector_db_enabled: bool = True
+
+    @property
+    def vector_db_path(self) -> Path:
+        return self.data_dir / "chroma_db"
+
     # Redis (optional caching layer)
     redis_url: str = "redis://localhost:6379/0"
     use_redis: bool = False
@@ -100,7 +117,7 @@ class Settings(BaseSettings):
 
     # Features
     enable_voice: bool = True
-    enable_vision: bool = False  # Requires MediaPipe
+    enable_vision: bool = True   # Gemma-4 has mmproj, enable by default
     enable_world_monitor: bool = True
     offline_mode: bool = False
 
@@ -113,6 +130,7 @@ class Settings(BaseSettings):
             self.models_dir / "llm",
             self.models_dir / "tts",
             self.models_dir / "stt",
+            self.vector_db_path,
         ]
         for d in dirs:
             d.mkdir(parents=True, exist_ok=True)

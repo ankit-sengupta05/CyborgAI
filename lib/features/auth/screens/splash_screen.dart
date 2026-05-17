@@ -320,7 +320,7 @@ class _Logo extends StatelessWidget {
                 spreadRadius: 4),
           ],
         ),
-        child: Icon(Icons.android_rounded, color: accent, size: 52),
+        child: Icon(Icons.memory, color: accent, size: 52),
       );
 }
 

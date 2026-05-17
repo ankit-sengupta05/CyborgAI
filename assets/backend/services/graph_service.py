@@ -11,7 +11,8 @@ import networkx as nx
 
 from services.embedding_service import EmbeddingService
 from services.llm_service import LLMService
-from services.database import GraphNodeDB, GraphEdgeDB, get_db
+from sqlalchemy import delete
+from services.database import GraphNodeDB, GraphEdgeDB, get_db, GraphNodeORM, GraphEdgeORM
 
 log = structlog.get_logger(__name__)
 
@@ -28,7 +29,7 @@ class GraphService:
         self._community_meta: dict[int, dict] = {}
 
     async def initialize(self):
-        """Load graph from database."""
+        """Load graph from database and establish AI OS backbone."""
         try:
             async with get_db() as db:
                 nodes = await GraphNodeDB.get_all(db)
@@ -38,6 +39,9 @@ class GraphService:
                 self._add_node_to_graph(node)
             for edge in edges:
                 self._add_edge_to_graph(edge)
+
+            # Establish AI OS Backbone (Hierarchy of Index Files)
+            await self._build_ai_os_backbone()
 
             if self._graph.number_of_nodes() > 0:
                 await self._detect_communities()
@@ -49,6 +53,40 @@ class GraphService:
             )
         except Exception as e:
             log.error(f"Graph initialization error: {e}")
+
+    async def _build_ai_os_backbone(self):
+        """Link MOCs (Indices) together to form the AI OS directory skeleton in the graph."""
+        indices = [
+            ("AI_OS/vault_map.md", "Vault Map", None),
+            ("ACE/Atlas/_index.md", "Atlas Index", "AI_OS/vault_map.md"),
+            ("ACE/Calendar/_index.md", "Calendar Index", "AI_OS/vault_map.md"),
+            ("ACE/Efforts/_index.md", "Efforts Index", "AI_OS/vault_map.md"),
+            ("AI_OS/_index.md", "AI OS Index", "AI_OS/vault_map.md"),
+        ]
+        
+        path_to_id = {}
+        for path, title, parent_path in indices:
+            node_id = hashlib.md5(path.encode()).hexdigest()[:12]
+            path_to_id[path] = node_id
+            
+            if node_id not in self._nodes:
+                node = {
+                    "id": node_id,
+                    "label": title,
+                    "content_type": "map",
+                    "source": "system",
+                }
+                async with get_db() as db:
+                    await GraphNodeDB.create(db, node)
+                self._add_node_to_graph(node)
+            
+            if parent_path and parent_path in path_to_id:
+                parent_id = path_to_id[parent_path]
+                edge = {"source": parent_id, "target": node_id, "type": "DIRECTORY_MAP", "weight": 1.0}
+                if not self._graph.has_edge(parent_id, node_id):
+                    async with get_db() as db:
+                        await GraphEdgeDB.create(db, edge)
+                    self._add_edge_to_graph(edge)
 
     def _add_node_to_graph(self, node: dict):
         nid = node["id"]
@@ -99,10 +137,14 @@ class GraphService:
         # Limit edges too
         edges = []
         for e in self._edges[:limit*2]:
+            edge_type = e.get("type", "direct")
+            if isinstance(edge_type, str):
+                edge_type = edge_type.replace("[[", "").replace("]]", "").strip()
+            
             edges.append({
                 "source": e["source"],
                 "target": e["target"],
-                "type": self._sanitize_string(e.get("type", "direct")),
+                "type": self._sanitize_string(edge_type or "direct"),
                 "weight": e.get("weight", 1.0)
             })
 
@@ -125,11 +167,20 @@ class GraphService:
         query_lower = query.lower()
 
         # Keyword search
+        query_tokens = set(query_lower.split())
         for nid, node in self._nodes.items():
             label_lower = node.get("label", "").lower()
             content_lower = node.get("content", "").lower()
-            if query_lower in label_lower or query_lower in content_lower:
-                results.append({**node, "score": 1.0})
+            
+            score = 0
+            if query_lower in label_lower: score += 1.0
+            elif any(token in label_lower for token in query_tokens if len(token) > 2):
+                score += 0.5
+                
+            if query_lower in content_lower: score += 0.3
+            
+            if score > 0:
+                results.append({**node, "score": score})
 
         # Semantic search
         if self._embedding_svc.is_ready and len(results) < limit:
@@ -298,6 +349,76 @@ class GraphService:
         nodes_created = 0
         edges_created = 0
 
+        # 0. Sync to AI OS Structure — Link to Official Folder MOC (Map of Content)
+        # Determine ACE path (e.g. ACE/Atlas)
+        folder_rel = ""
+        for ace in ["ACE/Atlas", "ACE/Calendar", "ACE/Efforts", "AI_OS"]:
+            if ace in str(file_path):
+                folder_rel = ace
+                break
+        
+        if not folder_rel:
+            folder_rel = f"ACE/{file_path.parent.name}"
+            
+        index_path = f"{folder_rel}/_index.md"
+        folder_id = hashlib.md5(index_path.encode()).hexdigest()[:12]
+        
+        if folder_id not in self._nodes:
+            folder_node = {
+                "id": folder_id,
+                "label": f"📁 {folder_rel.split('/')[-1]} Index",
+                "content_type": "map",
+                "source": "system",
+            }
+            async with get_db() as db:
+                await GraphNodeDB.create(db, folder_node)
+            self._add_node_to_graph(folder_node)
+            nodes_created += 1
+            log.info(f"Created folder MOC node for {folder_rel}")
+
+        # Create Document Node instead of many chunk nodes to keep the KG clean
+        base_title = self._extract_title(content, file_path)
+        doc_id = hashlib.md5(str(file_path).encode()).hexdigest()[:12]
+        
+        if doc_id not in self._nodes:
+            doc_node = {
+                "id": doc_id,
+                "label": base_title,
+                "content_type": "document",
+                "source": str(file_path),
+            }
+            async with get_db() as db:
+                await GraphNodeDB.create(db, doc_node)
+            self._add_node_to_graph(doc_node)
+            nodes_created += 1
+            all_new_node_ids.append(doc_id)
+
+            # Link to Folder (Hierarchical Sync)
+            folder_edge = {"source": doc_id, "target": folder_id, "type": "IN_FOLDER", "weight": 1.0}
+            async with get_db() as db:
+                await GraphEdgeDB.create(db, folder_edge)
+            self._add_edge_to_graph(folder_edge)
+            edges_created += 1
+            
+            # Real-time linking for the new doc node
+            await self._link_cross_ingestion([doc_id])
+
+            # Sync to AI OS Portable Identity (me.md)
+            me_node_id = next((nid for nid, n in self._nodes.items() if n.get("label", "").lower() == "portable identity"), None)
+            if me_node_id and self._embedding_svc.is_ready:
+                doc_emb = await self._embedding_svc.embed(content[:1000])
+                me_node = self._nodes[me_node_id]
+                me_emb = me_node.get("embedding")
+                if me_emb:
+                    score = self._embedding_svc.cosine_similarity(doc_emb, me_emb)
+                    if score > 0.75:
+                        identity_edge = {"source": doc_id, "target": me_node_id, "type": "USER_INTEREST", "weight": score}
+                        async with get_db() as db:
+                            await GraphEdgeDB.create(db, identity_edge)
+                        self._add_edge_to_graph(identity_edge)
+                        edges_created += 1
+                        log.info(f"Document semantically linked to User Identity (score: {score:.2f})")
+
         for i, chunk in enumerate(chunks):
             # 1. Extract Triplets via LLM
             triplets = await self._extract_triplets(chunk)
@@ -306,28 +427,8 @@ class GraphService:
             links = set()
             keywords = []
             
-            # Create Chunk Node
-            base_title = self._extract_title(chunk, file_path)
             note_title = f"{base_title} (Chunk {i})"
             chunk_id = hashlib.md5(f"{file_path}_{i}".encode()).hexdigest()[:12]
-            
-            chunk_node = {
-                "id": chunk_id,
-                "label": note_title,
-                "content": chunk,
-                "content_type": "knowledge_chunk",
-                "source": str(file_path),
-                "chunk_index": i,
-            }
-            
-            async with get_db() as db:
-                await GraphNodeDB.create(db, chunk_node)
-            self._add_node_to_graph(chunk_node)
-            all_new_node_ids.append(chunk_id)
-            nodes_created += 1
-            
-            # Real-time linking for the new chunk node
-            await self._link_cross_ingestion([chunk_id])
 
             # Process Triplets
             node_lookup = {n["label"].lower(): nid for nid, n in self._nodes.items()}
@@ -365,12 +466,25 @@ class GraphService:
                             tags=["entity", entity.get("type", "concept")]
                         )
                     
-                    edge = {"source": chunk_id, "target": ent_id, "type": "CONTAINS"}
-                    log.debug(f"Linking {chunk_id} to {ent_id}: CONTAINS")
+                    edge = {"source": doc_id, "target": ent_id, "type": "CONTAINS"}
+                    log.debug(f"Linking {doc_id} to {ent_id}: CONTAINS")
                     async with get_db() as db:
                         await GraphEdgeDB.create(db, edge)
                     self._add_edge_to_graph(edge)
                     edges_created += 1
+
+            # 3. Dense Cluster Linking (Co-occurrence)
+            entity_ids = [node_lookup.get(e.get("label", "").lower()) for e in triplets.get("entities", []) if e.get("label")]
+            entity_ids = [eid for eid in entity_ids if eid]
+            if len(entity_ids) > 1:
+                for j, e1 in enumerate(entity_ids):
+                    for e2 in entity_ids[j+1:]:
+                        co_edge = {"source": e1, "target": e2, "type": "CO_OCCUR", "weight": 0.5}
+                        if not self._graph.has_edge(e1, e2):
+                            async with get_db() as db:
+                                await GraphEdgeDB.create(db, co_edge)
+                            self._add_edge_to_graph(co_edge)
+                            edges_created += 1
 
             for rel in triplets.get("relationships", []):
                 s_label = rel.get("source", "").strip()
@@ -536,6 +650,8 @@ TEXT:
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self._run_community_detection)
         await self._analyze_communities()
+        await self._link_communities()
+        await self._sync_ontology_markdown()
 
     def _run_community_detection(self):
         try:
@@ -580,6 +696,144 @@ TEXT:
             except Exception:
                 continue
 
+    async def _link_communities(self):
+        """Add virtual edges between community centroids if they share cross-links."""
+        cross_counts: dict[tuple[int, int], int] = {}
+        for u, v in self._graph.edges():
+            c1 = self._communities.get(u)
+            c2 = self._communities.get(v)
+            if c1 is not None and c2 is not None and c1 != c2:
+                pair = tuple(sorted((c1, c2)))
+                cross_counts[pair] = cross_counts.get(pair, 0) + 1
+        
+        for (c1, c2), count in cross_counts.items():
+            if count > 1:
+                # Find most connected node in each community
+                n1 = max((n for n, c in self._communities.items() if c == c1), key=lambda x: self._graph.degree(x))
+                n2 = max((n for n, c in self._communities.items() if c == c2), key=lambda x: self._graph.degree(x))
+                
+                edge = {"source": n1, "target": n2, "type": "CROSS_THEME", "weight": 0.5}
+                if not self._graph.has_edge(n1, n2):
+                    async with get_db() as db:
+                        await GraphEdgeDB.create(db, edge)
+                    self._add_edge_to_graph(edge)
+                    log.info(f"Created theme bridge: Cluster {c1} <-> Cluster {c2}")
+
+    async def _sync_ontology_markdown(self):
+        """Maintain active ontology markdown files based on graph clusters (communities)."""
+        if not self._vault_svc:
+            return
+
+        ontology_folder = "AI_OS/Ontology"
+        
+        for cid, meta in self._community_meta.items():
+            name = meta.get("name", f"Cluster_{cid}")
+            summary = meta.get("summary", "")
+            
+            # Find nodes in this community, sort by degree (importance)
+            nodes_in_community = [nid for nid, c in self._communities.items() if c == cid]
+            if not nodes_in_community:
+                continue
+            nodes_in_community.sort(key=lambda x: self._graph.degree(x), reverse=True)
+            
+            # Limit to top 25 most important concepts for visual maps
+            top_nids = set(nodes_in_community[:25])
+            
+            # 1. Mermaid Map Generation (Miro/Fishbone Visual Style)
+            mermaid_lines = ["```mermaid", "graph TD"]
+            # Safe IDs for mermaid
+            nid_to_m_id = {nid: f"n{i}" for i, nid in enumerate(top_nids)}
+            
+            for nid in top_nids:
+                label = self._nodes[nid].get("label", "Unknown").replace('"', "'").replace("[", "").replace("]", "")
+                mermaid_lines.append(f'    {nid_to_m_id[nid]}["{label}"]')
+                
+            edges_added = 0
+            for e in self._edges:
+                if edges_added >= 50:
+                    break
+                s, t = e["source"], e["target"]
+                if s in top_nids and t in top_nids:
+                    r_type = e.get("type", "LINKED")
+                    mermaid_lines.append(f'    {nid_to_m_id[s]} -->|{r_type}| {nid_to_m_id[t]}')
+                    edges_added += 1
+            mermaid_lines.append("```")
+            
+            # 2. Sequential Topic Tree Generation (Obsidian Nested Lists)
+            root_nid = nodes_in_community[0]
+            visited = set()
+            tree_lines = []
+            
+            def build_tree(current_nid, depth):
+                if depth > 3 or current_nid in visited:
+                    return
+                visited.add(current_nid)
+                label = self._nodes[current_nid].get("label", "Unknown")
+                indent = "  " * depth
+                tree_lines.append(f"{indent}- [[{label}]]")
+                
+                # Find children
+                children_edges = [e for e in self._edges if e["source"] == current_nid and e["target"] in self._communities and self._communities[e["target"]] == cid]
+                # Sort children by degree
+                children_edges.sort(key=lambda e: self._graph.degree(e["target"]), reverse=True)
+                
+                for e in children_edges[:5]: # Limit branching factor
+                    t = e["target"]
+                    r_type = e.get("type", "LINKED")
+                    if t not in visited:
+                        tree_lines.append(f"{indent}  - *( {r_type.lower()} )*")
+                        build_tree(t, depth + 1)
+                        
+            build_tree(root_nid, 0)
+            
+            # Attempt to cover disconnected subgraphs in the same cluster
+            for nid in top_nids:
+                if nid not in visited:
+                    build_tree(nid, 0)
+
+            # Create content
+            content = f"# Ontology: {name}\n\n"
+            content += f"**Summary**: {summary}\n\n"
+            
+            content += "## 🗺️ Visual Concept Map\n"
+            content += "\n".join(mermaid_lines) + "\n\n"
+            
+            content += "## 🌳 Sequential Topic Tree\n"
+            content += "> Shows how topics are hierarchically and sequentially related\n\n"
+            content += "\n".join(tree_lines) + "\n\n"
+            
+            content += "## 📋 All Core Concepts\n"
+            for nid in top_nids:
+                label = self._nodes[nid].get("label", "Unknown")
+                content += f"- [[{label}]]\n"
+            
+            safe_name = name.replace(" ", "_").replace("/", "_").replace("\\", "_")
+            await self._vault_svc.create_note(
+                title=f"Ontology_{safe_name}",
+                content=content,
+                folder=ontology_folder,
+                tags=["ontology", "system_sync", "map"],
+                note_type="ontology_map"
+            )
+
+    async def _link_cross_ingestion(self, node_ids: list[str]):
+        """Perform global keyword matching to link new knowledge to the entire graph."""
+        for nid in node_ids:
+            node = self._nodes.get(nid)
+            if not node: continue
+            label = node.get("label", "").lower()
+            if not label or len(label) < 3: continue
+            
+            for target_id, target_node in self._nodes.items():
+                if target_id == nid: continue
+                t_label = target_node.get("label", "").lower()
+                if label in t_label or t_label in label:
+                    edge = {"source": nid, "target": target_id, "type": "KEYWORD_LINK", "weight": 0.7}
+                    if not self._graph.has_edge(nid, target_id):
+                        async with get_db() as db:
+                            await GraphEdgeDB.create(db, edge)
+                        self._add_edge_to_graph(edge)
+
     async def clear_graph(self, keep_initial: bool = False):
         """Delete nodes and edges from memory and database."""
         async with get_db() as db:
@@ -597,7 +851,7 @@ TEXT:
             
             if not keep_initial:
                 # Also clear extracted entity notes from the vault for a truly clean slate
-                atlas_path = Path(self._vault_svc._root) / "ACE" / "Atlas"
+                atlas_path = self._vault_svc.vault_root / "ACE" / "Atlas"
                 if atlas_path.exists():
                     import shutil
                     for item in atlas_path.iterdir():

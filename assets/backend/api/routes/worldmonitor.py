@@ -20,8 +20,7 @@ async def get_metrics(request: Request):
 
 
 @router.get("/news")
-async def get_news(category: str = "all", refresh: bool = False,
-                   request: Request = None):
+async def get_news(request: Request, category: str = "all", refresh: bool = False):
     svc: WorldMonitorService = request.app.state.world_monitor_service
     news = await svc.get_news(category=category, force_refresh=refresh)
     return {"news": news, "total": len(news), "category": category}

@@ -99,6 +99,30 @@ class SkillsNotifier extends StateNotifier<SkillsState> {
       state = state.copyWith(error: 'Failed to delete skill: $e');
     }
   }
+
+  Future<void> autoGenerateSkills(List<String> recentQueries) async {
+    state = state.copyWith(creationStatus: 'Auto-generating skills from recent activity...');
+    try {
+      final res = await apiDio.post(ApiConstants.skillsAutoGenerate, data: {
+        'recent_queries': recentQueries,
+        'context': '',
+      });
+      final data = res.data;
+      final count = data['count'] ?? 0;
+      if (count > 0) {
+        state = state.copyWith(
+          creationStatus: 'Auto-generated $count new skill${count == 1 ? '' : 's'}!',
+        );
+        await loadSkills();
+      } else {
+        state = state.copyWith(
+          creationStatus: 'No new skills needed — all capabilities are covered.',
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(creationStatus: 'Auto-generate failed: $e');
+    }
+  }
 }
 
 // ── Screen ───────────────────────────────────────────────────────────────────
@@ -169,6 +193,14 @@ class _SkillsScreenState extends ConsumerState<SkillsScreen> {
                   tooltip: 'Refresh',
                   onTap: () =>
                       ref.read(skillsProvider.notifier).loadSkills(),
+                ),
+                const SizedBox(width: 8),
+                _ActionButton(
+                  icon: Icons.auto_awesome,
+                  tooltip: 'Auto-Generate Skills',
+                  onTap: () => ref
+                      .read(skillsProvider.notifier)
+                      .autoGenerateSkills([]),
                 ),
                 const SizedBox(width: 8),
                 _ActionButton(

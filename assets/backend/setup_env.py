@@ -1,120 +1,93 @@
-#!/usr/bin/env python3
-"""
-Cyborg Backend — Environment Setup Bootstrap
-============================================
-Run with SYSTEM Python (not venv).  Handles:
-  1. CUDA version detection via nvidia-smi / nvcc
-  2. Virtual environment creation
-  3. PyTorch install with the correct CUDA wheel URL
-  4. llama-cpp-python install (pre-built CUDA wheels where available)
-  5. All remaining requirements.txt dependencies
-
-Outputs JSON lines to stdout so the Flutter SplashScreen can show live progress:
-  {"status": "progress", "message": "...", "progress": 0.0-1.0}
-  {"status": "done",     "message": "...", "progress": 1.0}
-  {"status": "error",    "message": "...", "progress": 0.0}
-"""
-
-import sys
 import os
-import json
+import sys
 import subprocess
-import re
+import json
 import platform
+import time
 from pathlib import Path
 
-# Global state
-G_CUDA_ACTIVE = False
-
-
-# ── JSON progress emitter ────────────────────────────────────────────────────
-def emit(status: str, message: str, progress: float):
-    print(json.dumps({
-        "status": status,
-        "message": message,
-        "progress": progress,
-        "cuda_active": G_CUDA_ACTIVE
-    }), flush=True)
-
-
-def emit_progress(message: str, progress: float):
-    emit("progress", message, progress)
-
-
-def emit_error(message: str):
-    emit("error", message, 0.0)
-    sys.exit(1)
-
-
-def emit_done(message: str):
-    emit("done", message, 1.0)
-
-
-# ── CUDA detection ────────────────────────────────────────────────────────────
-def detect_cuda() -> tuple[int | None, int | None]:
-    """Returns (major, minor) or (None, None) if no CUDA found."""
-    # 1. Try nvidia-smi (most reliable — GPU driver version)
-    for cmd in [["nvidia-smi"], ["nvidia-smi.exe"]]:
-        try:
-            r = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-            if r.returncode == 0:
-                m = re.search(r"CUDA Version:\s*(\d+)\.(\d+)", r.stdout)
-                if m:
-                    return int(m.group(1)), int(m.group(2))
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            pass
-
-    # 2. Try nvcc (toolkit version — may differ from driver)
-    try:
-        r = subprocess.run(["nvcc", "--version"], capture_output=True, text=True, timeout=10)
-        if r.returncode == 0:
-            m = re.search(r"release\s+(\d+)\.(\d+)", r.stdout)
-            if m:
-                return int(m.group(1)), int(m.group(2))
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-
-    return None, None
-
-
-# ── CUDA → PyTorch wheel URL mapping ─────────────────────────────────────────
-# Maps (major, minor) to the nearest available PyTorch CUDA wheel.
-# Update this table as new PyTorch versions are released.
-TORCH_WHEEL_MAP = [
-    # (min_cuda_key, wheel_tag)   cuda_key = major*10 + minor
-    (130, "cu130"),   # CUDA 13.0+ -> Use cu130
-    (126, "cu124"),   # CUDA 12.6+ -> Use cu124
-    (124, "cu124"),   # CUDA 12.4+
-    (121, "cu121"),   # CUDA 12.1+
-    (118, "cu118"),   # CUDA 11.8+
-]
-
-
-def cuda_to_wheel_tag(major: int | None, minor: int | None) -> tuple[str, str]:
-    """Returns (tag, index_url) e.g. ('cu124', 'https://download.pytorch.org/whl/cu124')."""
-    if major is None:
-        return "cpu", "https://download.pytorch.org/whl/cpu"
-
-    key = major * 10 + (minor // 10 if minor >= 10 else minor)
-
-    for min_key, tag in TORCH_WHEEL_MAP:
-        if key >= min_key:
-            return tag, f"https://download.pytorch.org/whl/{tag}"
-
-    # Very old CUDA — fall back to CPU
-    return "cpu", "https://download.pytorch.org/whl/cpu"
-
-
-# ── llama-cpp-python pre-built CUDA wheel URL ─────────────────────────────────
+# --- Configuration ---
 LLAMA_WHEEL_BASE = "https://abetlen.github.io/llama-cpp-python/whl"
+TORCH_INDEX = "https://download.pytorch.org/whl/cu124"
+# Supported llama-cpp-python wheels
 LLAMA_SUPPORTED_TAGS = {"cu118", "cu121", "cu124"}
 
+def emit_progress(message: str, progress: float, cuda: bool = False):
+    """Emits JSON progress for the Flutter backend service."""
+    print(json.dumps({
+        "status": "progress",
+        "message": message,
+        "progress": progress,
+        "cuda_active": cuda
+    }), flush=True)
+
+def emit_done(message: str, cuda: bool = False):
+    print(json.dumps({
+        "status": "done",
+        "message": message,
+        "progress": 1.0,
+        "cuda_active": cuda
+    }), flush=True)
+
+def emit_error(message: str):
+    print(json.dumps({
+        "status": "error",
+        "message": message,
+        "progress": 0.0,
+        "cuda_active": False
+    }), flush=True)
+    sys.exit(1)
+
+def detect_cuda() -> tuple[int, int] | None:
+    """Detects CUDA version via nvcc or nvidia-smi."""
+    try:
+        # Check nvcc first
+        res = subprocess.run(["nvcc", "--version"], capture_output=True, text=True)
+        if res.returncode == 0:
+            import re
+            m = re.search(r"release (\d+)\.(\d+)", res.stdout)
+            if m:
+                return int(m.group(1)), int(m.group(2))
+    except Exception:
+        pass
+
+    try:
+        # Check nvidia-smi
+        res = subprocess.run(["nvidia-smi"], capture_output=True, text=True)
+        if res.returncode == 0:
+            import re
+            m = re.search(r"CUDA Version: (\d+)\.(\d+)", res.stdout)
+            if m:
+                return int(m.group(1)), int(m.group(2))
+    except Exception:
+        pass
+    
+    return None
+
+def get_wheel_tag(major: int, minor: int) -> str:
+    """Maps CUDA version to a supported wheel tag."""
+    # Update this table as new PyTorch versions are released.
+    TORCH_WHEEL_MAP = [
+        # (min_cuda_key, wheel_tag)   cuda_key = major*10 + minor
+        (132, "cu132"),   # CUDA 13.2+
+        (130, "cu130"),   # CUDA 13.0+
+        (126, "cu124"),   # CUDA 12.6+
+        (124, "cu124"),   # CUDA 12.4+
+        (121, "cu121"),   # CUDA 12.1+
+        (118, "cu118"),   # CUDA 11.8+
+    ]
+    
+    key = major * 10 + (minor // 10 if minor >= 10 else minor)
+    for min_key, tag in TORCH_WHEEL_MAP:
+        if key >= min_key:
+            return tag
+    return "cpu"
 
 def llama_wheel_url(wheel_tag: str) -> str | None:
     """Returns pre-built wheel index URL for llama-cpp-python, or None to compile."""
-    # Force source build for CUDA 13.x to ensure binary compatibility with RTX 50-series
-    if wheel_tag == "cu130":
-        return None
+    if wheel_tag.startswith("cu13"):
+        # CUDA 13.x: Fallback to cu124 pre-built wheel (compatible if bridged)
+        return f"{LLAMA_WHEEL_BASE}/cu124"
 
     # Maps for stable pre-built wheels
     if wheel_tag == "cu126":
@@ -137,83 +110,69 @@ def run_pip(venv_pip: str, args: list, label: str, prog_start: float, prog_end: 
         text=True,
         env=env,
     )
-    collected = 0
     for line in process.stdout:
         line = line.strip()
         if not line:
             continue
-        print(f"[pip] {line}", file=sys.stderr, flush=True)  # raw to stderr for debugging
-        lower = line.lower()
-        if any(kw in lower for kw in (
-            "collecting", "downloading", "installing",
-            "successfully installed"
-        )):
-            collected += 1
-            frac = min(collected / 80.0, 1.0)
-            prog = prog_start + frac * (prog_end - prog_start)
-            pkg = line.split()[-1] if line.split() else "packages"
+        # Only print debug info for users to terminal
+        print(f"[pip] {line}", file=sys.stderr, flush=True)
+        
+        # Heuristic to detect package completion
+        if "Collecting" in line:
+            pkg = line.split(" ")[1]
+            emit_progress(f"{label}: {pkg}", prog_start)
+        elif "Installing" in line and "packages" in line:
+            emit_progress(f"{label}: Finalizing...", prog_end)
+        elif "Successfully installed" in line:
+            prog = prog_end
+            pkg = line.split(" ")[-1]
             emit_progress(f"{label}: {pkg}", prog)
 
     process.wait()
-    if process.returncode not in (0,):
-        emit_error(f"pip failed (exit {process.returncode}) during: {label}")
+    return process.returncode == 0
 
-
-# ── Main ──────────────────────────────────────────────────────────────────────
 def main():
-    backend_dir = Path(__file__).parent.resolve()
+    emit_progress("Cyborg setup starting...", 0.02)
+    backend_dir = Path(__file__).parent.absolute()
     venv_dir = backend_dir / ".venv"
-
-    emit_progress("Cyborg setup starting…", 0.02)
-
-    # ── 1. Detect CUDA ────────────────────────────────────────────────────────
-    emit_progress("Detecting GPU / CUDA version…", 0.05)
-    cuda_major, cuda_minor = detect_cuda()
-
-    if cuda_major is None:
-        emit_progress("No CUDA GPU found — using CPU-only packages", 0.08)
-        wheel_tag = "cpu"
-        torch_index = "https://download.pytorch.org/whl/cpu"
+    
+    # ── 1. Detect Environment ────────────────────────────────────────────────
+    emit_progress("Detecting GPU / CUDA version...", 0.05)
+    cuda_ver = detect_cuda()
+    cuda_active = cuda_ver is not None
+    wheel_tag = "cpu"
+    if cuda_active:
+        wheel_tag = get_wheel_tag(*cuda_ver)
+        emit_progress(f"CUDA {cuda_ver[0]}.{cuda_ver[1]} detected \u2192 wheel: {wheel_tag}", 0.08, cuda=True)
     else:
-        global G_CUDA_ACTIVE
-        G_CUDA_ACTIVE = True
-        wheel_tag, torch_index = cuda_to_wheel_tag(cuda_major, cuda_minor)
-        emit_progress(
-            f"CUDA {cuda_major}.{cuda_minor} detected → PyTorch wheel: {wheel_tag}",
-            0.08,
-        )
+        emit_progress("No CUDA detected \u2192 using CPU mode", 0.08, cuda=False)
 
-    # ── 2. Create virtual environment ─────────────────────────────────────────
-    emit_progress("Installing ultrafast uv package manager…", 0.10)
-    subprocess.run(
-        [sys.executable, "-m", "pip", "install", "uv", "--quiet"],
-        capture_output=True
-    )
+    # ── 2. Initialize UV ──────────────────────────────────────────────────────
+    emit_progress("Installing ultrafast uv package manager...", 0.10, cuda=cuda_active)
+    try:
+        subprocess.run([sys.executable, "-m", "pip", "install", "uv", "--quiet"], check=True)
+    except Exception as e:
+        emit_error(f"Failed to install uv: {e}")
 
+    # ── 3. Create Venv ────────────────────────────────────────────────────────
     venv_python = (
         venv_dir / "Scripts" / "python.exe" if platform.system() == "Windows"
         else venv_dir / "bin" / "python"
     )
+    venv_pip = (
+        venv_dir / "Scripts" / "pip.exe" if platform.system() == "Windows"
+        else venv_dir / "bin" / "pip"
+    )
 
     if not venv_python.exists() or not (venv_dir / "pyvenv.cfg").exists():
-        emit_progress("Creating virtual environment with uv…", 0.15)
-        # Nuke corrupted directory if possible, otherwise rely on --clear
-        if venv_dir.exists():
-            import shutil
-            try:
-                shutil.rmtree(venv_dir)
-            except Exception:
-                pass
-
-        r = subprocess.run(
-            [sys.executable, "-m", "uv", "venv", "--clear", str(venv_dir)],
-            capture_output=True, text=True
-        )
-        if r.returncode != 0:
-            emit_error(f"uv venv failed: {r.stderr.strip()}")
-        emit_progress("Virtual environment created ✓", 0.18)
+        emit_progress("Creating virtual environment with uv...", 0.15, cuda=cuda_active)
+        try:
+            subprocess.run([sys.executable, "-m", "uv", "venv", str(venv_dir)], check=True)
+            emit_progress("Virtual environment created \u2713", 0.18, cuda=cuda_active)
+        except Exception as e:
+            emit_error(f"Failed to create venv: {e}")
     else:
-        emit_progress("Virtual environment exists ✓", 0.18)
+        emit_progress("Virtual environment exists \u2713", 0.18, cuda=cuda_active)
 
     # Helper function to run uv commands
     def run_uv(args, label, prog_start, prog_end, extra_env=None):
@@ -236,170 +195,115 @@ def main():
                 frac = min(collected / 20.0, 1.0)
                 emit_progress(
                     f"{label}: {line[:40]}...",
-                    prog_start + frac * (prog_end - prog_start)
+                    prog_start + frac * (prog_end - prog_start),
+                    cuda=cuda_active
                 )
         proc.wait()
-        if proc.returncode != 0:
-            emit_error(f"uv failed during: {label}")
+        return proc.returncode == 0
 
-    # ── 3. Install PyTorch with correct CUDA wheel ────────────────────────────
-    skip_torch = False
+    # ── 4. Install PyTorch (Heavyweight) ──────────────────────────────────────
     force_torch = False
-    if venv_python.exists():
-        try:
-            check_script = "import torch; print(torch.cuda.is_available())"
-            r = subprocess.run(
-                [str(venv_python), "-c", check_script],
-                capture_output=True, text=True, timeout=10
-            )
-            if "True" in r.stdout:
-                emit_progress("PyTorch with CUDA already installed ✓", 0.45)
-                skip_torch = True
-        except Exception:
-            pass
+    try:
+        # Check if torch is installed and matches tag
+        check_code = f"import torch; print(torch.cuda.is_available() if '{wheel_tag}' != 'cpu' else 'True')"
+        res = subprocess.run([str(venv_python), "-c", check_code], capture_output=True, text=True)
+        if res.returncode != 0 or "False" in res.stdout:
+            force_torch = True
+    except Exception:
+        force_torch = True
 
-    if not skip_torch:
-        emit_progress(f"Installing PyTorch ({wheel_tag}) with uv…", 0.20)
-
-        # Check if existing torch is CPU-only (if we didn't skip)
-        force_torch = False
+    if force_torch:
+        emit_progress(f"Installing PyTorch with CUDA ({wheel_tag})...", 0.20, cuda=cuda_active)
+        torch_pkgs = ["torch", "torchvision", "torchaudio"]
         if wheel_tag != "cpu":
-            try:
-                check_cmd = [
-                    str(venv_python), "-c",
-                    "import torch; print(torch.cuda.is_available())"
-                ]
-                r = subprocess.run(check_cmd, capture_output=True, text=True, timeout=10)
-                if "False" in r.stdout:
-                    emit_progress("CPU-only Torch detected — forcing CUDA reinstall…", 0.21)
-                    force_torch = True
-            except Exception:
-                force_torch = True
+            # Fix for cu132: fallback to cu124 for torch as well if cu132 not available
+            torch_tag = "cu124" if wheel_tag.startswith("cu13") else wheel_tag
+            torch_index = f"https://download.pytorch.org/whl/{torch_tag}"
+            run_uv(["install"] + torch_pkgs + ["--index-url", torch_index], "PyTorch", 0.20, 0.45)
+        else:
+            run_uv(["install"] + torch_pkgs, "PyTorch", 0.20, 0.45)
+    else:
+        emit_progress("PyTorch with CUDA already installed \u2713", 0.45, cuda=cuda_active)
 
-        torch_packages = ["torch>=2.6.0", "torchvision", "torchaudio"]
-        torch_args = ["install"] + torch_packages + ["--index-url", torch_index]
-        if force_torch:
-            torch_args.append("--force-reinstall")
-
-        run_uv(
-            torch_args,
-            "PyTorch", 0.22, 0.45,
-        )
-        emit_progress("PyTorch installed ✓", 0.45)
-
-    # Uninstall torchcodec to prevent Windows DLL errors in PyTorch 2.6+
-    if venv_python.exists():
-        subprocess.run(
-            [sys.executable, "-m", "uv", "pip", "uninstall", "torchcodec", "-y",
-             "--python", str(venv_python)],
-            capture_output=True
-        )
-
-    # ── 4. Install llama-cpp-python ───────────────────────────────────────────
+    # ── 5. Install Llama-cpp-python (Inference Engine) ────────────────────────
+    # Check if llama-cpp-python is functional with CUDA
     skip_llama = False
-    # Force reinstall for CUDA 13.x to transition from incompatible wheels to source build
-    if wheel_tag == "cu130":
-        force_llama = True
-        skip_llama = False
-    elif venv_python.exists() and not force_torch:
+    if not force_torch:
         try:
-            # Check if installed AND has GPU support
-            check_script = (
-                "import llama_cpp; "
-                "print(llama_cpp.llama_supports_gpu_offload())"
-            )
-            r = subprocess.run(
-                [str(venv_python), "-c", check_script],
-                capture_output=True, text=True, timeout=10
-            )
-            if "True" in r.stdout:
-                emit_progress("llama-cpp-python (CUDA) already installed ✓", 0.55)
-                skip_llama = True
-            elif "False" in r.stdout and G_CUDA_ACTIVE:
-                emit_progress(
-                    "llama-cpp-python found but no CUDA support — forcing reinstall…",
-                    0.46
-                )
-                skip_llama = False
-                force_llama = True
-            elif "ok" in r.stdout or "False" in r.stdout:
-                emit_progress("llama-cpp-python (CPU) already installed ✓", 0.55)
+            check_code = "import llama_cpp; print(llama_cpp.llama_supports_gpu_offload())"
+            res = subprocess.run([str(venv_python), "-c", check_code], capture_output=True, text=True)
+            if res.returncode == 0 and ("True" in res.stdout or wheel_tag == "cpu"):
                 skip_llama = True
         except Exception:
             pass
 
     if not skip_llama:
-        emit_progress("Installing llama-cpp-python with uv…", 0.46)
+        emit_progress("Installing llama-cpp-python with uv...", 0.46, cuda=cuda_active)
+        force_llama = force_torch or wheel_tag.startswith("cu13")
+        force_source = False # Allow pre-built cu124 wheels for cu13+ if bridged
 
-        # Force llama reinstall if torch was forced (likely DLL/CUDA mapping changed)
-        force_llama = force_torch
-
-        llama_index = llama_wheel_url(wheel_tag)
+        llama_index = llama_wheel_url(wheel_tag) if not force_source else None
         llama_pkg = "llama-cpp-python>=0.3.1"
-
         extra_uv_args = ["--force-reinstall"] if force_llama else []
-
+        if force_source:
+            extra_uv_args.extend(["--no-binary", "llama-cpp-python"])
+        
+        success = False
         if llama_index is not None:
-            run_uv(
+            success = run_uv(
                 ["install", llama_pkg, "--extra-index-url", llama_index] + extra_uv_args,
-                "llama-cpp-python (prebuilt)", 0.46, 0.55,
+                "llama-cpp-python (prebuilt)", 0.46, 0.55
             )
         elif wheel_tag != "cpu":
-            emit_progress(f"Building llama-cpp-python with CUDA ({wheel_tag})…", 0.47)
-            run_uv(
-                ["install", llama_pkg] + extra_uv_args,
+            emit_progress(f"Building llama-cpp-python with CUDA ({wheel_tag}) \u2013 This will take 5-10 mins...", 0.47, cuda=cuda_active)
+            cuda_path = os.environ.get("CUDA_PATH", r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2")
+            cmake_args = f"-DGGML_CUDA=ON -DCUDAToolkit_ROOT=\"{cuda_path}\""
+            success = run_uv(
+                ["install", llama_pkg] + extra_uv_args + ["--no-cache-dir"],
                 "llama-cpp-python (source)", 0.47, 0.55,
-                extra_env={"CMAKE_ARGS": "-DGGML_CUDA=on", "FORCE_CMAKE": "1"},
+                extra_env={"CMAKE_ARGS": cmake_args, "FORCE_CMAKE": "1", "PATH": f"{cuda_path}\\bin;{os.environ['PATH']}"}
             )
         else:
-            run_uv(
-                ["install", llama_pkg] + extra_uv_args,
-                "llama-cpp-python (CPU)", 0.46, 0.55,
-            )
-        emit_progress("llama-cpp-python installed ✓", 0.55)
+            success = run_uv(["install", llama_pkg] + extra_uv_args, "llama-cpp-python (CPU)", 0.46, 0.55)
 
-    # ── 5. Install remaining requirements ─────────────────────────────────────
-    req_file = backend_dir / "requirements.txt"
-    if req_file.exists():
-        emit_progress("Installing remaining dependencies with uv…", 0.56)
-        run_uv(
-            ["install", "-r", str(req_file)],
-            "Dependencies", 0.56, 0.94,
-        )
+        if not success and wheel_tag != "cpu":
+            emit_progress("GPU build failed (missing compiler?) \u2192 Falling back to CPU version...", 0.50, cuda=False)
+            success = run_uv(["install", llama_pkg, "--force-reinstall"], "llama-cpp-python (CPU fallback)", 0.50, 0.55)
+            cuda_active = False # Mark as inactive for status display
+        
+        if not success:
+            emit_error("Failed to install llama-cpp-python even in CPU mode.")
+        
+        emit_progress("llama-cpp-python installed \u2713", 0.55, cuda=cuda_active)
 
-    emit_progress("All dependencies installed ✓", 0.95)
+    # ── 6. Install remaining dependencies ─────────────────────────────────────
+    emit_progress("Installing remaining dependencies with uv...", 0.56, cuda=cuda_active)
+    run_uv(["install", "-r", str(backend_dir / "requirements.txt")], "Requirements", 0.56, 0.95)
 
-    # Fix llama-cpp-python DLLs for Windows CUDA
-    if platform.system() == "Windows":
+    # ── 7. Bridging DLLs (Windows Only) ──────────────────────────────────────
+    if platform.system() == "Windows" and cuda_active:
+        emit_progress("Bridging CUDA DLLs from PyTorch to llama_cpp...", 0.96, cuda=True)
         try:
-            # We need to run this inside the newly created venv context
-            fix_script = """
-import torch
-import shutil
-import sys
-from pathlib import Path
-torch_lib = Path(torch.__file__).parent / "lib"
-llama_lib = Path(sys.prefix) / "Lib" / "site-packages" / "llama_cpp" / "lib"
+            torch_lib = venv_dir / "Lib" / "site-packages" / "torch" / "lib"
+            llama_lib = venv_dir / "Lib" / "site-packages" / "llama_cpp" / "lib"
+            
+            if torch_lib.exists() and llama_lib.exists():
+                import shutil
+                dlls_to_bridge = ["cublas64_12.dll", "cublasLt64_12.dll", "cudart64_12.dll"]
+                for dll in dlls_to_bridge:
+                    src = torch_lib / dll
+                    dst = llama_lib / dll
+                    if src.exists() and not dst.exists():
+                        shutil.copy2(src, dst)
+                        print(f"[bridge] Copied {dll} to llama_cpp/lib", file=sys.stderr)
+            
+            # Also patch the search path for the current process
+            os.add_dll_directory(str(llama_lib))
+        except Exception as e:
+            print(f"[bridge] Warning: Failed to bridge DLLs: {e}", file=sys.stderr)
 
-if torch_lib.exists() and llama_lib.exists():
-    dll_map = {{
-        "cudart64_13.dll": "cudart64_12.dll",
-        "cublas64_13.dll": "cublas64_12.dll",
-        "cublasLt64_13.dll": "cublasLt64_12.dll",
-    }}
-    for src_name, dst_name in dll_map.items():
-        src = torch_lib / src_name
-        dst = llama_lib / dst_name
-        if src.exists() and not dst.exists():
-            shutil.copy2(src, dst)
-            print(f"Fixed DLL: {{dst_name}}")
-"""
-            subprocess.run([str(venv_python), "-c", fix_script], capture_output=True)
-        except Exception:
-            pass
-
-    emit_done("Environment ready ✓")
-
+    # ── 8. Finalize ───────────────────────────────────────────────────────────
+    emit_done("Environment ready \u2713", cuda=cuda_active)
 
 if __name__ == "__main__":
     main()

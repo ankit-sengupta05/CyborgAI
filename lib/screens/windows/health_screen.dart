@@ -213,7 +213,7 @@ class _HealthScreenState extends State<HealthScreen>
           // Disclaimer
           Container(
             padding: const EdgeInsets.all(12),
-            color: AppColors.accentOrange.withOpacity(0.1),
+            color: AppColors.accentOrange.withValues(alpha: 0.1),
             child: Row(
               children: [
                 Icon(Icons.warning_amber,
@@ -542,7 +542,7 @@ class _HealthScreenState extends State<HealthScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.accentBlue.withOpacity(0.1),
+              color: AppColors.accentBlue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppColors.accentBlue),
             ),

@@ -13,13 +13,13 @@ class EducationApiService {
 
   /// Check education service availability
   Future<Map<String, dynamic>> getStatus() async {
-    final resp = await _dio.get('/api/v1/education/status');
+    final resp = await _dio.get('education/status');
     return resp.data as Map<String, dynamic>;
   }
 
   /// Get demo configuration
   Future<Map<String, dynamic>> getDemoConfig() async {
-    final resp = await _dio.get('/api/v1/education/demo-config');
+    final resp = await _dio.get('education/demo-config');
     return resp.data as Map<String, dynamic>;
   }
 
@@ -47,11 +47,10 @@ class EducationApiService {
     });
 
     final resp = await _dio.post(
-      '/api/v1/education/grade-homework',
+      'education/grade-homework',
       data: formData,
       options: Options(
         receiveTimeout: const Duration(seconds: 120),
-        contentType: 'multipart/form-data',
       ),
     );
     return resp.data as Map<String, dynamic>;
@@ -76,7 +75,7 @@ class EducationApiService {
     });
 
     final resp = await _dio.post(
-      '/api/v1/education/generate-quiz',
+      'education/generate-quiz',
       data: formData,
       options: Options(receiveTimeout: const Duration(seconds: 60)),
     );
@@ -85,7 +84,7 @@ class EducationApiService {
 
   /// Get student progress
   Future<Map<String, dynamic>> getProgress(String studentId) async {
-    final resp = await _dio.get('/api/v1/education/progress/$studentId');
+    final resp = await _dio.get('education/progress/$studentId');
     return resp.data as Map<String, dynamic>;
   }
 
@@ -106,7 +105,7 @@ class EducationApiService {
     });
 
     final resp = await _dio.post(
-      '/api/v1/education/track-submission',
+      'education/track-submission',
       data: formData,
     );
     return resp.data as Map<String, dynamic>;

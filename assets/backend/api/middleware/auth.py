@@ -53,56 +53,79 @@ def _init_firebase():
     _firebase_initialized = True
 
 
-class FirebaseAuthMiddleware(BaseHTTPMiddleware):
+class FirebaseAuthMiddleware:
+    """
+    ASGI Middleware for Firebase Authentication.
+    - Properly handles HTTP requests with token verification.
+    - COMPLETELY ignores WebSockets to prevent connection resets/timeouts.
+    """
     def __init__(self, app):
-        super().__init__(app)
+        self.app = app
         _init_firebase()
 
-    async def dispatch(self, request, call_next):
-        path = request.url.path
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            # Direct bypass for WebSockets and other non-HTTP types
+            return await self.app(scope, receive, send)
 
-        # Always allow public paths and WebSocket upgrades
+        path = scope.get("path", "")
+        
+        # Always allow public paths
         if (
             path in PUBLIC_PATHS
             or path.startswith("/api/docs")
             or path.startswith("/api/redoc")
-            or request.headers.get("upgrade", "").lower() == "websocket"
         ):
-            request.state.user_id = "anonymous"
-            request.state.user_email = ""
-            return await call_next(request)
+            scope["user_id"] = "anonymous"
+            return await self.app(scope, receive, send)
 
         # DEV MODE: no service account → skip auth, assign local user
         if not _full_auth_enabled:
-            request.state.user_id = "local"
-            request.state.user_email = "local@cyborg.dev"
-            return await call_next(request)
+            scope["user_id"] = "local"
+            scope["user_email"] = "local@cyborg.dev"
+            return await self.app(scope, receive, send)
 
         # PRODUCTION MODE: verify Firebase ID token
-        auth_header = request.headers.get("Authorization", "")
+        headers = dict(scope.get("headers", []))
+        auth_header = headers.get(b"authorization", b"").decode()
         token = None
 
         if auth_header.startswith("Bearer "):
             token = auth_header[7:]
-        elif "token" in request.query_params:
-            token = request.query_params["token"]
+        else:
+            # Check query string for token
+            from urllib.parse import parse_qs
+            query = parse_qs(scope.get("query_string", b"").decode())
+            if "token" in query:
+                token = query["token"][0]
 
         if not token:
-            return JSONResponse(
-                status_code=401,
-                content={"error": "Authentication required"},
-            )
+            await self._reject(send, "Authentication required")
+            return
 
         try:
             decoded = fb_auth.verify_id_token(token)
-            request.state.user_id = decoded["uid"]
-            request.state.user_email = decoded.get("email", "")
-            request.state.user = decoded
+            scope["user_id"] = decoded["uid"]
+            scope["user_email"] = decoded.get("email", "")
+            scope["user"] = decoded
         except Exception as e:
             log.warning("Token verification failed", error=str(e))
-            return JSONResponse(
-                status_code=401,
-                content={"error": "Invalid or expired token"},
-            )
+            await self._reject(send, "Invalid or expired token")
+            return
 
-        return await call_next(request)
+        return await self.app(scope, receive, send)
+
+    async def _reject(self, send, message: str):
+        import json
+        response_body = json.dumps({"error": message}).encode()
+        await send({
+            "type": "http.response.start",
+            "status": 401,
+            "headers": [
+                [b"content-type", b"application/json"],
+            ],
+        })
+        await send({
+            "type": "http.response.body",
+            "body": response_body,
+        })

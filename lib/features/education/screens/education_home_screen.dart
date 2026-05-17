@@ -1,7 +1,43 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../theme/paperclip_theme.dart';
 import 'homework_scanner_screen.dart';
 import 'quiz_player_screen.dart';
+import '../../chat/screens/chat_screen.dart';
+
+// Local shim so existing AppColors references resolve without rewriting every line
+class AppColors {
+  static const Color backgroundMain    = PaperclipTheme.backgroundDark;
+  static const Color backgroundSidebar = PaperclipTheme.sidebarDark;
+  static const Color backgroundSurface = PaperclipTheme.surfaceDark;
+  static const Color backgroundInput   = PaperclipTheme.surfaceElevatedDark;
+  static const Color borderDefault     = PaperclipTheme.borderDark;
+  static const Color borderHover       = PaperclipTheme.borderBrightDark;
+  static const Color textPrimary       = PaperclipTheme.foregroundDark;
+  static const Color textSecondary     = PaperclipTheme.mutedDark;
+  static const Color textTertiary      = PaperclipTheme.mutedFgDark;
+  static const Color textMuted         = PaperclipTheme.mutedFgDark;
+  static const Color accentBlue        = PaperclipTheme.accentCyan;
+  static const Color accentBlueHover   = Color(0xFF00A0D6);
+  static const Color accent            = PaperclipTheme.accentCyan;
+  static const Color accentPurple      = PaperclipTheme.accentPurple;
+  static const Color accentGreen       = PaperclipTheme.accentGreen;
+  static const Color accentRed         = PaperclipTheme.accentRed;
+  static const Color accentOrange      = PaperclipTheme.accentAmber;
+  static const Color accentYellow      = PaperclipTheme.accentAmber;
+  static const Color success           = PaperclipTheme.accentGreen;
+  static const Color warning           = PaperclipTheme.accentAmber;
+  static const Color error             = PaperclipTheme.accentRed;
+  static const Color info              = PaperclipTheme.accentCyan;
+  static const Color surface           = PaperclipTheme.surfaceDark;
+  static const Color surfaceVariant    = PaperclipTheme.surfaceElevatedDark;
+  static const Color background        = PaperclipTheme.backgroundDark;
+  static const Color border            = PaperclipTheme.borderDark;
+  static const LinearGradient accentGradient = LinearGradient(
+    colors: [PaperclipTheme.accentGreen, PaperclipTheme.accentCyan],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+}
 
 /// Education Track Home Screen
 class EducationHomeScreen extends StatelessWidget {
@@ -12,7 +48,7 @@ class EducationHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundMain,
+      backgroundColor: PaperclipTheme.backgroundDark,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
@@ -34,12 +70,12 @@ class EducationHomeScreen extends StatelessWidget {
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Text('Education Track',
                     style: TextStyle(
-                        color: AppColors.textPrimary,
+                        color: PaperclipTheme.foregroundDark,
                         fontSize: 26,
                         fontWeight: FontWeight.w800)),
                 Text('Gemma 4 4B · Adaptive Learning Agent',
                     style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: 13)),
+                        color: PaperclipTheme.mutedDark, fontSize: 13)),
               ]),
               const Spacer(),
               Container(
@@ -64,7 +100,7 @@ class EducationHomeScreen extends StatelessWidget {
             Text(
               'Adaptive homework grading, personalized quizzes, and voice-accessible tutoring—running offline on low-cost devices in under-resourced classrooms.',
               style: TextStyle(
-                  color: AppColors.textSecondary, fontSize: 14, height: 1.5),
+                  color: PaperclipTheme.mutedDark, fontSize: 14, height: 1.5),
             ),
             const SizedBox(height: 32),
 
@@ -119,7 +155,7 @@ class EducationHomeScreen extends StatelessWidget {
                     description:
                         'Fully offline voice interaction loop: student speaks → AI processes → AI responds in natural language for accessible, hands-free tutoring.',
                     tags: const ['Whisper STT', 'Piper TTS', 'Hands-free'],
-                    onTap: () => _soon(context, 'Voice Tutor'),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatScreen())),
                   ),
                 ],
               );
@@ -164,7 +200,7 @@ class EducationHomeScreen extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text('Performance Benchmarks',
           style: TextStyle(
-              color: AppColors.textPrimary,
+              color: PaperclipTheme.foregroundDark,
               fontSize: 14,
               fontWeight: FontWeight.w700)),
       const SizedBox(height: 12),
@@ -178,7 +214,7 @@ class EducationHomeScreen extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                              color: AppColors.backgroundSurface,
+                              color: PaperclipTheme.surfaceDark,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
                                   color: Color(s['color'] as int)
@@ -193,12 +229,12 @@ class EducationHomeScreen extends StatelessWidget {
                                         fontWeight: FontWeight.w800)),
                                 Text(s['label'] as String,
                                     style: const TextStyle(
-                                        color: AppColors.textPrimary,
+                                        color: PaperclipTheme.foregroundDark,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600)),
                                 Text(s['sub'] as String,
                                     style: const TextStyle(
-                                        color: AppColors.textMuted,
+                                        color: PaperclipTheme.mutedFgDark,
                                         fontSize: 10)),
                               ]),
                         ),
@@ -218,18 +254,18 @@ class EducationHomeScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: AppColors.backgroundSurface,
+          color: PaperclipTheme.surfaceDark,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border)),
+          border: Border.all(color: PaperclipTheme.borderDark)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text('Language Support',
             style: TextStyle(
-                color: AppColors.textPrimary,
+                color: PaperclipTheme.foregroundDark,
                 fontSize: 13,
                 fontWeight: FontWeight.w700)),
         const SizedBox(height: 4),
         Text('All AI outputs, feedback, and quizzes available in:',
-            style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            style: TextStyle(color: PaperclipTheme.mutedFgDark, fontSize: 12)),
         const SizedBox(height: 12),
         Wrap(
             spacing: 10,
@@ -239,15 +275,15 @@ class EducationHomeScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                          color: AppColors.backgroundMain,
+                          color: PaperclipTheme.backgroundDark,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.border)),
+                          border: Border.all(color: PaperclipTheme.borderDark)),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
                         Text(l.$1, style: const TextStyle(fontSize: 16)),
                         const SizedBox(width: 6),
                         Text(l.$2,
                             style: const TextStyle(
-                                color: AppColors.textPrimary, fontSize: 12))
+                                color: PaperclipTheme.foregroundDark, fontSize: 12))
                       ]),
                     ))
                 .toList()),
@@ -258,7 +294,7 @@ class EducationHomeScreen extends StatelessWidget {
   void _soon(BuildContext context, String name) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('$name — Coming Soon'),
-        backgroundColor: AppColors.backgroundSurface,
+        backgroundColor: PaperclipTheme.surfaceDark,
         behavior: SnackBarBehavior.floating,
       ));
 }
@@ -292,12 +328,12 @@ class _FeatureCardState extends State<_FeatureCard> {
               duration: const Duration(milliseconds: 150),
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: AppColors.backgroundSurface,
+                color: PaperclipTheme.surfaceDark,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                     color: _hovered
                         ? widget.color.withOpacity(0.5)
-                        : AppColors.border),
+                        : PaperclipTheme.borderDark),
                 boxShadow: _hovered
                     ? [
                         BoxShadow(
@@ -320,20 +356,20 @@ class _FeatureCardState extends State<_FeatureCard> {
                               Icon(widget.icon, color: widget.color, size: 20)),
                       const Spacer(),
                       Icon(Icons.arrow_forward_ios,
-                          color: _hovered ? widget.color : AppColors.textMuted,
+                          color: _hovered ? widget.color : PaperclipTheme.mutedFgDark,
                           size: 13),
                     ]),
                     const SizedBox(height: 12),
                     Text(widget.title,
                         style: const TextStyle(
-                            color: AppColors.textPrimary,
+                            color: PaperclipTheme.foregroundDark,
                             fontSize: 15,
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
                     Expanded(
                         child: Text(widget.description,
                             style: const TextStyle(
-                                color: AppColors.textSecondary,
+                                color: PaperclipTheme.mutedDark,
                                 fontSize: 12,
                                 height: 1.5),
                             overflow: TextOverflow.fade)),

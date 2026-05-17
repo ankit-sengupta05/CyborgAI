@@ -199,7 +199,15 @@ class GitHubNotifier extends StateNotifier<GitHubState> {
       );
       await loadRepos();
     } catch (e) {
-      state = state.copyWith(error: 'Failed to connect: $e');
+      String msg = e.toString();
+      if (e is DioException) {
+        if (e.response?.statusCode == 401) {
+          msg = 'Invalid Token: The GitHub Personal Access Token you provided was rejected. Please check for typos and ensure it hasn\'t expired.';
+        } else {
+          msg = e.response?.data?['detail'] ?? e.message ?? 'Unknown connection error';
+        }
+      }
+      state = state.copyWith(error: msg);
     }
   }
 
@@ -525,10 +533,37 @@ class _ConnectView extends StatelessWidget {
               ),
             ),
             if (error != null) ...[
-              const SizedBox(height: 8),
-              Text(error!,
-                  style: const TextStyle(
-                      color: AppColors.accentRed, fontSize: 12)),
+              const SizedBox(height: 12),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 120),
+                child: SingleChildScrollView(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentRed.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.accentRed.withOpacity(0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.error_outline, color: AppColors.accentRed, size: 14),
+                            const SizedBox(width: 8),
+                            const Text('Connection Error', style: TextStyle(color: AppColors.accentRed, fontWeight: FontWeight.bold, fontSize: 12)),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          error!,
+                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 11, height: 1.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
             const SizedBox(height: 6),
             const Text(

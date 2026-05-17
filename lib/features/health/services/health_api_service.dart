@@ -13,13 +13,13 @@ class HealthApiService {
 
   /// Check health service availability
   Future<Map<String, dynamic>> getStatus() async {
-    final resp = await _dio.get('/api/v1/health/status');
+    final resp = await _dio.get('health/status');
     return resp.data as Map<String, dynamic>;
   }
 
   /// Get demo configuration (supported languages, symptoms, etc.)
   Future<Map<String, dynamic>> getDemoConfig() async {
-    final resp = await _dio.get('/api/v1/health/demo-config');
+    final resp = await _dio.get('health/demo-config');
     return resp.data as Map<String, dynamic>;
   }
 
@@ -45,11 +45,10 @@ class HealthApiService {
     });
 
     final resp = await _dio.post(
-      '/api/v1/health/analyze-xray',
+      'health/analyze-xray',
       data: formData,
       options: Options(
         receiveTimeout: const Duration(seconds: 120),
-        contentType: 'multipart/form-data',
       ),
     );
     return resp.data as Map<String, dynamic>;
@@ -67,7 +66,7 @@ class HealthApiService {
       if (dateRange != null) 'date_range': dateRange,
     });
 
-    final resp = await _dio.post('/api/v1/health/ehr/query', data: formData);
+    final resp = await _dio.post('health/ehr/query', data: formData);
     return resp.data as Map<String, dynamic>;
   }
 }
