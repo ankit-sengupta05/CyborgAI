@@ -108,7 +108,7 @@ class VaultState {
 class VaultNotifier extends StateNotifier<VaultState> {
   final VaultRepository _repo;
 
-  VaultNotifier() : _repo = (Platform.isWindows || kIsWeb) ? RemoteVaultRepository() : LocalVaultRepository(),
+  VaultNotifier() : _repo = (kIsWeb || Platform.isWindows) ? RemoteVaultRepository() : LocalVaultRepository(),
                     super(const VaultState()) {
     _init();
   }

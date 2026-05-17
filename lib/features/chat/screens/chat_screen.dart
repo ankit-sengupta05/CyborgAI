@@ -1580,7 +1580,7 @@ class _ChatInputState extends ConsumerState<_ChatInput> {
       // On web, path is null — use bytes only
       final att = ChatAttachment(
         id: _uuid.v4(),
-        path: file.path ?? file.name,
+        path: kIsWeb ? file.name : (file.path ?? file.name),
         name: file.name,
         type: AttachmentType.image,
         bytes: file.bytes,

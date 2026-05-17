@@ -498,7 +498,7 @@ class ModelManagerNotifier extends StateNotifier<ModelManagerState> {
         state = state.copyWith(availableModels: finalUpdated);
       }
 
-      if (!Platform.isAndroid && !Platform.isIOS) {
+      if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
         await _loadModels();
       }
     } catch (e) {
@@ -800,6 +800,19 @@ class _ModelManagerScreenState extends ConsumerState<ModelManagerScreen>
   }
 
   Future<void> _pickFile(BuildContext context) async {
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Row(children: [
+          Icon(Icons.info_outline, color: PaperclipTheme.accentCyan, size: 16),
+          SizedBox(width: 8),
+          Expanded(child: Text('Custom local file loading is only supported on native desktop app.', style: TextStyle(fontSize: 12))),
+        ]),
+        backgroundColor: PaperclipTheme.surfaceDark,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+      return;
+    }
     final result = await FilePicker.platform.pickFiles(type: FileType.any);
     if (result?.files.single.path == null) return;
     final path = result!.files.single.path!;
