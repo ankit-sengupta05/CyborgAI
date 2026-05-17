@@ -35,8 +35,13 @@ import 'features/model_manager/screens/model_manager_screen.dart';
 import 'features/voice_assistant/screens/voice_assistant_screen.dart';
 import 'features/voice_agent/screens/voice_agent_screen.dart';
 
+import 'package:google_fonts/google_fonts.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Disable dynamic font fetching from gstatic CDN to support offline mode
+  GoogleFonts.config.allowRuntimeFetching = false;
   
   // Initialize Firebase
   await Firebase.initializeApp(
