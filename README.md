@@ -30,7 +30,7 @@ Cyborg AGI was built specifically around the **Gemma 4 Good Hackathon** challeng
 | 🔒 **Privacy-First** | Fully local inference — no cloud dependency, FHIR-compatible data guardrails |
 | ⚙️ **Edge & Constrained Environments** | Runs on Windows workstations, Android, Raspberry Pi, and NVIDIA Jetson |
 
-> **Why Gemma 4?** Open Apache 2.0 weights, strong multimodal performance on local hardware, safety-tuned by design, and the only model family enabling this level of on-device medical and educational intelligence without a cloud subscription.
+> **Why Gemma 4?** Open Apache 2.0 weights, strong multimodal performance on local hardware, and safety-tuned by design. The exceptional **agentic intelligence of Gemma 4** enables complex reasoning, planning, and tool parsing at the edge, making the entire on-device AGI workflow highly optimized, responsive, and efficient.
 
 ---
 
@@ -41,12 +41,13 @@ Experience a live interactive sample of Cyborg AGI directly in your browser:
 
 ---
 
-## 🔮 The Vision: Connected Local Intelligence
+## 🔮 The Vision: Connected Local Intelligence & Self-Healing Sentience
 
-Cyborg AGI's ultimate vision is to create a seamless, decentralized, private network connecting all your personal devices (PCs, laptops, and Android phones) into an air-gapped, zero-cost private grid:
+Cyborg AGI's ultimate vision is to create a seamless, decentralized, private network connecting all your personal devices (PCs, laptops, and Android phones) into an air-gapped, zero-cost private grid, expanding into a **partially sentient, self-healing system**:
 - **Seamless Device Interconnectivity**: All your devices remain connected securely in real-time, allowing you to access the combined power of your local ecosystem from anywhere.
 - **Natural Language File Retrieval**: Fetch any file from any of your devices simply by describing what you need in natural language. For instance, even if a file resides on your desktop PC at home, you can query it on your phone while you are outside, and the system will locate and stream it directly to your phone.
 - **Remote Task Orchestration & Management**: Delegate active workloads and assign tasks directly from your Android device. Setup new coding environments, bootstrap whole programming projects, or trigger custom server tasks on your remote PC while you are on the move.
+- **Self-Generating Code & Tool Creation (Sentient Agents)**: If you ask the system to perform a new action that it doesn't currently support (e.g., "open WhatsApp") and the code or tool to do so is missing, the system will **automatically generate the necessary code** as a LangGraph or Deep Agent tool at runtime. It compiles and injects it into its own source code to execute the task on the fly—rendering the platform partially sentient and capable of infinite self-growth!
 - **100% Free, Private, & Local**: No subscriptions, no telemetry, and no third-party servers. Your files, local LLMs, and operations are kept strictly local, free, and private forever.
 
 ---
@@ -357,15 +358,22 @@ OFFLINE_MODE=false            # Set true for fully air-gapped deployment
 
 ---
 
-## 🏥 Why This Matters: Real-World Impact
+## 🏥 Why This Matters: Real-World Impact in Critical Situations
 
-| Scenario | Cyborg Solution |
-|---|---|
-| Rural clinic with no internet | MedGemma 4B runs fully local; X-ray analysis without cloud |
-| Classroom in low-bandwidth region | Adaptive Tutor works offline; culturally localized for India/SE Asia |
-| Disaster response coordination | World Monitor synthesizes GDELT + USGS feeds into actionable briefings |
-| Privacy-regulated enterprise | Zero-exfiltration architecture; all data stays on-device |
-| Individual knowledge worker | Mirofish graph + ACE vault = compounding personal intelligence |
+Cyborg AGI is designed to solve high-stakes, real-world problems where cloud dependency or corporate AI isn't viable:
+
+### 🎓 How the Education Window Helps
+- **Empowering Remote Classrooms**: In rural villages or schools without reliable internet connections, students and teachers cannot access ChatGPT or Claude. With the **Cyborg Education Window**, they can photograph handwritten assignments. The system grades the submission on-device, highlights learning gaps, and generates personalized quizzes instantly.
+- **Culturally Relevant Learning**: By adapting quiz topics to regional demographics (e.g., India vs. US vs. SE Asia), it ensures local students learn using concepts, currencies, and scenarios they actually understand.
+
+### 🏥 How the Health Window Helps
+- **Offline Clinical Aid**: In rural or under-resourced diagnostic centers, prompt clinical reasoning can be a matter of life and death. The **Cyborg Health Window** analyzes chest X-rays locally on-device. It scans patient records, differential diagnoses, and suggests treatments without exposing private patient data to external servers, providing immediate triage support.
+- **Context-Aware Medical History**: Seamlessly integrates personal history from the local RAG vault while screening out technical noise (such as unrelated ML lecture slides), producing pristine medical evaluations.
+
+### ⚙️ Hardware Limitations & Future Scaling Plans
+- **Compact Local Benchmarks**: All of our development, validation, and benchmarking were performed on **2B and 4B models** due to local hardware and VRAM constraints. 
+- **Outstanding Efficiency**: Despite these constraints, the optimized Gemma models performed exceptionally well—beating many general cloud endpoints in task-specific accuracy and response latency.
+- **Future Scaling Roadmap**: We plan to scale Cyborg AGI to support larger parameter models in future iterations, making local, private AGI accessible and useful for thousands of people worldwide.
 
 ---
 
