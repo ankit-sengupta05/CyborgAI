@@ -27,6 +27,7 @@ Cyborg AGI was built specifically around the **Gemma 4 Good Hackathon** challeng
 | 🏥 **Health** | **Gemma 4 Health** pipeline for local clinical reasoning & X-ray analysis — no patient data leaves the device | `✅ Completed` |
 | 🎓 **Education** | **Adaptive Tutor** with OCR-graded homework, dynamic quizzes, and culturally localized content | `✅ Completed` |
 | 🌍 **Global Resilience** | **Offline-capable architecture** + World Monitor for geopolitical & disaster intelligence | `✅ Completed` |
+| 🏢 **Enterprise & Economy** | **Zero-Employee Company (Company OS)** via Paperclip Workspace for local autonomous tasking | `✅ Completed` |
 | 🔒 **Privacy-First** | **Fully local inference** — no cloud dependency, FHIR-compatible data guardrails | `✅ Completed` |
 | ⚙️ **Edge & Constrained Environments** | Runs on Windows workstations, Android, Raspberry Pi, and NVIDIA Jetson | `✅ Completed` |
 
@@ -76,20 +77,20 @@ Think of it as your own private Jarvis: it reasons, remembers, monitors the worl
 Cyborg is organized into three tightly integrated layers:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│              Frontend Shell  (Flutter 3.x)                  │
-│  Dashboard · World Monitor · Mirofish Graph · Settings UI   │
-└────────────────────────┬────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│              Frontend Shell  (Flutter 3.x)                    │
+│   Dashboard · World Monitor · Mirofish Graph · Paperclip UI   │
+└────────────────────────┬──────────────────────────────────────┘
                          │ REST / WebSocket
-┌────────────────────────▼────────────────────────────────────┐
-│             Backend Intelligence  (FastAPI + Python)        │
-│  General Chat  │  Gemma 4 Health │  Adaptive Tutor  │  KGE   │
-└────────────────────────┬────────────────────────────────────┘
+┌────────────────────────▼──────────────────────────────────────┐
+│             Backend Intelligence  (FastAPI + Python)          │
+│ General Chat │ Gemma 4 Health │ Adaptive Tutor │ Company OS  │
+└────────────────────────┬──────────────────────────────────────┘
                          │
-┌────────────────────────▼────────────────────────────────────┐
-│           Knowledge Vault  (ACE/Obsidian Structure)         │
-│     .md Semantic Nodes  ·  Wikilink Graph  ·  FHIR EHR     │
-└─────────────────────────────────────────────────────────────┘
+┌────────────────────────▼──────────────────────────────────────┐
+│           Knowledge Vault  (ACE/Obsidian Structure)           │
+│     .md Semantic Nodes  ·  Wikilink Graph  ·  FHIR EHR       │
+└───────────────────────────────────────────────────────────────┘
 ```
 
 ### Full Component Diagram
@@ -102,6 +103,7 @@ graph TD
         GS["⚙️ Global Settings & Dark Mode"]
         MF["🐠 Mirofish Workbench"]
         VX["🎙️ Jarvis Voice Interface"]
+        PC["📎 Paperclip Workspace & Theme"]
     end
 
     subgraph "Backend Intelligence (FastAPI)"
@@ -111,6 +113,7 @@ graph TD
         EDU["🎓 Adaptive Tutor (Gemma 4 Weights)"]
         KGE["🌌 Graph Physics Engine (Leiden)"]
         WM["🌎 World Monitor — GDELT / USGS Feed"]
+        COMP["🏢 Company OS — Paperclip Workflow"]
     end
 
     subgraph "Knowledge Vault (ACE Structure)"
@@ -123,14 +126,17 @@ graph TD
     UI <--> API
     VX <--> API
     KG <--> KGE
+    PC <--> API
     API <--> LLM
     API <--> MED
     API <--> EDU
     API <--> WM
+    API <--> COMP
     LLM --> VAULT
     KGE --> GRAPH
     MED --> FHIR
     EDU --> VAULT
+    COMP --> VAULT
     VAULT --> ACE
 ```
 
@@ -398,6 +404,7 @@ Cyborg AGI is designed to solve high-stakes, real-world problems where cloud dep
 |---|---|---|
 | **Inference Speed** | `60+ tokens/sec (RTX 3070+)` | `⚡ Premium` |
 | **Gemma 4 Health VRAM** | `~6 GB (4-bit quantized)` | `🔋 Optimized` |
+| **Paperclip Company OS** | `Multi-agent research loop (local only)` | `💼 Free Operations` |
 | **Knowledge Graph** | `Tested to 10,000+ nodes` | `🕸️ Leiden community active` |
 | **Cold Start Time** | `< 8 seconds (Windows native)` | `🚀 High speed` |
 | **Offline Capability** | `Full (all features 100% air-gapped)` | `🔒 Air-gapped` |
@@ -429,6 +436,7 @@ Cyborg AGI is designed to solve high-stakes, real-world problems where cloud dep
 | Resource | Link | Description |
 |---|---|---|
 | 🏗️ **Architecture Deep-Dive** | [`GEMMA4_QUICKSTART.md`](GEMMA4_QUICKSTART.md) | Full local Gemma configuration guide |
+| 💼 **Company OS Design** | [`paperclip_integration_plan.md`](paperclip_integration_plan.md) | Zero-Employee Company integration roadmap |
 | 🔌 **API Reference** | `http://localhost:8765/api/docs` | Swagger interactive API gateway UI |
 | 🏆 **Hackathon Submission** | [Kaggle Competition Page](https://www.kaggle.com/competitions/gemma-4-good-hackathon) | Hackathon details and deliverables |
 | 🧠 **Gemma 4 Models** | [Kaggle Models](https://www.kaggle.com/models/google/gemma-4) · [Hugging Face](https://huggingface.co/google/gemma-4) | Official Gemma model source paths |
