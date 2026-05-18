@@ -217,6 +217,20 @@ python assets/demos/education_demo.py
 
 ---
 
+## 🏢 Zero-Employee Company (Company OS) via Paperclip
+
+> [!TIP]
+> **Supercharging Local Operations:** Run an entire enterprise of research and task execution completely autonomously with local intelligence.
+
+Cyborg AGI integrates **Paperclip**, an advanced enterprise workspace and theme that hosts the **Zero-Employee Company (Company OS)**. This feature harnesses the reasoning depth of **Gemma 4** to execute highly professional business, research, and coding tasks completely autonomously.
+
+### Core Capabilities of Company OS
+- **Autonomous Research Agents**: Researchers query topics, compile literature reviews, and perform deep-dive web or local knowledge assessments.
+- **Task Orchestration Pipelines**: The local LLM functions as a professional project manager—researching topics, creating plans, writing scripts, and managing code workflows.
+- **High-Fidelity Local Execution**: Performs complex business tasks on-device without subscription fees, corporate telemetry, or cloud dependencies.
+
+---
+
 ## 🌍 Global Resilience: World Monitor Dashboard
 
 > **Hackathon Focus Area:** Climate, disaster response, and geopolitical awareness in one real-time intelligence feed.
