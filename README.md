@@ -5,7 +5,7 @@
 
   <p>
     <img src="https://img.shields.io/badge/Gemma_4-Multimodal_Ready-FF6B6B?style=for-the-badge&logo=google" alt="Gemma 4" />
-    <img src="https://img.shields.io/badge/MedGemma_4B-Health_Track-00BFA5?style=for-the-badge&logo=health" alt="MedGemma" />
+    <img src="https://img.shields.io/badge/Gemma_4-Health_Track-00BFA5?style=for-the-badge&logo=health" alt="Gemma 4" />
     <img src="https://img.shields.io/badge/Tracks-Health_%7C_Education_%7C_Climate-orange?style=for-the-badge" alt="Tracks" />
     <img src="https://img.shields.io/badge/Inference-60+_tok/sec-00FF00?style=for-the-badge&logo=nvidia" alt="Speed" />
     <img src="https://img.shields.io/badge/Architecture-Flutter_%7C_FastAPI-FF0266?style=for-the-badge" alt="Engine" />
@@ -22,13 +22,13 @@
 
 Cyborg AGI was built specifically around the **Gemma 4 Good Hackathon** challenge: use the power of open, locally-runnable AI to solve real-world problems in **health**, **education**, and **global resilience** — especially in low-connectivity and privacy-sensitive environments.
 
-| Hackathon Theme | How Cyborg Addresses It |
-|---|---|
-| 🏥 **Health** | MedGemma 4B pipeline for local clinical reasoning & X-ray analysis — no patient data leaves the device |
-| 🎓 **Education** | Adaptive Tutor with OCR-graded homework, dynamic quizzes, and culturally localized content |
-| 🌍 **Global Resilience** | Offline-capable architecture + World Monitor for geopolitical & disaster intelligence |
-| 🔒 **Privacy-First** | Fully local inference — no cloud dependency, FHIR-compatible data guardrails |
-| ⚙️ **Edge & Constrained Environments** | Runs on Windows workstations, Android, Raspberry Pi, and NVIDIA Jetson |
+| Hackathon Theme | How Cyborg Addresses It | Status |
+|---|---|---|
+| 🏥 **Health** | **Gemma 4 Health** pipeline for local clinical reasoning & X-ray analysis — no patient data leaves the device | `✅ Completed` |
+| 🎓 **Education** | **Adaptive Tutor** with OCR-graded homework, dynamic quizzes, and culturally localized content | `✅ Completed` |
+| 🌍 **Global Resilience** | **Offline-capable architecture** + World Monitor for geopolitical & disaster intelligence | `✅ Completed` |
+| 🔒 **Privacy-First** | **Fully local inference** — no cloud dependency, FHIR-compatible data guardrails | `✅ Completed` |
+| ⚙️ **Edge & Constrained Environments** | Runs on Windows workstations, Android, Raspberry Pi, and NVIDIA Jetson | `✅ Completed` |
 
 > **Why Gemma 4?** Open Apache 2.0 weights, strong multimodal performance on local hardware, and safety-tuned by design. The exceptional **agentic intelligence of Gemma 4** enables complex reasoning, planning, and tool parsing at the edge, making the entire on-device AGI workflow highly optimized, responsive, and efficient.
 
@@ -61,7 +61,7 @@ Think of it as your own private Jarvis: it reasons, remembers, monitors the worl
 ### Core Capabilities at a Glance
 
 - **🧠 General-purpose chat** powered by Llama/Qwen local models
-- **🏥 Medical reasoning** via isolated MedGemma 4B with SigLIP vision
+- **🏥 Medical reasoning** via isolated **Gemma 4 Health** with SigLIP vision
 - **🎓 Adaptive education** with homework grading and personalized quizzes
 - **🌎 World Monitor** for live geopolitical and disaster intelligence
 - **🕸️ Knowledge Graph** (Mirofish engine) for semantic memory visualization
@@ -83,7 +83,7 @@ Cyborg is organized into three tightly integrated layers:
                          │ REST / WebSocket
 ┌────────────────────────▼────────────────────────────────────┐
 │             Backend Intelligence  (FastAPI + Python)        │
-│  General Chat  │  MedGemma 4B  │  Adaptive Tutor  │  KGE   │
+│  General Chat  │  Gemma 4 Health │  Adaptive Tutor  │  KGE   │
 └────────────────────────┬────────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────────┐
@@ -107,7 +107,7 @@ graph TD
     subgraph "Backend Intelligence (FastAPI)"
         API["🐍 API Gateway"]
         LLM["🧠 General Chat (Llama / Qwen)"]
-        MED["🏥 MedGemma 4B — Isolated Pipeline"]
+        MED["🏥 Gemma 4 Health — Isolated Pipeline"]
         EDU["🎓 Adaptive Tutor (Gemma 4 Weights)"]
         KGE["🌌 Graph Physics Engine (Leiden)"]
         WM["🌎 World Monitor — GDELT / USGS Feed"]
@@ -136,8 +136,9 @@ graph TD
 
 ---
 
-## 🏥 Health Track: MedGemma 4B Pipeline
+## 🏥 Health Track: Gemma 4 Health Pipeline
 
+> [!IMPORTANT]
 > **Hackathon Focus Area:** Privacy-preserving medical AI for environments where patient data cannot leave the device.
 
 Cyborg's Health Track utilizes the global, highly optimized **`LLMService`** to perform fast, on-device clinical reasoning and vision tasks using Gemma 4.
@@ -146,13 +147,13 @@ Cyborg's Health Track utilizes the global, highly optimized **`LLMService`** to 
 
 - **Unified Vision Projector Architecture**: Routes all chest X-ray image encodings directly through the central GPU-accelerated vision projector, completely eliminating separate, redundant vision model loads and preventing VRAM thrashing.
 - **Smart RAG Context Guardrails**: Features a robust, real-time context cleaner inside [health_edu.py](file:///C:/Users/ankit/Projects/Android/CyborgAI-main/assets/backend/api/routes/health_edu.py) that screens out unrelated machine learning or system lecture notes from the patient history context, ensuring 100% focused clinical assessments.
-- **Local Clinical Reasoning**: MedGemma reasoning runs entirely on-device — suitable for clinics with no internet access or strict HIPAA/DPDP compliance requirements.
+- **Local Clinical Reasoning**: Gemma 4 reasoning runs entirely on-device — suitable for clinics with no internet access or strict HIPAA/DPDP compliance requirements.
 - **Zero-Exfiltration Architecture**: Patient records, images, and diagnostic outputs remain in the local encrypted vault.
 
 ### Medical Module Structure
 
 ```
-lib/health/medgemma/
+lib/health/gemma4/ (formerly medgemma)
 ├── inference.py        # Optimized async multimodal X-ray pipeline (centralized LLMService)
 ├── prompts.py          # Medical prompt templates & mandatory disclaimer injection
 └── ehr_functions.py    # FHIR function-calling with hardcoded safety guardrails
@@ -256,7 +257,7 @@ All intelligence is anchored in an **Obsidian-compatible vault** organized by th
 ```
 vault/
 ├── Atlas/          # Maps of topics, people, places — reference knowledge
-│   └── Health/     # MedGemma outputs & EHR records
+│   └── Health/     # Gemma 4 Health outputs & EHR records
 ├── Calendar/       # Time-anchored notes and World Monitor briefings
 └── Efforts/        # Active projects and adaptive learning paths
 ```
@@ -379,13 +380,13 @@ Cyborg AGI is designed to solve high-stakes, real-world problems where cloud dep
 
 ## 📊 Performance Benchmarks
 
-| Metric | Value |
-|---|---|
-| Inference Speed | 60+ tokens/sec (RTX 3070+) |
-| MedGemma 4B VRAM | ~6 GB (4-bit quantized) |
-| Knowledge Graph | Tested to 10,000+ nodes |
-| Cold Start Time | < 8 seconds (Windows native) |
-| Offline Capability | Full (all features) |
+| Metric | Value | Status |
+|---|---|---|
+| **Inference Speed** | `60+ tokens/sec (RTX 3070+)` | `⚡ Premium` |
+| **Gemma 4 Health VRAM** | `~6 GB (4-bit quantized)` | `🔋 Optimized` |
+| **Knowledge Graph** | `Tested to 10,000+ nodes` | `🕸️ Leiden community active` |
+| **Cold Start Time** | `< 8 seconds (Windows native)` | `🚀 High speed` |
+| **Offline Capability** | `Full (all features 100% air-gapped)` | `🔒 Air-gapped` |
 
 ---
 
@@ -393,7 +394,7 @@ Cyborg AGI is designed to solve high-stakes, real-world problems where cloud dep
 
 - Container runs as non-root user (`cyborg`, UID 1000)
 - All sensitive config via environment variables — never baked into images
-- MedGemma pipeline is **fully isolated** from general LLM routing
+- **Gemma 4 Health** pipeline is **fully isolated** from general LLM routing
 - FHIR EHR store uses hardcoded ethical guardrails that cannot be overridden via prompt
 - No telemetry, no cloud callbacks, no third-party data sharing
 
@@ -411,12 +412,12 @@ Cyborg AGI is designed to solve high-stakes, real-world problems where cloud dep
 
 ## 📚 Documentation
 
-| Resource | Link |
-|---|---|
-| Architecture Deep-Dive | [`GEMMA4_QUICKSTART.md`](GEMMA4_QUICKSTART.md) |
-| API Reference | `http://localhost:8765/api/docs` (when running) |
-| Hackathon Submission | [Kaggle Competition Page](https://www.kaggle.com/competitions/gemma-4-good-hackathon) |
-| Gemma 4 Models | [Kaggle Models](https://www.kaggle.com/models/google/gemma-4) · [Hugging Face](https://huggingface.co/google/gemma-4) |
+| Resource | Link | Description |
+|---|---|---|
+| 🏗️ **Architecture Deep-Dive** | [`GEMMA4_QUICKSTART.md`](GEMMA4_QUICKSTART.md) | Full local Gemma configuration guide |
+| 🔌 **API Reference** | `http://localhost:8765/api/docs` | Swagger interactive API gateway UI |
+| 🏆 **Hackathon Submission** | [Kaggle Competition Page](https://www.kaggle.com/competitions/gemma-4-good-hackathon) | Hackathon details and deliverables |
+| 🧠 **Gemma 4 Models** | [Kaggle Models](https://www.kaggle.com/models/google/gemma-4) · [Hugging Face](https://huggingface.co/google/gemma-4) | Official Gemma model source paths |
 
 ---
 
@@ -424,7 +425,7 @@ Cyborg AGI is designed to solve high-stakes, real-world problems where cloud dep
   <p><strong>Built with ❤️ using Gemma 4 for the Gemma 4 Good Hackathon · Kaggle × Google DeepMind · 2026</strong></p>
   <p><em>"Stable Intelligence. Autonomous Growth. AI for Everyone, Everywhere."</em></p>
 
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&pause=1000&color=8A2BE2&center=true&vCenter=true&width=600&lines=Cyborg+is+Stable.;MedGemma+Pipeline+Active.;Adaptive+Tutor+Ready.;World+Monitor+Live.;Offline.+Private.+Powerful." alt="Typing SVG" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&pause=1000&color=8A2BE2&center=true&vCenter=true&width=600&lines=Cyborg+is+Stable.;Gemma+4+Health+Active.;Adaptive+Tutor+Ready.;World+Monitor+Live.;Offline.+Private.+Powerful." alt="Typing SVG" />
 
   <p>
     <a href="https://github.com/ankit-sengupta05/CyborgAI">
