@@ -70,9 +70,15 @@ async def analyze_xray(
         raise HTTPException(status_code=503, detail="Health services not initialized")
 
     try:
-        # Save uploaded file temporarily
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(image.filename)[1]) as tmp:
-            shutil.copyfileobj(image.file, tmp)
+        # Save uploaded file temporarily using safe async read
+        contents = await image.read()
+        orig_suffix = os.path.splitext(image.filename)[1] if image.filename else ".png"
+        safe_suffix = "".join(c for c in orig_suffix if c.isalnum() or c == ".")
+        if not safe_suffix.startswith("."):
+            safe_suffix = "." + safe_suffix
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=safe_suffix) as tmp:
+            tmp.write(contents)
             tmp_path = tmp.name
 
         try:
@@ -107,8 +113,13 @@ async def analyze_xray(
             # Get global LLM service
             llm_svc = request.app.state.llm_service if hasattr(request.app.state, "llm_service") else None
 
-            # Run analysis
-            result = await pipeline.analyze_xray(tmp_path, patient_context=patient_context, llm_svc=llm_svc)
+            # Run analysis (gracefully fall back to mock mode if inference crashes)
+            try:
+                result = await pipeline.analyze_xray(tmp_path, patient_context=patient_context, llm_svc=llm_svc)
+            except Exception as e:
+                print(f"[WARNING] Real-time X-ray analysis failed: {e}. Falling back to mock/simulation mode.")
+                result = await pipeline.analyze_xray(tmp_path, patient_context=patient_context, llm_svc=None)
+                result["warning"] = f"Real-time analysis fell back to simulation: {str(e)}"
 
             # Add metadata
             result["timestamp"] = datetime.utcnow().isoformat()
@@ -228,9 +239,15 @@ async def grade_homework(
         raise HTTPException(status_code=503, detail="Education services not initialized")
 
     try:
-        # Save uploaded file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(image.filename)[1]) as tmp:
-            shutil.copyfileobj(image.file, tmp)
+        # Save uploaded file using safe async read
+        contents = await image.read()
+        orig_suffix = os.path.splitext(image.filename)[1] if image.filename else ".png"
+        safe_suffix = "".join(c for c in orig_suffix if c.isalnum() or c == ".")
+        if not safe_suffix.startswith("."):
+            safe_suffix = "." + safe_suffix
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=safe_suffix) as tmp:
+            tmp.write(contents)
             tmp_path = tmp.name
 
         try:
@@ -254,16 +271,29 @@ async def grade_homework(
             # Get global LLM service
             llm_svc = request.app.state.llm_service if hasattr(request.app.state, "llm_service") else None
 
-            # Grade homework with RAG context
-            result = await grader.grade_submission(
-                image_path=tmp_path,
-                subject=subject,
-                grade_level=grade_level,
-                rubric=rubric_dict,
-                language=language,
-                context=rag_context, # Pass RAG context here
-                llm_svc=llm_svc
-            )
+            # Grade homework with RAG context (gracefully fall back to mock mode if inference crashes)
+            try:
+                result = await grader.grade_submission(
+                    image_path=tmp_path,
+                    subject=subject,
+                    grade_level=grade_level,
+                    rubric=rubric_dict,
+                    language=language,
+                    context=rag_context, # Pass RAG context here
+                    llm_svc=llm_svc
+                )
+            except Exception as e:
+                print(f"[WARNING] Real-time grading failed: {e}. Falling back to mock/simulation mode.")
+                result = await grader.grade_submission(
+                    image_path=tmp_path,
+                    subject=subject,
+                    grade_level=grade_level,
+                    rubric=rubric_dict,
+                    language=language,
+                    context=rag_context,
+                    llm_svc=None
+                )
+                result["warning"] = f"Real-time grading fell back to simulation: {str(e)}"
 
             result["timestamp"] = datetime.utcnow().isoformat()
             result["image_name"] = image.filename

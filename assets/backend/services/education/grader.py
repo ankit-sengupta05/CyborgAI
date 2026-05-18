@@ -57,8 +57,8 @@ class HomeworkGrader:
         try:
             import ollama
             self.llm_backend = "ollama"
-            ollama.list()
-        except ImportError:
+            ollama.list()  # Test connection
+        except Exception:
             try:
                 from llama_cpp import Llama
                 self.llm = Llama(
@@ -68,7 +68,7 @@ class HomeworkGrader:
                     verbose=False
                 )
                 self.llm_backend = "llama_cpp"
-            except ImportError:
+            except Exception:
                 self.llm_backend = "mock"
 
         self._initialized = True

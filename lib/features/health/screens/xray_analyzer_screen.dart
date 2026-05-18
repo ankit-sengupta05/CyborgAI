@@ -100,12 +100,33 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen>
         backgroundColor: AppColors.backgroundMain,
         title: _buildAppBarTitle(),
       ),
-      body: Row(
-        children: [
-          SizedBox(width: 360, child: _buildLeftPanel()),
-          Container(width: 1, color: AppColors.border),
-          Expanded(child: _result != null ? _buildResults() : _buildEmpty()),
-        ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 768;
+          if (isCompact) {
+            return SingleChildScrollView(
+              child: Column(
+                children: [
+                  _buildLeftPanel(shrinkWrap: true),
+                  Container(height: 1, color: AppColors.border),
+                  _result != null
+                      ? _buildResults(shrinkWrap: true)
+                      : _buildEmpty(shrinkWrap: true),
+                ],
+              ),
+            );
+          } else {
+            return Row(
+              children: [
+                SizedBox(width: 360, child: _buildLeftPanel()),
+                Container(width: 1, color: AppColors.border),
+                Expanded(
+                  child: _result != null ? _buildResults() : _buildEmpty(),
+                ),
+              ],
+            );
+          }
+        },
       ),
     );
   }
@@ -132,37 +153,47 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen>
         ]),
       );
 
-  Widget _buildLeftPanel() => SingleChildScrollView(
+  Widget _buildLeftPanel({bool shrinkWrap = false}) {
+    final content = Column(children: [
+      _buildUploadCard(),
+      const SizedBox(height: 14),
+      _buildContextCard(),
+      const SizedBox(height: 14),
+      SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            icon: _analyzing
+                ? const SizedBox(
+                    width: 15,
+                    height: 15,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.biotech_outlined, size: 17),
+            label: Text(_analyzing ? 'Analyzing...' : 'Analyze X-ray'),
+            onPressed: (_image != null && !_analyzing) ? _analyze : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _healthBlue,
+              disabledBackgroundColor: AppColors.backgroundInput,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          )),
+      if (_error != null) ...[
+        const SizedBox(height: 10),
+        _errorBanner(),
+      ],
+    ]);
+
+    if (shrinkWrap) {
+      return Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          _buildUploadCard(),
-          const SizedBox(height: 14),
-          _buildContextCard(),
-          const SizedBox(height: 14),
-          SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: _analyzing
-                    ? const SizedBox(
-                        width: 15,
-                        height: 15,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.biotech_outlined, size: 17),
-                label: Text(_analyzing ? 'Analyzing...' : 'Analyze X-ray'),
-                onPressed: (_image != null && !_analyzing) ? _analyze : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _healthBlue,
-                  disabledBackgroundColor: AppColors.backgroundInput,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              )),
-          if (_error != null) ...[
-            const SizedBox(height: 10),
-            _errorBanner(),
-          ],
-        ]),
+        child: content,
       );
+    }
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: content,
+    );
+  }
 
   Widget _buildUploadCard() => Container(
         decoration: BoxDecoration(
@@ -294,8 +325,9 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen>
         ]),
       );
 
-  Widget _buildEmpty() => Center(
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+  Widget _buildEmpty({bool shrinkWrap = false}) {
+    final content = Center(
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         AnimatedBuilder(
           animation: _pulseAnim,
           builder: (_, child) =>
@@ -321,9 +353,19 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen>
         Text('Upload a chest X-ray to begin AI-assisted analysis',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             textAlign: TextAlign.center),
-      ]));
+      ]),
+    );
 
-  Widget _buildResults() {
+    if (shrinkWrap) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
+        child: content,
+      );
+    }
+    return content;
+  }
+
+  Widget _buildResults({bool shrinkWrap = false}) {
     final r = _result!;
     final conf = (r['confidence'] as num?)?.toInt() ?? 85;
     final confColor = conf >= 86
@@ -331,108 +373,116 @@ class _XRayAnalyzerScreenState extends State<XRayAnalyzerScreen>
         : conf >= 61
             ? const Color(0xFFF59E0B)
             : const Color(0xFFEF4444);
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          const Icon(Icons.biotech, color: _healthBlue, size: 20),
-          const SizedBox(width: 8),
-          Text('Analysis Results',
-              style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700)),
-        ]),
-        const SizedBox(height: 16),
-        _section(
-            _healthBlue,
-            Icons.search,
-            'Possible Findings',
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(
-                  r['diagnosis_suggestion'] ??
-                      'No acute abnormalities detected',
-                  style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              Row(children: [
-                Text('Confidence: ',
-                    style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12)),
-                Text('$conf%',
-                    style: TextStyle(
-                        color: confColor,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12)),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: LinearProgressIndicator(
-                        value: conf / 100,
-                        backgroundColor: AppColors.backgroundInput,
-                        valueColor: AlwaysStoppedAnimation(confColor),
-                        borderRadius: BorderRadius.circular(4),
-                        minHeight: 5)),
-              ]),
-            ])),
+    final content = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Icon(Icons.biotech, color: _healthBlue, size: 20),
+        const SizedBox(width: 8),
+        Text('Analysis Results',
+            style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
+      ]),
+      const SizedBox(height: 16),
+      _section(
+          _healthBlue,
+          Icons.search,
+          'Possible Findings',
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+                r['diagnosis_suggestion'] ??
+                    'No acute abnormalities detected',
+                style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Row(children: [
+              Text('Confidence: ',
+                  style: TextStyle(
+                      color: AppColors.textSecondary, fontSize: 12)),
+              Text('$conf%',
+                  style: TextStyle(
+                      color: confColor,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12)),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: LinearProgressIndicator(
+                      value: conf / 100,
+                      backgroundColor: AppColors.backgroundInput,
+                      valueColor: AlwaysStoppedAnimation(confColor),
+                      borderRadius: BorderRadius.circular(4),
+                      minHeight: 5)),
+            ]),
+          ])),
+      const SizedBox(height: 10),
+      _section(
+          const Color(0xFF10b981),
+          Icons.chat_bubble_outline,
+          'Plain-Language Explanation',
+          Text(r['plain_language_explanation'] ?? r['full_response'] ?? '',
+              style: const TextStyle(
+                  color: AppColors.textPrimary, fontSize: 13, height: 1.6))),
+      if ((r['risk_factors'] as List?)?.isNotEmpty == true) ...[
         const SizedBox(height: 10),
         _section(
-            const Color(0xFF10b981),
-            Icons.chat_bubble_outline,
-            'Plain-Language Explanation',
-            Text(r['plain_language_explanation'] ?? r['full_response'] ?? '',
-                style: const TextStyle(
-                    color: AppColors.textPrimary, fontSize: 13, height: 1.6))),
-        if ((r['risk_factors'] as List?)?.isNotEmpty == true) ...[
-          const SizedBox(height: 10),
-          _section(
-            const Color(0xFFF59E0B),
-            Icons.warning_amber_outlined,
-            'Risk Factors',
-            Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: (r['risk_factors'] as List)
-                    .map((f) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('• ',
-                                  style: TextStyle(color: Color(0xFFF59E0B))),
-                              Expanded(
-                                  child: Text(f.toString(),
-                                      style: const TextStyle(
-                                          color: AppColors.textPrimary,
-                                          fontSize: 13,
-                                          height: 1.5))),
-                            ])))
-                    .toList()),
-          ),
-        ],
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-              color: AppColors.accentRed.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.accentRed.withOpacity(0.3))),
-          child: const Row(
+          const Color(0xFFF59E0B),
+          Icons.warning_amber_outlined,
+          'Risk Factors',
+          Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.shield_outlined,
-                    color: AppColors.accentRed, size: 16),
-                SizedBox(width: 8),
-                Expanded(
-                    child: Text(
-                        '⚠️ This AI assistance is not a substitute for professional medical diagnosis. Always consult a qualified healthcare provider.',
-                        style: TextStyle(
-                            color: AppColors.accentRed,
-                            fontSize: 12,
-                            height: 1.5))),
-              ]),
+              children: (r['risk_factors'] as List)
+                  .map((f) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('• ',
+                                style: TextStyle(color: Color(0xFFF59E0B))),
+                            Expanded(
+                                child: Text(f.toString(),
+                                    style: const TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontSize: 13,
+                                        height: 1.5))),
+                          ])))
+                  .toList()),
         ),
-      ]),
+      ],
+      const SizedBox(height: 12),
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+            color: AppColors.accentRed.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.accentRed.withOpacity(0.3))),
+        child: const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.shield_outlined,
+                  color: AppColors.accentRed, size: 16),
+              SizedBox(width: 8),
+              Expanded(
+                  child: Text(
+                      '⚠️ This AI assistance is not a substitute for professional medical diagnosis. Always consult a qualified healthcare provider.',
+                      style: TextStyle(
+                          color: AppColors.accentRed,
+                          fontSize: 12,
+                          height: 1.5))),
+            ]),
+      ),
+    ]);
+
+    if (shrinkWrap) {
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: content,
+      );
+    }
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: content,
     );
   }
 

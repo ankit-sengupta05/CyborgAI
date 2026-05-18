@@ -34,6 +34,23 @@ Cyborg AGI was built specifically around the **Gemma 4 Good Hackathon** challeng
 
 ---
 
+## 🚀 Live Space & Sample Demo
+
+Experience a live interactive sample of Cyborg AGI directly in your browser:
+* **🌐 Live Space Demo**: [https://huggingface.co/spaces/cyborg2005/cyboorg](https://huggingface.co/spaces/cyborg2005/cyboorg)
+
+---
+
+## 🔮 The Vision: Connected Local Intelligence
+
+Cyborg AGI's ultimate vision is to create a seamless, decentralized, private network connecting all your personal devices (PCs, laptops, and Android phones) into an air-gapped, zero-cost private grid:
+- **Seamless Device Interconnectivity**: All your devices remain connected securely in real-time, allowing you to access the combined power of your local ecosystem from anywhere.
+- **Natural Language File Retrieval**: Fetch any file from any of your devices simply by describing what you need in natural language. For instance, even if a file resides on your desktop PC at home, you can query it on your phone while you are outside, and the system will locate and stream it directly to your phone.
+- **Remote Task Orchestration & Management**: Delegate active workloads and assign tasks directly from your Android device. Setup new coding environments, bootstrap whole programming projects, or trigger custom server tasks on your remote PC while you are on the move.
+- **100% Free, Private, & Local**: No subscriptions, no telemetry, and no third-party servers. Your files, local LLMs, and operations are kept strictly local, free, and private forever.
+
+---
+
 ## 🧠 What is Cyborg AGI?
 
 Cyborg AGI is a **full-stack, locally-hosted Autonomous General Intelligence OS**. It unifies a Flutter-powered dashboard, a FastAPI intelligence backend, and a personal Knowledge Vault into a single coherent system — all running on your own hardware.

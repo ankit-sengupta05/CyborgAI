@@ -53,26 +53,34 @@ class MedGemmaPipeline:
             return
 
         try:
-            # Initialize tokenizer
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                "google/gemma-2b-it",
-                cache_dir=os.path.join(os.path.dirname(self.model_path), "cache")
-            )
+            # Initialize tokenizer (avoid hitting internet)
+            try:
+                self.tokenizer = AutoTokenizer.from_pretrained(
+                    "google/gemma-2b-it",
+                    cache_dir=os.path.join(os.path.dirname(self.model_path), "cache"),
+                    local_files_only=True
+                )
+            except Exception:
+                self.tokenizer = None
 
-            # Initialize vision encoder (SigLIP)
-            from transformers import SiglipVisionModel
-            self.vision_encoder = SiglipVisionModel.from_pretrained(
-                "google/siglip-so400m-patch14-384"
-            ).to(self.device)
-            self.vision_encoder.eval()
+            # Initialize vision encoder (SigLIP) (avoid hitting internet)
+            try:
+                from transformers import SiglipVisionModel
+                self.vision_encoder = SiglipVisionModel.from_pretrained(
+                    "google/siglip-so400m-patch14-384",
+                    local_files_only=True
+                ).to(self.device)
+                self.vision_encoder.eval()
+            except Exception:
+                self.vision_encoder = None
 
             # Initialize Ollama backend for GGUF inference
             try:
                 import ollama
                 self.llm_backend = "ollama"
-                # Test connection
+                # Test connection (catches connection/http/timeout exceptions)
                 ollama.list()
-            except ImportError:
+            except Exception:
                 # Fallback to llama-cpp-python
                 try:
                     from llama_cpp import Llama
@@ -83,17 +91,14 @@ class MedGemmaPipeline:
                         verbose=False
                     )
                     self.llm_backend = "llama_cpp"
-                except ImportError:
-                    raise RuntimeError(
-                        "Please install ollama or llama-cpp-python for GGUF inference:\n"
-                        "pip install ollama\nor\npip install llama-cpp-python"
-                    )
+                except Exception:
+                    self.llm_backend = "mock"
 
             self._initialized = True
-            print(f"✅ MedGemmaPipeline initialized on {self.device}")
+            print(f"[OK] MedGemmaPipeline initialized on {self.device}")
 
         except Exception as e:
-            print(f"⚠️ Model initialization failed: {e}")
+            print(f"[WARNING] Model initialization failed: {e}")
             print("Running in mock mode for development")
             self._initialized = True  # Allow mock mode
             self.llm_backend = "mock"

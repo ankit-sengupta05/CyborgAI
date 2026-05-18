@@ -31,6 +31,16 @@
 
   <title>cyborg</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Intercept dynamic Firebase CDN imports and redirect to local cached files for offline support -->
+  <script type="importmap">
+    {
+      "imports": {
+        "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js": "./firebase-app.js",
+        "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js": "./firebase-auth.js"
+      }
+    }
+  </script>
 </head>
 <body>
   <!--
